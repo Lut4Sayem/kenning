@@ -3,6 +3,7 @@ package com.knowledgeforge.knowledgeforge.auth;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -12,9 +13,12 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private AuthRateLimiter rateLimiter;
+
     @PostMapping("/register")
-    public UserResponse register(@RequestBody RegisterRequest request) {
-//        System.out.println("Register method called");
+    public UserResponse register(@RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        rateLimiter.check("register", httpRequest.getRemoteAddr());
         return authService.register(request);
 
     }
@@ -25,7 +29,14 @@ public class AuthController {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
-        return authService.login(request, httpRequest, httpResponse);
+        String ip = httpRequest.getRemoteAddr();
+        rateLimiter.assertLoginAllowed(ip, request.getEmail());
+        try {
+            return authService.login(request, httpRequest, httpResponse);
+        } catch (AuthenticationException e) {
+            rateLimiter.recordLoginFailure(ip, request.getEmail());
+            throw e;
+        }
     }
 
     public static class UserResponse {
