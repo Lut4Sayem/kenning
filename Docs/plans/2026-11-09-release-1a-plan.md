@@ -382,8 +382,9 @@ Port Dashboard, Team, Profile pages to React (same behaviour as today, plain CSS
 
 ### Task 10.1: Hosting (ADR 0006), backups, monitoring
 **Files:** `deploy/docker-compose.yml` (app + Caddy with automatic HTTPS; collab service joins in 1b), `deploy/Caddyfile`, `.github/workflows/deploy.yml` (on `main`: build image, push to GHCR; the VM pulls it every 5 min via a systemd timer, health-checked with rollback), `.github/workflows/backup.yml` (nightly `mongodump`, encrypted with `age`, kept 7 days as artifact), Spring Actuator `/actuator/health` (public, no details).
-- [ ] JVM tuned for the VM (`-XX:MaxRAMPercentage=60`), measured memory written in PROJECT_CONTEXT.
-- [ ] Restore test from a nightly backup into Atlas-local. Uptime monitor on `/actuator/health`.
+- [x] JVM tuned for the VM (`-XX:MaxRAMPercentage=60`), measured memory written in PROJECT_CONTEXT.
+- [x] Restore test into Atlas-local (2026-11-14: `mongodump` of `knowledgeforge_v1` restored into `mongodb-atlas-local:8.0`, 18 documents, 0 failures, counts match). Not yet exercised with the age-encrypted artifact: the nightly run failed on a stale `BACKUP_MONGODB_URI` secret.
+- [ ] Uptime monitor on `/actuator/health` (owner creates it, steps in `deploy/README.md`).
 
 ### Task 10.2: Release checks
 - [ ] Seed 10,000 pages (`kf.seed` dev profile): sidebar tree, page open < 2 s, search measured and recorded.
@@ -391,6 +392,12 @@ Port Dashboard, Team, Profile pages to React (same behaviour as today, plain CSS
 - [ ] Accessibility pass: keyboard-only walk through tree, editor, palette, history, trash; axe check in Playwright (no serious violations).
 - [ ] 360 px check of every screen (no horizontal scroll).
 - [ ] Fresh-start deploy (D7): `mongodump` backup of production (keep 30 days), drop all old collections and this week's test data, deploy 1a on the empty database, smoke test. Then README update, tag `v1.0-1a`.
+- [ ] Old-DB cleanup (do after the new site is verified; the app already runs on the new database `knowledgeforge_v1`):
+  1. Atlas > Database > Browse Collections: note the old database name (`knowledgeforge`) and its document counts.
+  2. Take a last dump: `mongodump --uri="<old URI>" --gzip --archive=old-db.archive`, encrypt with `age -r <AGE_PUBLIC_KEY> old-db.archive > old-db.archive.age`, keep it 30 days offline.
+  3. Atlas > Browse Collections > `knowledgeforge` > trash icon next to the database name > type the name > Drop. Never touch `knowledgeforge_v1`.
+  4. Atlas > Network Access: remove IP entries you no longer use (old Render service, old home IPs). Keep the VM IP; keep 0.0.0.0/0 only while GitHub-hosted backups need it.
+  5. Render: suspend or delete the old service `knowledgeforge-ai-1` and remove its `SPRING_DATA_MONGODB_URI`.
 - [ ] Wrap multi-document moves (trash/restore/archive/move-to-team) in MongoDB transactions, or record why not.
 
 ### Hand-off to the visual design pass (after 1a works)

@@ -26,10 +26,11 @@ sudo systemctl daemon-reload && sudo systemctl enable --now kf-update.timer
 
 ## ~/kf/.env (chmod 600, never in git)
 - `SPRING_DATA_MONGODB_URI` : Atlas URI ending in the NEW database name, e.g. `.../knowledgeforge_v1?retryWrites=true&w=majority`
+- Atlas user for the app (`kfapp`): roles `readWrite` + `dbAdmin` on `knowledgeforge_v1` only. `readWrite` alone fails: `SchemaSetup` runs `collMod` (validators) and creates the search index, which need `dbAdmin`. Use an alphanumeric password (no URL-encoding needed).
 - `AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY` : only if the AI assistant is used
 
 ## Backup secrets (GitHub > repo > Settings > Secrets and variables > Actions)
-- `BACKUP_MONGODB_URI` : URI of the new database (a read-only user is enough)
+- `BACKUP_MONGODB_URI` : URI of the new database with a user that can authenticate (the `kfapp` user works; a separate `read` user on `knowledgeforge_v1` is cleaner). Update it whenever that password changes.
 - `AGE_PUBLIC_KEY` : `age-keygen -o kf-backup.key` locally; paste the `age1...` public key. Keep the key file offline.
 Restore: `age -d -i kf-backup.key kf-DATE.archive.age > kf.archive`, then `mongorestore --uri=... --gzip --archive=kf.archive`.
 
