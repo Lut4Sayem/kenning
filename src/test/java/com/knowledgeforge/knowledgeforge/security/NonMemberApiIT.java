@@ -96,5 +96,25 @@ class NonMemberApiIT extends NodeIntegrationTest {
         denied(o, post(tm + "/invite"), null);
         denied(o, delete(tm + "/members/" + admin.getId()), null);
         denied(o, put(tm + "/members/" + admin.getId() + "/role"), "{\"role\":\"VIEWER\"}");
+
+        // another user's personal space (ownerType USER): nobody else may see or touch it
+        var mine = spaces.findByOwnerUserId(admin.getId()).orElseThrow();
+        loginAs(admin); // MockMvc calls cleared the thread's login
+        NodeDTO secret = nodeService.create(mine.getId(), new com.knowledgeforge.knowledgeforge.node.CreateNodeRequest(null, "My diary", null));
+        String ps = "/api/spaces/" + mine.getId();
+        String pn = "/api/nodes/" + secret.id();
+        denied(o, get(ps + "/tree"), null);
+        denied(o, post(ps + "/nodes"), "{\"title\":\"x\"}");
+        denied(o, get(ps + "/trash"), null);
+        denied(o, get(ps + "/archived"), null);
+        denied(o, post(ps + "/ai/ask"), "{\"question\":\"q\"}");
+        denied(o, get(pn), null);
+        denied(o, get(pn + "/content"), null);
+        denied(o, get(pn + "/versions"), null);
+        denied(o, get(pn + "/comments"), null);
+        denied(o, post(pn + "/trash"), null);
+        denied(o, post(pn + "/move-to-team"), "{\"spaceId\":\"" + space.getId() + "\"}");
+        org.junit.jupiter.api.Assertions.assertEquals("[]", mvc.perform(get("/api/search?q=diary").with(user(o.getEmail())))
+                .andReturn().getResponse().getContentAsString().replaceAll("\s", ""));
     }
 }

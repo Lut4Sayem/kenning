@@ -14,7 +14,19 @@ A knowledge base for student project teams. Teams own spaces, spaces hold a tree
 - **History:** automatic and named versions, restore any version.
 - **Search:** full-text search (Atlas Search) over the pages you can read, plus a command palette.
 - **Comments, attachments, move a private page to a team.**
-- **Summarize and Ask:** optional page summary and a question box that answers from one space's pages (needs an API key, hidden without one).
+- **AI assistant (optional):** page summaries and "Ask this space", see below.
+
+### AI assistant
+
+- **Summarize** a page into a few bullet points (cached until the page content changes).
+- **Ask this space:** ask a question and get an answer based only on that space's pages, with clickable `[n]` sources. Pages are found with Atlas Search (keywords, not meaning), so a question worded very differently from the pages may get "I don't know".
+- Answers are cached per space and question until the space's pages change, so repeats cost nothing.
+- Available to every member of the team, viewers included, and only for pages they can read.
+- Limits: 10 requests per user per day and a daily token budget for the whole site, both configurable (below).
+- **Privacy:** page text is sent to an external provider (Groq, OpenAI-compatible API) when these features are used.
+- Without an API key the app works normally and the AI buttons are hidden.
+
+Endpoints: `POST /api/nodes/{id}/ai/summary`, `POST /api/spaces/{id}/ai/ask` with body `{"question": "..."}`.
 
 ---
 
@@ -55,7 +67,15 @@ export SPRING_DATA_MONGODB_URI="mongodb://localhost:27017/kf_dev?directConnectio
 
 Open http://localhost:8080/app and register.
 
-Optional variables: `AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY` (summaries and Ask), `KF_AUTH_RATE_LIMIT_PER_MINUTE` (default 10).
+Optional variables (values without quotes or trailing spaces):
+
+```bash
+export AI_BASE_URL="https://api.groq.com/openai/v1"   # AI assistant; all three are needed to turn it on
+export AI_MODEL="openai/gpt-oss-20b"
+export AI_API_KEY="your-groq-key"
+# AI_USER_DAILY_LIMIT (default 10), AI_SITE_DAILY_TOKENS (default 180000)
+# KF_AUTH_RATE_LIMIT_PER_MINUTE (default 10, failed logins per IP and email)
+```
 
 Frontend alone with hot reload: `cd frontend && npm install && npm run dev`.
 
@@ -75,7 +95,7 @@ cd frontend && npm run e2e      # Playwright, needs the app running
 
 - Every page, space and team endpoint checks team membership; a logged-in user outside the team gets 403 or 404, and tag, search and recent lists hold nothing of the team's (`NonMemberApiIT`).
 - CSRF token on all writes, BCrypt passwords, session cookie `SameSite=Lax`.
-- Login and register: 10 attempts per minute per IP (shared by everyone behind one NAT, not per account). Local Playwright runs make more calls than that: set `KF_AUTH_RATE_LIMIT_PER_MINUTE=1000` when starting the app.
+- Failed logins: 10 per minute per IP and email, so a class on one network can all sign in; successful logins never count. Register: 10 per minute per IP. Local Playwright runs make more calls than that: set `KF_AUTH_RATE_LIMIT_PER_MINUTE=1000` when starting the app.
 - Page text is rendered as text; search snippets are escaped on the server and again in the browser; bookmark links allow only `http(s)`; uploads are always served as downloads with `nosniff`.
 
 ---
@@ -87,7 +107,7 @@ cd frontend && npm run e2e      # Playwright, needs the app running
 - Rate limiting is in memory, so it assumes one app instance.
 - Trash, archive, restore and move-to-team update several documents without a database transaction: they work in chunks so large branches stay inside MongoDB's transaction limits, some steps are raw pipeline updates, and a repeat of trash, archive or restore finishes the job. If move-to-team fails half way, the branch needs a manual repair.
 - Uploaded files are not scanned for malware (5 MB limit, allowlist of types).
-- Summaries and Ask use a free API tier and find pages by keywords, not meaning.
+- Summaries and Ask can hit the provider's free-tier limits under heavy use.
 - Bookmark images load from third-party sites.
 
 ---

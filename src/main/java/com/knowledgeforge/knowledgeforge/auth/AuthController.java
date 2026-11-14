@@ -3,6 +3,7 @@ package com.knowledgeforge.knowledgeforge.auth;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,8 +29,14 @@ public class AuthController {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
-        rateLimiter.check("login", httpRequest.getRemoteAddr());
-        return authService.login(request, httpRequest, httpResponse);
+        String ip = httpRequest.getRemoteAddr();
+        rateLimiter.assertLoginAllowed(ip, request.getEmail());
+        try {
+            return authService.login(request, httpRequest, httpResponse);
+        } catch (AuthenticationException e) {
+            rateLimiter.recordLoginFailure(ip, request.getEmail());
+            throw e;
+        }
     }
 
     public static class UserResponse {

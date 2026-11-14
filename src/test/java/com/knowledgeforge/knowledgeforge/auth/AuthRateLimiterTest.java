@@ -32,4 +32,17 @@ class AuthRateLimiterTest {
         clock.now = clock.now.plus(Duration.ofSeconds(61));
         assertDoesNotThrow(() -> limiter.check("login", "1.1.1.1"));
     }
+
+    @Test
+    void failuresAreCountedPerIpAndNormalisedEmailAndReadingDoesNotCount() {
+        MutableClock clock = new MutableClock();
+        AuthRateLimiter limiter = new AuthRateLimiter(clock, 10);
+        for (int i = 0; i < 100; i++) limiter.assertLoginAllowed("1.1.1.1", "a@x.test"); // reading never counts
+        for (int i = 0; i < 10; i++) limiter.recordLoginFailure("1.1.1.1", i % 2 == 0 ? "a@x.test" : "  A@X.test ");
+        assertEquals(429, assertThrows(ResponseStatusException.class, () -> limiter.assertLoginAllowed("1.1.1.1", "A@x.TEST")).getStatusCode().value());
+        assertDoesNotThrow(() -> limiter.assertLoginAllowed("1.1.1.1", "b@x.test"));
+        assertDoesNotThrow(() -> limiter.assertLoginAllowed("2.2.2.2", "a@x.test"));
+        clock.now = clock.now.plus(Duration.ofSeconds(61));
+        assertDoesNotThrow(() -> limiter.assertLoginAllowed("1.1.1.1", "a@x.test"));
+    }
 }
