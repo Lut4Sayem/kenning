@@ -73,9 +73,9 @@ cd frontend && npm run e2e      # Playwright, needs the app running
 
 ## Security notes
 
-- Every `/api` call checks team membership; a user outside the team gets 403 or 404 (covered by `NonMemberApiIT`).
+- Every page, space and team endpoint checks team membership; a logged-in user outside the team gets 403 or 404, and tag, search and recent lists hold nothing of the team's (`NonMemberApiIT`).
 - CSRF token on all writes, BCrypt passwords, session cookie `SameSite=Lax`.
-- Login and register: 10 attempts per minute per IP.
+- Login and register: 10 attempts per minute per IP (shared by everyone behind one NAT, not per account). Local Playwright runs make more calls than that: set `KF_AUTH_RATE_LIMIT_PER_MINUTE=1000` when starting the app.
 - Page text is rendered as text; search snippets are escaped on the server and again in the browser; bookmark links allow only `http(s)`; uploads are always served as downloads with `nosniff`.
 
 ---
@@ -85,7 +85,7 @@ cd frontend && npm run e2e      # Playwright, needs the app running
 - No real-time co-editing; two people can edit the same page, and their changes are merged on save. A soft lock warns the second person.
 - The whole page tree of a space loads at once (about 2 MB for 10,000 pages before compression).
 - Rate limiting is in memory, so it assumes one app instance.
-- Trash, archive and move-to-team update several documents without a database transaction (see `Docs/PROJECT_CONTEXT.md`).
+- Trash, archive, restore and move-to-team update several documents without a database transaction: they work in chunks so large branches stay inside MongoDB's transaction limits, some steps are raw pipeline updates, and a repeat of trash, archive or restore finishes the job. If move-to-team fails half way, the branch needs a manual repair.
 - Uploaded files are not scanned for malware (5 MB limit, allowlist of types).
 - Summaries and Ask use a free API tier and find pages by keywords, not meaning.
 - Bookmark images load from third-party sites.

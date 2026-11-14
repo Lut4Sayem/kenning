@@ -49,7 +49,12 @@ class NonMemberApiIT extends NodeIntegrationTest {
         String attId = JsonPath.read(mvc.perform(upload).andReturn().getResponse().getContentAsString(), "$.id");
         json(post("/api/nodes/" + child.id() + "/trash"), admin, null);
 
+        json(patch("/api/nodes/" + id), admin, "{\"tags\":[\"secret\"]}");
         User o = newUser();
+        // list endpoints answer 200 but must hold nothing of ours
+        for (String url : new String[]{"/api/tags/secret/nodes", "/api/search?q=page", "/api/me/recent"})
+            org.junit.jupiter.api.Assertions.assertEquals("[]", mvc.perform(get(url).with(user(o.getEmail()))).andReturn()
+                    .getResponse().getContentAsString().replaceAll("\\s", ""), url);
         String n = "/api/nodes/" + id;
         String sp = "/api/spaces/" + space.getId();
         String tm = "/api/teams/" + team.getId();

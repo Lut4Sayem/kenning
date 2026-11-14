@@ -69,14 +69,19 @@ public class SeedRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        if (!uri.contains("localhost") && !uri.contains("127.0.0.1")) {
+        var cs = new com.mongodb.ConnectionString(uri);
+        if (uri.startsWith("mongodb+srv") || !cs.getHosts().stream().allMatch(h -> h.startsWith("localhost:") || h.startsWith("127.0.0.1:"))) {
             throw new IllegalStateException("kf.seed only runs against a local database");
         }
         AuthController.RegisterRequest r = new AuthController.RegisterRequest();
         r.setFullName("Seed User");
         r.setEmail(EMAIL);
         r.setPassword(PASSWORD);
-        if (users.findByEmail(EMAIL).isEmpty()) auth.register(r);
+        if (users.findByEmail(EMAIL).isPresent()) {
+            LoggerFactory.getLogger(SeedRunner.class).info("SEED_SKIPPED already seeded; use a fresh database to seed again");
+            return;
+        }
+        auth.register(r);
         User u = users.findByEmail(EMAIL).orElseThrow();
 
         Team team = new Team();
@@ -99,12 +104,14 @@ public class SeedRunner implements ApplicationRunner {
         List<NodeContent> contents = new ArrayList<>();
         int made = 0;
         // 10 roots -> 50 children each -> the rest as leaves spread over the children
-        List<String> ranks = RankKeys.spread(1000);
+        List<String> ranks = RankKeys.spread(60); // enough for the widest sibling group
+        java.util.Map<String, Integer> childCount = new java.util.HashMap<>();
         List<Node> roots = new ArrayList<>(), mids = new ArrayList<>();
         for (int i = 0; made < total; i++) {
             Node parent = null;
             if (i >= 10) parent = i < 510 ? roots.get((i - 10) % 10) : mids.get((i - 510) % mids.size());
-            Node n = page(space, by, parent, "Page " + i + " " + word(rnd) + " " + word(rnd), ranks.get(i % ranks.size()), i);
+            int slot = childCount.merge(parent == null ? "" : parent.getId(), 1, Integer::sum) - 1;
+            Node n = page(space, by, parent, "Page " + i + " " + word(rnd) + " " + word(rnd), ranks.get(slot), i);
             if (i < 10) roots.add(n); else if (i < 510) mids.add(n);
             nodes.add(n);
             contents.add(content(n, rnd));

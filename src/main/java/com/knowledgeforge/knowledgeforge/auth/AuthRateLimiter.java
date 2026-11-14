@@ -25,7 +25,7 @@ public class AuthRateLimiter {
     // shortcut: in-memory fixed window, one app instance only; use a shared store (Redis) when we run several instances
     public void check(String action, String ip) {
         long now = clock.millis();
-        if (windows.size() > 10_000) windows.entrySet().removeIf(e -> now - e.getValue()[0] >= WINDOW_MS);
+        if (windows.size() > 10_000) windows.clear(); // keeps memory bounded; a flood of fake IPs only resets everyone's window
         long[] w = windows.compute(action + "|" + ip, (k, old) -> {
             if (old == null || now - old[0] >= WINDOW_MS) return new long[]{now, 1};
             old[1]++;
