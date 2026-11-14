@@ -45,6 +45,7 @@ jobs:
           - 27017:27017
     env:
       SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/kf_e2e?directConnection=true
+      KF_AUTH_RATE_LIMIT_PER_MINUTE: "1000" # every spec registers and logs in from one IP
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

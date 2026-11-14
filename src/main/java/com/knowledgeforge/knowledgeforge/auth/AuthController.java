@@ -12,9 +12,12 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private AuthRateLimiter rateLimiter;
+
     @PostMapping("/register")
-    public UserResponse register(@RequestBody RegisterRequest request) {
-//        System.out.println("Register method called");
+    public UserResponse register(@RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        rateLimiter.check("register", httpRequest.getRemoteAddr());
         return authService.register(request);
 
     }
@@ -25,6 +28,7 @@ public class AuthController {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
+        rateLimiter.check("login", httpRequest.getRemoteAddr());
         return authService.login(request, httpRequest, httpResponse);
     }
 
