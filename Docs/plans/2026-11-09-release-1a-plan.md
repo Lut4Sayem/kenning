@@ -387,8 +387,8 @@ Port Dashboard, Team, Profile pages to React (same behaviour as today, plain CSS
 - [ ] Uptime monitor on `/actuator/health` (owner creates it, steps in `deploy/README.md`).
 
 ### Task 10.2: Release checks
-- [ ] Seed 10,000 pages (`kf.seed` dev profile): sidebar tree, page open < 2 s, search measured and recorded.
-- [ ] Security pass (OWASP Top 10): every `/api/nodes/**` endpoint has a test for non-member 403/404; rate limit login/register (10/min per IP, `shortcut: in-memory bucket`); XSS check on titles, tags, bookmark data, snippets.
+- [x] Seed 10,000 pages (`kf.seed` dev profile): sidebar tree, page open < 2 s, search measured and recorded. Tree 0.5-0.7 s, page open 0.07 s, search 0.12-0.47 s; numbers in PROJECT_CONTEXT.
+- [x] Security pass (OWASP Top 10, backend: `NonMemberApiIT`, `AuthRateLimiter`, XSS review): every `/api/nodes/**` endpoint has a test for non-member 403/404; rate limit login/register (10/min per IP, `shortcut: in-memory bucket`); XSS check on titles, tags, bookmark data, snippets.
 - [ ] Accessibility pass: keyboard-only walk through tree, editor, palette, history, trash; axe check in Playwright (no serious violations).
 - [ ] 360 px check of every screen (no horizontal scroll).
 - [ ] Fresh-start deploy (D7): `mongodump` backup of production (keep 30 days), drop all old collections and this week's test data, deploy 1a on the empty database, smoke test. Then README update, tag `v1.0-1a`.
@@ -398,7 +398,7 @@ Port Dashboard, Team, Profile pages to React (same behaviour as today, plain CSS
   3. Atlas > Browse Collections > `knowledgeforge` > trash icon next to the database name > type the name > Drop. Never touch `knowledgeforge_v1`.
   4. Atlas > Network Access: remove IP entries you no longer use (old Render service, old home IPs). Keep the VM IP; keep 0.0.0.0/0 only while GitHub-hosted backups need it.
   5. Render: suspend or delete the old service `knowledgeforge-ai-1` and remove its `SPRING_DATA_MONGODB_URI`.
-- [ ] Wrap multi-document moves (trash/restore/archive/move-to-team) in MongoDB transactions, or record why not.
+- [x] Wrap multi-document moves (trash/restore/archive/move-to-team) in MongoDB transactions, or record why not. Not wrapped, reasons in PROJECT_CONTEXT (progress log 2026-11-14 10.2).
 
 ### Hand-off to the visual design pass (after 1a works)
 Screen order: Sidebar (owner's ideas: per-page colour dot, parent-child guide lines with ticks) -> Page view -> Editing -> History -> Palette -> Trash -> Move to team -> ported pages. Source of truth: `DESIGN.md`. Each screen gets its own small design and the owner's approval before code.
