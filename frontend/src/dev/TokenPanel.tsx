@@ -61,7 +61,7 @@ export default function TokenPanel() {
       </button>
       {open && (
         <div id="kf-token-panel" role="group" aria-label="Design tokens" className={s.panel} onKeyDown={(e) => { if (e.key === 'Escape') close() }}>
-          <h2>Design tokens</h2>
+          <h2 className="ui-label">Design tokens</h2>
           {COLOR_TOKENS.filter((n) => !TEXT_TOKENS.includes(n)).map((n) => (
             <div className={s.row} key={n}>
               <label htmlFor={`tok${n}`}><code>{n}</code></label>

@@ -87,7 +87,7 @@ export default function HistoryPanel({ nodeId, canEdit, viewingId, onView, onClo
   return (
     <aside className="kf-history" aria-label="Version history">
       <div className="kf-history-head">
-        <h2>Version history</h2>
+        <h2 className="ui-label">Version history</h2>
         <button type="button" aria-label="Close history" onClick={onClose}>×</button>
         <label>
           <input type="checkbox" checked={namedOnly} onChange={(e) => setNamedOnly(e.target.checked)} />
@@ -108,7 +108,7 @@ export default function HistoryPanel({ nodeId, canEdit, viewingId, onView, onClo
         {list.data && !shown.length && <p className="page-note">{namedOnly ? 'No named versions yet.' : 'No versions yet.'}</p>}
         {groups.map((g) => (
           <section key={g.label}>
-            <h3>{g.label}</h3>
+            <h3 className="ui-label">{g.label}</h3>
             {g.items.map((it, i) => {
               if (it.kind === 'version') return row(it.version)
               const key = `${g.label}:${i}`
