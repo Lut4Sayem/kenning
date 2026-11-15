@@ -81,41 +81,6 @@
   --content-max: 1080px;
   --reading-max: 740px;
 
-  /* ---- legacy, remove in DP-9: names still used by CSS that has not had its design pass yet ---- */
-  --color-primary: var(--primary);
-  --color-primary-pressed: var(--primary);
-  --color-primary-deep: var(--primary);
-  --color-primary-soft: var(--accent-soft);
-  --color-primary-ring: var(--ring);
-  --color-on-primary: var(--on-primary);
-  --color-link: var(--link);
-  --color-canvas: var(--canvas);
-  --color-surface: var(--surface-card);
-  --color-surface-soft: var(--surface-card);
-  --color-hover: var(--hover);
-  --color-hairline: var(--line);
-  --color-hairline-soft: var(--line-soft);
-  --color-hairline-strong: var(--input-border);
-  --color-ink: var(--ink);
-  --color-charcoal: var(--ink-doc);
-  --color-slate: var(--ink-muted);
-  --color-steel: var(--ink-muted);
-  --color-stone: #a4a097;
-  --color-muted: #bbb8b1;
-  --color-success: #1aae39;  --color-success-text: var(--success-text);  --color-success-soft: var(--published-bg);
-  --color-warning: #dd5b00;  --color-warning-text: var(--warning-text);  --color-warning-soft: var(--tint-peach-bg);
-  --color-error: #e03131;    --color-error-text: var(--error-text);      --color-error-soft: var(--error-soft);  --color-error-ink: var(--error-ink);
-  --color-info: #0075de;     --color-info-text: var(--tint-sky-fg);      --color-info-soft: var(--tint-sky-bg);
-  --color-highlight: var(--tint-yellow-bg);
-  --radius-chip: var(--r-chip);
-  --radius-sm: 6px;
-  --radius-md: var(--r-row);
-  --radius-lg: var(--r-lg);
-  --radius-full: var(--r-pill);
-  --space-12: 48px;
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
-  --sidebar-rail: 64px;
-  --page-pad: 32px;
 }
 
 /* Neutral Draft pill used in lists (Home, Recent); the yellow --draft-pill is for the page's properties block. */

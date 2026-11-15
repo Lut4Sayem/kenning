@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import s from './FormDialog.module.css'
 
 export interface ConfirmOptions {
   title: string
@@ -87,7 +88,7 @@ function Dialog({ title, body, confirmLabel, cancelLabel = 'Cancel', danger, ans
   return (
     <dialog
       ref={ref}
-      className="kf-dialog"
+      className={s.dialog}
       aria-labelledby={`${id}-title`}
       aria-describedby={body ? `${id}-body` : undefined}
       onKeyDown={onKeyDown}
@@ -96,11 +97,11 @@ function Dialog({ title, body, confirmLabel, cancelLabel = 'Cancel', danger, ans
         answer(false)
       }}
     >
-      <h2 id={`${id}-title`} className="kf-dialog-title">{title}</h2>
-      {body && <p id={`${id}-body`} className="kf-dialog-body">{body}</p>}
-      <div className="kf-dialog-actions">
-        <button type="button" ref={cancel} onClick={() => answer(false)}>{cancelLabel}</button>
-        <button type="button" className={danger ? 'kf-danger' : 'kf-primary'} onClick={() => answer(true)}>{confirmLabel}</button>
+      <h2 id={`${id}-title`} className={s.title}>{title}</h2>
+      {body && <p id={`${id}-body`} className={s.body}>{body}</p>}
+      <div className={s.actions}>
+        <button type="button" ref={cancel} className={s.ghost} onClick={() => answer(false)}>{cancelLabel}</button>
+        <button type="button" className={danger ? s.danger : s.primary} onClick={() => answer(true)}>{confirmLabel}</button>
       </div>
     </dialog>
   )
