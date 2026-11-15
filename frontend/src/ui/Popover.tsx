@@ -9,7 +9,8 @@ export default function Popover({ trigger, label, align = 'right', children }: {
   trigger: (props: { onClick: () => void; 'aria-expanded': boolean; 'aria-haspopup': 'true'; 'aria-controls': string }) => ReactNode
   label: string
   align?: 'left' | 'right'
-  children: ReactNode
+  /** The panel content; a function gets `close` (for menus that close when an item is picked). */
+  children: ReactNode | ((close: () => void) => ReactNode)
 }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -32,7 +33,7 @@ export default function Popover({ trigger, label, align = 'right', children }: {
   return (
     <div className={s.root} ref={root}>
       {trigger({ onClick: () => setOpen(!open), 'aria-expanded': open, 'aria-haspopup': 'true', 'aria-controls': id })}
-      {open && <div id={id} role="group" aria-label={label} className={`${s.panel} ${align === 'left' ? s.left : ''}`}>{children}</div>}
+      {open && <div id={id} role="group" aria-label={label} className={`${s.panel} ${align === 'left' ? s.left : ''}`}>{typeof children === 'function' ? children(() => { setOpen(false); root.current?.querySelector<HTMLElement>('[aria-haspopup]')?.focus() }) : children}</div>}
     </div>
   )
 }
