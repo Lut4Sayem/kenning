@@ -8,9 +8,11 @@ import java.util.List;
 @RestController
 public class SpaceController {
     private final SpaceService spaceService;
+    private final com.knowledgeforge.knowledgeforge.team.TeamOverviewService overview;
 
-    public SpaceController(SpaceService spaceService) {
+    public SpaceController(SpaceService spaceService, com.knowledgeforge.knowledgeforge.team.TeamOverviewService overview) {
         this.spaceService = spaceService;
+        this.overview = overview;
     }
 
     @PostMapping("/api/teams/{teamId}/spaces")
@@ -20,8 +22,8 @@ public class SpaceController {
     }
 
     @GetMapping("/api/teams/{teamId}/spaces")
-    public ResponseEntity<List<Space>> getSpace(@PathVariable String teamId){
-        return ResponseEntity.status(200).body(spaceService.getSpace(teamId));
+    public ResponseEntity<List<com.knowledgeforge.knowledgeforge.team.TeamOverviewDTO.SpaceItem>> getSpace(@PathVariable String teamId){
+        return ResponseEntity.status(200).body(overview.spaces(teamId));
     }
 
     @GetMapping("/api/me/spaces")

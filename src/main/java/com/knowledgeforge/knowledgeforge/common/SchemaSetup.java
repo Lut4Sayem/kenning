@@ -32,6 +32,7 @@ public class SchemaSetup implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         setupNodes();
+        setupActivity();
         setupContents();
         setupVersions();
         setupLocks();
@@ -84,6 +85,11 @@ public class SchemaSetup implements ApplicationRunner {
         ops.createIndex(new Index().named("tags").on("tags", Sort.Direction.ASC));
         ops.createIndex(new Index().named("restriction_viewers").on("restriction.viewers", Sort.Direction.ASC).sparse());
         ops.createIndex(new Index().named("restriction_editors").on("restriction.editors", Sort.Direction.ASC).sparse());
+    }
+
+    private void setupActivity() {
+        mongo.indexOps("activity_logs").createIndex(new Index().named("teamId_createdAt")
+                .on("teamId", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
     }
 
     private void setupContents() {

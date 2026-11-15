@@ -58,6 +58,7 @@ class NonMemberApiIT extends NodeIntegrationTest {
         String n = "/api/nodes/" + id;
         String sp = "/api/spaces/" + space.getId();
         String tm = "/api/teams/" + team.getId();
+        for (String t : new String[]{"/summary", "/pages", "/activity", "/spaces"}) denied(o, get(tm + t), null);
         denied(o, get(sp + "/tree"), null);
         denied(o, post(sp + "/nodes"), "{\"title\":\"x\"}");
         denied(o, get(sp + "/trash"), null);
