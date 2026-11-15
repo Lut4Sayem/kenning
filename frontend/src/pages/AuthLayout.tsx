@@ -7,14 +7,14 @@ export function AuthLayout({ title, subtitle, alt, lead, children }: { title: st
   return (
     <div className={s.split}>
       <div className={s.left}>
-        <div className={s.brand}>
+        <header className={s.brand}>
           <span className={s.logo}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
               <path d="M4 2.5h8v11l-4-2.8-4 2.8z" />
             </svg>
           </span>
           KnowledgeForge
-        </div>
+        </header>
         <main className={s.formcol}>
           {lead}
           <h1 className={s.title}>{title}</h1>

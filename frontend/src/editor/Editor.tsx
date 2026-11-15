@@ -30,6 +30,7 @@ export function useKfEditor(
   return useCreateBlockNote(
     withCollaboration({
       schema: kfSchema,
+      domAttributes: { editor: { 'aria-label': 'Page content' } },
       uploadFile:
         editable && files
           ? async (file: File) => {

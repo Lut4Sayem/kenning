@@ -202,6 +202,7 @@ export default function PageView() {
         {publish.error && <p role="alert" className={s.error}>{publish.error.message}</p>}
         {compareError && <p role="alert" className={s.error}>{compareError}</p>}
         <div className={s.iconTile} aria-hidden="true"><Icon name="doc-lines" size={26} /></div>
+        <h1 className="sr-only">{title || 'Untitled'}</h1>
         <input
           className={s.title}
           aria-label="Page title"
