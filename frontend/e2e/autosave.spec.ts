@@ -110,20 +110,24 @@ test('logging out sends unsaved local copies first, or asks before dropping them
   await context.setOffline(false)
   const home = await context.newPage()
   await home.goto('/app')
-  const logOutButton = home.getByRole('button', { name: 'Log out' })
-  await expect(logOutButton).toBeVisible()
+  const accountMenu = home.getByRole('button', { name: 'Account menu' })
+  const logOut = async () => {
+    await accountMenu.click()
+    await home.getByRole('menuitem', { name: 'Log out' }).click()
+  }
+  await expect(accountMenu).toBeVisible()
   await context.route('**/api/nodes/*/content', (route) => route.abort())
-  await logOutButton.click()
+  await logOut()
   const question = home.getByRole('dialog', { name: 'Log out anyway?' })
   await expect(question).toContainText('You have unsaved changes on 1 page')
   await question.getByRole('button', { name: 'Stay logged in' }).click()
   await expect(question).toBeHidden()
-  await expect(logOutButton).toBeVisible() // still here
+  await expect(accountMenu).toBeVisible() // still here
   expect((await context.request.get('/api/me')).ok()).toBeTruthy() // and still logged in
 
   // Reachable again: the copy is sent during logout, no question.
   await context.unroute('**/api/nodes/*/content')
-  await logOutButton.click()
+  await logOut()
   await home.waitForURL(/\/app\/login/)
 
   // Nothing is left in the browser, yet the text is in the page: it was sent, not dropped.

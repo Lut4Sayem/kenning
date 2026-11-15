@@ -1,0 +1,39 @@
+.sidebar { display: flex; flex-direction: column; gap: var(--space-1); min-height: 100%; padding: var(--space-3) var(--space-2) var(--space-3) var(--space-3); }
+.top { display: flex; align-items: center; gap: var(--space-1); position: relative; }
+.account { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); font-weight: 600; cursor: pointer; text-align: left; }
+.account:hover, .account[aria-expanded='true'] { background: var(--hover); }
+.name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iconBtn { display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
+.iconBtn:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.iconBtn:disabled { opacity: 0.5; cursor: default; }
+.avatar { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); font-size: 11px; font-weight: 700; }
+.menu { position: absolute; z-index: 20; top: 40px; left: 0; min-width: 200px; padding: var(--space-1); border-radius: var(--r-lg); background: var(--canvas); box-shadow: var(--shadow-3); display: flex; flex-direction: column; }
+.menuItem { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); text-decoration: none; cursor: pointer; text-align: left; }
+.menuItem:hover, .menuItem:focus-visible { background: var(--hover); }
+.search { display: flex; align-items: center; gap: var(--space-2); width: 100%; height: 32px; margin: var(--space-1) 0; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: var(--canvas); box-shadow: var(--shadow-1); color: var(--ink-muted); cursor: pointer; text-align: left; }
+.search:hover { background: var(--surface-card); }
+.search span { flex: 1; }
+.kbd { padding: 0 6px; border-radius: var(--r-chip); background: var(--surface-card); font: inherit; font-size: 11px; font-weight: 600; line-height: 18px; color: var(--ink-muted); }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.navLink { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border-radius: var(--r-row); color: var(--ink); text-decoration: none; font-weight: 500; }
+.navLink:hover { background: var(--hover); }
+.navLink.active { background: var(--canvas); box-shadow: var(--shadow-1); }
+.label { margin: var(--space-4) 0 var(--space-1); padding: 0 var(--space-2); color: var(--ink-muted); font-size: 12px; font-weight: 600; }
+.group { display: flex; flex-direction: column; gap: 2px; }
+.groupRow { display: flex; align-items: center; gap: 2px; height: 32px; padding-right: var(--space-1); border-radius: var(--r-row); }
+.groupRow:hover { background: var(--hover); }
+.chevBtn { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
+.chevBtn:hover { background: var(--hover); }
+.chev { transition: transform var(--dur-fast) var(--ease-out); }
+.chev.open { transform: rotate(90deg); }
+.tile { display: grid; place-items: center; flex: none; width: 20px; height: 20px; margin-right: var(--space-2); border-radius: 6px; font-size: 11px; font-weight: 700; }
+.groupLink { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; font-weight: 500; line-height: 32px; }
+.teamLink { font-weight: 600; }
+.nested { padding-left: var(--space-4); display: flex; flex-direction: column; gap: 2px; }
+.quiet { display: flex; align-items: center; height: 28px; padding: 0 var(--space-2) 0 var(--space-6); border-radius: var(--r-row); color: var(--ink-muted); text-decoration: none; font-size: 13px; }
+.quiet:hover { background: var(--hover); color: var(--ink); }
+.note { margin: 0; padding: var(--space-1) var(--space-2); color: var(--ink-muted); font-size: 12px; }
+.foot { margin-top: auto; padding-top: var(--space-6); }
+.me { display: flex; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-2); border-radius: var(--r-row); color: var(--ink); text-decoration: none; font-weight: 500; }
+.me:hover { background: var(--hover); }
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }

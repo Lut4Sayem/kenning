@@ -6,8 +6,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createNode, getTree, moveNode, type MoveBody, type NodeSummary } from '../api/nodes'
+import Icon from '../ui/Icon'
 import { buildTree, type TreeNode } from './buildTree'
+import s from './PageTree.module.css'
 
+const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 const storageKey = (spaceId: string) => `kf.expanded.${spaceId}`
 
 function loadExpanded(spaceId: string): Set<string> {
@@ -109,20 +112,20 @@ export default function PageTree({ spaceId, spaceName, activeId }: Props) {
     }
   }
 
-  if (isLoading) return <p className="tree-note">Loading…</p>
-  if (error) return <p className="tree-note" role="alert">Could not load pages</p>
+  if (isLoading) return <p className={s.note}>Loading…</p>
+  if (error) return <p className={s.note} role="alert">Could not load pages</p>
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-      {message && <p className="tree-note" role="alert">{message}</p>}
-      <ul className="tree">
+      {message && <p className={s.note} role="alert">{message}</p>}
+      <ul className={s.tree}>
         {tree.map((node) => (
           <Row key={node.id} node={node} depth={0} activeId={activeId} expanded={expanded} onToggle={toggle} onNew={newPage} />
         ))}
       </ul>
       <TopLevelDrop spaceId={spaceId} />
-      <button type="button" className="tree-add" onClick={() => newPage(null)}>
-        + New page<span className="sr-only"> in {spaceName}</span>
+      <button type="button" className={s.add} onClick={() => newPage(null)}>
+        <Icon name="plus" />New page<span className="sr-only"> in {spaceName}</span>
       </button>
     </DndContext>
   )
@@ -144,33 +147,34 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew }: RowProps) {
   const open = expanded.has(node.id)
   const title = node.title || 'Untitled'
   return (
-    <li className={drag.isDragging ? 'tree-item is-dragging' : 'tree-item'}>
+    <li className={cx(s.item, drag.isDragging && s.dragging)}>
       <div
         ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el) }}
-        className={`tree-row${into.isOver ? ' is-over' : ''}${node.id === activeId ? ' is-active' : ''}`}
+        className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
         style={{ paddingLeft: depth * 16 }}
       >
-        <button type="button" className="tree-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
+        <button type="button" className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
-          {node.children.length === 0 ? '·' : open ? '▾' : '▸'}
+          <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
-        <Link to={`/p/${node.id}`} className="tree-link" aria-current={node.id === activeId ? 'page' : undefined}>
-          {node.icon && <span aria-hidden="true">{node.icon} </span>}
+        {/* shortcut: page colour field comes later, every page shows the gray dot */}
+        <span className={s.dot} aria-hidden="true" />
+        <Link to={`/p/${node.id}`} className={s.link} aria-current={node.id === activeId ? 'page' : undefined}>
           {title}
         </Link>
-        {node.publishState === 'DRAFT' && <span className="tree-badge">Draft</span>}
-        <button type="button" className="tree-btn" aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}>+</button>
-        <button type="button" className="tree-btn tree-grip" aria-label={`Move ${title}`}
-          {...drag.listeners} {...drag.attributes}>⋮⋮</button>
+        {node.publishState === 'DRAFT' && <span className={s.badge}>Draft</span>}
+        <button type="button" className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
+        <button type="button" className={cx(s.btn, s.grip)} aria-label={`Move ${title}`}
+          {...drag.listeners} {...drag.attributes}><Icon name="grip" /></button>
       </div>
       {open && node.children.length > 0 && (
-        <ul className="tree">
+        <ul className={s.tree}>
           {node.children.map((c) => (
             <Row key={c.id} node={c} depth={depth + 1} activeId={activeId} expanded={expanded} onToggle={onToggle} onNew={onNew} />
           ))}
         </ul>
       )}
-      <div ref={after.setNodeRef} className={`tree-gap${after.isOver ? ' is-over' : ''}`} style={{ marginLeft: depth * 16 }} />
+      <div ref={after.setNodeRef} className={cx(s.gap, after.isOver && s.over)} style={{ marginLeft: depth * 16 }} />
     </li>
   )
 }
@@ -180,5 +184,5 @@ function TopLevelDrop({ spaceId }: { spaceId: string }) {
   const { active } = useDndContext()
   const { setNodeRef, isOver } = useDroppable({ id: `top:${spaceId}` })
   if (!active) return null
-  return <div ref={setNodeRef} className={`tree-top-drop${isOver ? ' is-over' : ''}`}>Move to top level</div>
+  return <div ref={setNodeRef} className={cx(s.topDrop, isOver && s.over)} data-testid="top-drop" data-over={isOver}>Move to top level</div>
 }
