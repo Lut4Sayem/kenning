@@ -136,7 +136,9 @@ export default function Search() {
                       <button type="button" className={s.showAll} onClick={() => set({ type: t })}>Show all {rows.length}<Icon name="arrow-right" size={14} /></button>
                     )}
                   </div>
-                  <ul className={s.list}>{part.map((h) => <Row key={h.nodeId ?? h.spaceId ?? h.teamId} hit={h} q={q} />)}</ul>
+                  {rows.length === 0
+                    ? <p className={s.none}>No {LABEL[t].toLowerCase()} match “{q.trim() || `#${tag}`}”{tag || status ? ' with these filters' : ''}.</p>
+                    : <ul className={s.list}>{part.map((h) => <Row key={h.nodeId ?? h.spaceId ?? h.teamId} hit={h} q={q} />)}</ul>}
                 </section>
               )
             })}

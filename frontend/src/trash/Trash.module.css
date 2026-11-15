@@ -15,9 +15,10 @@
 .filter:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .panel { display: flex; flex-direction: column; gap: 24px; }
-.notice:empty { display: none; }
+
 .notice, .error, .empty, .note { margin: 0; font-size: 14px; }
-.notice { padding: 10px 14px; border-radius: var(--r-lg); background: var(--callout); color: var(--ink-label); }
+.notice:empty { margin-bottom: -24px; }
+.notice:not(:empty) { padding: 10px 14px; border-radius: var(--r-lg); background: var(--callout); color: var(--ink-label); }
 .error { color: var(--error-text); }
 .error button { padding: 0; border: 0; background: none; color: var(--link); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .empty, .note { color: var(--ink-muted); }

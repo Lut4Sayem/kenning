@@ -69,6 +69,7 @@
 .tag { position: relative; z-index: 1; font-size: 12px; font-weight: 600; color: var(--tint-sky-fg); text-decoration: none; }
 @media (hover: hover) { .tag:hover { text-decoration: underline; text-underline-offset: 2px; } }
 
+.none { margin: 0; font-size: 14px; color: var(--ink-muted); }
 .empty { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 8px 0; }
 .empty p { margin: 0; font-size: 14px; color: var(--ink-muted); }
 .emptyTitle { font-size: 22px; line-height: 1.25; }
