@@ -13,7 +13,6 @@
 .chev.open { transform: rotate(90deg); }
 .dot { flex: none; width: 8px; height: 8px; border-radius: 3px; background: var(--page-gray); margin-right: var(--space-2); }
 .link { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; text-decoration: none; line-height: 32px; font-weight: 500; }
-.draftDot { flex: none; width: 6px; height: 6px; margin: 0 var(--space-1); border-radius: 50%; background: var(--accent); }
 .btn, .grip { opacity: 0; }
 .row:hover .btn, .row:focus-within .btn, .row:hover .grip, .row:focus-within .grip { opacity: 1; }
 .grip { cursor: grab; touch-action: none; }
@@ -22,8 +21,6 @@
 .item.dragging { opacity: 0.5; }
 .topDrop { margin: var(--space-2) 0; padding: var(--space-2); border: 1px dashed var(--input-border); border-radius: var(--r-row); font-size: 13px; text-align: center; color: var(--ink-muted); }
 .topDrop.over { background: var(--canvas); }
-.add { display: flex; align-items: center; gap: var(--space-2); width: 100%; height: 28px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; text-align: left; }
-.add:hover { background: var(--hover); color: var(--ink); }
 .note { margin: 0; padding: var(--space-1) var(--space-2); color: var(--ink-muted); font-size: 12px; }
 @media (hover: none) { .btn, .grip { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }

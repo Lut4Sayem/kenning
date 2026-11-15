@@ -14,7 +14,7 @@ function renderTree() {
   return render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter>
-        <PageTree spaceId="s1" spaceName="Thesis" />
+        <PageTree spaceId="s1" />
         <Routes><Route path="*" element={<Where />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -28,17 +28,6 @@ afterEach(() => {
 })
 
 describe('PageTree', () => {
-  it('newPageButtonCreatesAndNavigates', async () => {
-    nodesApi.getTree.mockResolvedValue([])
-    nodesApi.createNode.mockResolvedValue({ id: 'new1' })
-    renderTree()
-
-    await userEvent.click(await screen.findByRole('button', { name: /new page/i }))
-
-    expect(nodesApi.createNode).toHaveBeenCalledWith('s1', { parentId: null })
-    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/p/new1'))
-  })
-
   it('subPageButtonCreatesUnderThatPageAndOpensIt', async () => {
     nodesApi.getTree.mockResolvedValue([
       { id: 'a', parentId: null, rank: 'V', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'PUBLISHED', locked: false, titleOnly: false },
@@ -54,12 +43,24 @@ describe('PageTree', () => {
   })
 
   it('showsTheServerMessageWhenCreateFails', async () => {
-    nodesApi.getTree.mockResolvedValue([])
+    nodesApi.getTree.mockResolvedValue([
+      { id: 'a', parentId: null, rank: 'V', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'PUBLISHED', locked: false, titleOnly: false },
+    ])
     nodesApi.createNode.mockRejectedValue(new Error("You can't add pages to this space"))
     renderTree()
 
-    await userEvent.click(await screen.findByRole('button', { name: /new page/i }))
+    await userEvent.click(await screen.findByRole('button', { name: 'New sub-page under Alpha' }))
 
     expect((await screen.findByRole('alert')).textContent).toBe("You can't add pages to this space")
+  })
+
+  it('showsNoDraftMarkerOnDraftPages', async () => {
+    nodesApi.getTree.mockResolvedValue([
+      { id: 'a', parentId: null, rank: 'V', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false },
+    ])
+    renderTree()
+
+    await screen.findByRole('link', { name: 'Alpha' })
+    expect(screen.queryByText('Draft')).toBeNull()
   })
 })

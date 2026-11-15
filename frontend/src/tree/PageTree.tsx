@@ -4,11 +4,12 @@ import {
 } from '@dnd-kit/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { createNode, getTree, moveNode, type MoveBody, type NodeSummary } from '../api/nodes'
+import { Link } from 'react-router-dom'
+import { getTree, moveNode, type MoveBody, type NodeSummary } from '../api/nodes'
 import Icon from '../ui/Icon'
 import { buildTree, type TreeNode } from './buildTree'
 import s from './PageTree.module.css'
+import { useCreatePage } from './useCreatePage'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 const storageKey = (spaceId: string) => `kf.expanded.${spaceId}`
@@ -32,18 +33,16 @@ function saveExpanded(spaceId: string, ids: Set<string>) {
 
 interface Props {
   spaceId: string
-  spaceName: string
   activeId?: string
 }
 
-export default function PageTree({ spaceId, spaceName, activeId }: Props) {
+export default function PageTree({ spaceId, activeId }: Props) {
   const qc = useQueryClient()
-  const navigate = useNavigate()
   const { data, isLoading, error } = useQuery({ queryKey: ['tree', spaceId], queryFn: () => getTree(spaceId) })
   const nodes = useMemo<NodeSummary[]>(() => data ?? [], [data])
   const tree = useMemo(() => buildTree(nodes), [nodes])
   const [expanded, setExpanded] = useState(() => loadExpanded(spaceId))
-  const [message, setMessage] = useState('')
+  const { create, message, setMessage } = useCreatePage(spaceId)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
@@ -76,17 +75,7 @@ export default function PageTree({ spaceId, spaceName, activeId }: Props) {
       return next
     })
 
-  async function newPage(parentId: string | null) {
-    setMessage('')
-    try {
-      const created = await createNode(spaceId, { parentId })
-      if (parentId) expand([parentId])
-      await qc.invalidateQueries({ queryKey: ['tree', spaceId] })
-      navigate(`/p/${created.id}`)
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Could not create the page')
-    }
-  }
+  const newPage = (parentId: string) => create(parentId, () => expand([parentId])) // top-level pages come from the space row's +
 
   async function onDragEnd({ active, over }: DragEndEvent) {
     if (!over) return
@@ -124,9 +113,6 @@ export default function PageTree({ spaceId, spaceName, activeId }: Props) {
         ))}
       </ul>
       <TopLevelDrop spaceId={spaceId} />
-      <button type="button" className={s.add} onClick={() => newPage(null)}>
-        <Icon name="plus" />New page<span className="sr-only"> in {spaceName}</span>
-      </button>
     </DndContext>
   )
 }
@@ -162,7 +148,6 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew }: RowProps) {
         <Link to={`/p/${node.id}`} className={s.link} aria-current={node.id === activeId ? 'page' : undefined}>
           {title}
         </Link>
-        {node.publishState === 'DRAFT' && <span className={s.draftDot} title="Draft"><span className="sr-only">Draft</span></span>}
         <button type="button" className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
         <button type="button" className={cx(s.btn, s.grip)} aria-label={`Move ${title}`}
           {...drag.listeners} {...drag.attributes}><Icon name="grip" /></button>

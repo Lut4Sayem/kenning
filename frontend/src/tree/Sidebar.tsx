@@ -7,6 +7,7 @@ import Icon from '../ui/Icon'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
 import PageTree from './PageTree'
 import s from './Sidebar.module.css'
+import { useCreatePage } from './useCreatePage'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 
@@ -54,7 +55,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
       await qc.invalidateQueries({ queryKey: ['tree', priv.id] })
       navigate(`/p/${created.id}`)
     } catch {
-      // the Private section's own "New page" row shows the server message; this shortcut stays quiet
+      // the space row's own + shows the server message; this shortcut stays quiet
     }
   }
 
@@ -86,9 +87,11 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
 
       {priv && (
         <section data-space={priv.id} aria-label="Private">
-          <h2 className={s.label}>Private</h2>
-          <PageTree spaceId={priv.id} spaceName={priv.name} activeId={activeId} />
-          <SpaceLinks spaceId={priv.id} />
+          <div className={cx(s.groupRow, s.privateHead)}>
+            <h2 className={s.label}>Private</h2>
+            <SpaceActions space={priv} />
+          </div>
+          <PageTree spaceId={priv.id} activeId={activeId} />
         </section>
       )}
 
@@ -170,23 +173,41 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
         <Link to={`/s/${space.id}`} className={s.groupLink}>{space.name}</Link>
+        <SpaceActions space={space} />
       </div>
-      {open && (
-        <>
-          <PageTree spaceId={space.id} spaceName={space.name} activeId={activeId} />
-          <SpaceLinks spaceId={space.id} />
-        </>
-      )}
+      {open && <PageTree spaceId={space.id} activeId={activeId} />}
     </section>
   )
 }
 
-// shortcut: Trash and Archived are per space today, so they sit under each space; a global Trash comes with its own route
-function SpaceLinks({ spaceId }: { spaceId: string }) {
+/** "+" (new page in this space) and "..." (Archived, Trash): shown on hover or focus of the space row. */
+function SpaceActions({ space }: { space: MySpace }) {
+  const { create, message } = useCreatePage(space.id)
+  const [open, setOpen] = useState(false)
+  const btn = useRef<HTMLButtonElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
   return (
-    <div className={s.quietRow}>
-      <Link to={`/s/${spaceId}/trash?tab=archived`} className={s.quiet}>Archived</Link>
-      <Link to={`/s/${spaceId}/trash`} className={s.quiet}>Trash</Link>
+    <div ref={box} className={cx(s.actions, open && s.pinned)}
+      onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); btn.current?.focus() } }}>
+      <button type="button" className={s.rowBtn} aria-label={`New page in ${space.name}`} onClick={() => void create(null)}><Icon name="plus" /></button>
+      <button ref={btn} type="button" className={s.rowBtn} aria-label={`More actions for ${space.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="more" />
+      </button>
+      {open && (
+        <div className={s.menu} role="menu" aria-label={`${space.name} actions`} onClick={() => setOpen(false)}>
+          <Link to={`/s/${space.id}/trash?tab=archived`} role="menuitem" className={s.menuItem}>Archived</Link>
+          <Link to={`/s/${space.id}/trash`} role="menuitem" className={s.menuItem}>Trash</Link>
+        </div>
+      )}
+      {message && <p className={s.note} role="alert">{message}</p>}
     </div>
   )
 }
