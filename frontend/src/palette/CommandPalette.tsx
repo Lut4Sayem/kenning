@@ -7,6 +7,7 @@ import { getRecent, searchAll, type SearchHit } from '../api/search'
 import { getMySpaces } from '../api/spaces'
 import Icon, { type IconName } from '../ui/Icon'
 import s from './CommandPalette.module.css'
+import { toast } from '../ui/Toast'
 import Snippet from './Snippet'
 
 const DEBOUNCE_MS = 200
@@ -194,8 +195,7 @@ function Palette({ onClose }: { onClose: () => void }) {
               {actions.map((a) => (
                 <Command.Item key={a.id} value={`action-${a.id}`} className={s.item} onSelect={() => {
                   onClose()
-                  // shortcut: alert() until the toasts of D1 exist
-                  Promise.resolve(a.run()).catch(() => window.alert('That did not work. Check your connection and try again.'))
+                  Promise.resolve(a.run()).catch(() => toast('That did not work. Check your connection and try again.', 'error'))
                 }}>
                   <span className={s.actTile} aria-hidden="true"><Icon name={a.icon} size={14} /></span>
                   <span className={s.title}>{a.label}</span>

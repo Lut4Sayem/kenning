@@ -6,10 +6,13 @@
 .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
 .error { margin: 8px 0 0; font-size: 13px; color: var(--error-text); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-.ghost, .primary { height: 38px; padding: 0 18px; border-radius: var(--r-pill); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
+.body { margin: -6px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-doc); text-wrap: pretty; }
+.ghost, .primary, .danger { height: 38px; padding: 0 18px; border-radius: var(--r-pill); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
 .ghost { background: transparent; border-color: var(--line); color: var(--ink); }
 .ghost:hover:not(:disabled) { background: var(--hover); }
 .primary { background: var(--primary); color: var(--on-primary); }
 .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); }
-.ghost:active:not(:disabled), .primary:active:not(:disabled) { scale: 0.96; }
+.danger { background: var(--danger); color: var(--on-primary); }
+.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger), black 12%); }
+.ghost:active:not(:disabled), .primary:active:not(:disabled), .danger:active:not(:disabled) { scale: 0.96; }
 .ghost:disabled, .primary:disabled { opacity: 0.5; cursor: not-allowed; }

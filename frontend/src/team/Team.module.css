@@ -33,3 +33,4 @@
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
 
 @media (max-width: 640px) { .column { padding: 24px 16px 48px; } .actions .ghostBtn { display: none; } }
+@media (max-width: 639.98px) { .subnav { gap: 0; padding: 0 6px; } .tab { padding: 0 8px; } }

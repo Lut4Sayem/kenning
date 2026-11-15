@@ -26,6 +26,7 @@ export interface TeamContext {
 export default function TeamLayout() {
   const { teamId = '' } = useParams()
   const { pathname } = useLocation()
+  const tabName = ({ pages: 'Pages', members: 'Members', requests: 'Join requests' } as Record<string, string>)[pathname.split('/').pop() ?? ''] // list tabs show no big title
   const nav = useNavigate()
   const { detailsOpen, setDetailsOpen } = useShellSlots()
   const summary = useQuery({ queryKey: ['team-summary', teamId], queryFn: () => getTeamSummary(teamId), retry: false })
@@ -73,6 +74,7 @@ export default function TeamLayout() {
         </span>
       </TopBar>
 
+      {tabName && summary.data && <h1 className="sr-only">{summary.data.name}: {tabName}</h1>}
       <nav className={s.subnav} aria-label="Team">
         <NavLink to={base} end className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>Overview</NavLink>
         <NavLink to={`${base}/pages`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>Pages</NavLink>

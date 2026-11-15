@@ -6,6 +6,7 @@ const PATHS = {
   home: 'M2.5 7.5L8 2.5l5.5 5V13a.5.5 0 01-.5.5h-3V10h-4v3.5H3a.5.5 0 01-.5-.5V7.5z',
   clock: 'M8 14a6 6 0 100-12 6 6 0 000 12zM8 4.5V8l2.5 1.5',
   plus: 'M8 3v10M3 8h10',
+  menu: 'M2.5 4.5h11M2.5 8h11M2.5 11.5h11',
   // Tiny stroked circles, not zero-length dots: a 1.5px dot antialiases to a faint grey (about 3px solid this way).
   more: 'M2.75 8a.75.75 0 101.5 0 .75.75 0 10-1.5 0zM7.25 8a.75.75 0 101.5 0 .75.75 0 10-1.5 0zM11.75 8a.75.75 0 101.5 0 .75.75 0 10-1.5 0z',
   grip: 'M6 4h.01M10 4h.01M6 8h.01M10 8h.01M6 12h.01M10 12h.01',

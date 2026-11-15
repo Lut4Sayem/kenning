@@ -113,7 +113,8 @@ export default function MoveToTeamDialog({ node, onClose }: Props) {
                   <input type="radio" name={`${id}-p`} checked={parentId === ''} onChange={() => setParentId('')} />
                   <span className={s.radio} aria-hidden="true" />Top of {space?.name}
                 </label>
-                {tree.isPending && !!space && <span className={s.loading}>Loading pages…</span>}
+                {tree.isPending && !!space && <span className={s.loading} role="status" aria-label="Loading pages">{[0, 1, 2].map((i) => <span key={i} className={s.skel} />)}</span>}
+                {tree.isError && <p role="alert" className={s.loadError}>Could not load the pages of this space. <button type="button" className={s.retry} onClick={() => void tree.refetch()}>Try again</button></p>}
                 {rows.map(({ n, depth }) => (
                   <label key={n.id} className={s.opt} style={{ paddingLeft: 10 + 24 * depth }}>
                     <input type="radio" name={`${id}-p`} checked={parentId === n.id} disabled={n.titleOnly} onChange={() => setParentId(n.id)} />
