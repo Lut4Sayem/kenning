@@ -25,7 +25,7 @@ test('register, create team, create space, create page, comment', async ({ page 
   await expect(page.getByRole('heading', { name: 'Portal Team' })).toBeVisible()
   await page.getByLabel('Space name').fill('Portal Space')
   await page.getByRole('button', { name: 'New space' }).click()
-  await expect(page.getByRole('link', { name: 'Portal Space' })).toBeVisible()
+  await expect(page.getByRole('main').getByRole('link', { name: 'Portal Space' })).toBeVisible() // the sidebar lists it too
 
   await page.getByRole('button', { name: 'New page in Portal Space' }).click()
   await expect(page).toHaveURL(/\/app\/p\//)
