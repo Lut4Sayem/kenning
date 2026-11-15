@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation, useMatch, useNavigate } from 'react-router-
 import { createNode } from '../api/nodes'
 import { getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
 import Icon from '../ui/Icon'
+import { toast } from '../ui/Toast'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
 import PageTree from './PageTree'
 import s from './Sidebar.module.css'
@@ -17,7 +18,7 @@ const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 const logOut = (userId: string) =>
   import('../editor/logout').then(
     (m) => m.logOut(userId),
-    () => window.alert('Could not log out. Check your connection and try again.'), // offline: the code could not load
+    () => toast('Could not log out. Check your connection and try again.', 'error'), // offline: the code could not load
   )
 
 export default function Sidebar({ onSearch }: { onSearch: () => void }) {

@@ -1,0 +1,15 @@
+/* Toasts: bottom-right, level 3, radius 8 (DESIGN.md sections 5, 6, 10). The host is always mounted (aria-live). */
+.host { position: fixed; right: 16px; bottom: 16px; z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: calc(100vw - 32px); pointer-events: none; }
+.toast {
+  display: flex; align-items: center; gap: 10px; width: 360px; max-width: 100%; min-height: 44px; padding: 8px 8px 8px 14px;
+  border-radius: var(--r-row); background: var(--canvas); color: var(--ink); box-shadow: var(--shadow-3);
+  font-size: 13.5px; line-height: 1.4; pointer-events: auto; animation: in var(--dur) var(--ease-out);
+}
+.error { color: var(--error-text); }
+.error .text { color: var(--ink); }
+.text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.close { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--r-row); background: transparent; color: var(--ink-muted); cursor: pointer; }
+.close:hover { background: var(--hover); color: var(--ink); }
+@media (pointer: coarse) { .close { width: 40px; height: 40px; } }
+@keyframes in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { @keyframes in { from { opacity: 0; } } }

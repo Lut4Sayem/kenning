@@ -34,6 +34,6 @@ describe('space home', () => {
   it('saysSoWhenTheProjectIsEmpty', async () => {
     nodes.getTree.mockResolvedValue([])
     setup()
-    expect(await screen.findByText(/no pages yet/)).toBeTruthy()
+    expect(await screen.findByText('No pages yet')).toBeTruthy()
   })
 })

@@ -230,7 +230,9 @@ export default function PageView() {
                 />
               </div>
             ) : (
-              <p className={s.note}>Loading…</p>
+              <div aria-busy="true" aria-label="Loading the page">
+                {[100, 92, 96].map((w) => <span key={w} className={`${s.skel} ${s.skelLine}`} style={{ width: `${w}%` }} />)}
+              </div>
             )}
           </>
         )}

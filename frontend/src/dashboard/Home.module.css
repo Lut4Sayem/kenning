@@ -10,6 +10,7 @@
 .empty a, .more { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
 .more { font-size: 13px; }
 .moreRow { margin-top: 10px; }
+button.more { padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
 .retry { margin: 0; font-size: 14px; color: var(--error-text); }
 .retry button { font: inherit; color: var(--link); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 

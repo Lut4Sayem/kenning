@@ -38,7 +38,7 @@ interface Props {
 
 export default function PageTree({ spaceId, activeId }: Props) {
   const qc = useQueryClient()
-  const { data, isLoading, error } = useQuery({ queryKey: ['tree', spaceId], queryFn: () => getTree(spaceId) })
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ['tree', spaceId], queryFn: () => getTree(spaceId) })
   const nodes = useMemo<NodeSummary[]>(() => data ?? [], [data])
   const tree = useMemo(() => buildTree(nodes), [nodes])
   const [expanded, setExpanded] = useState(() => loadExpanded(spaceId))
@@ -101,8 +101,8 @@ export default function PageTree({ spaceId, activeId }: Props) {
     }
   }
 
-  if (isLoading) return <p className={s.note}>Loading…</p>
-  if (error) return <p className={s.note} role="alert">Could not load pages</p>
+  if (isLoading) return <div className={s.skelList} aria-busy="true" aria-label="Loading pages">{[70, 55, 62].map((w) => <span key={w} className={s.skel} style={{ width: `${w}%` }} />)}</div>
+  if (error) return <p className={s.note} role="alert">Could not load the pages. <button type="button" className={s.retry} onClick={() => void refetch()}>Try again</button></p>
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
