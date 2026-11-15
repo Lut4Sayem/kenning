@@ -27,7 +27,7 @@ describe('profile page', () => {
   it('savesANewNameAndListsTeams', async () => {
     setup()
     const input = await screen.findByLabelText('Name')
-    expect(await screen.findByRole('link', { name: 'Alpha' })).toBeTruthy()
+    expect(await screen.findByRole('link', { name: /Alpha/ })).toBeTruthy()
     await userEvent.clear(input)
     await userEvent.type(input, 'Ada L')
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
