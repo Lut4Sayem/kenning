@@ -10,6 +10,7 @@ public interface TeamMemberRepository extends MongoRepository<TeamMember, String
     List<TeamMember> findByTeamId(String teamId);
     Optional<TeamMember> findByTeamIdAndUserId(String teamId, String userId);
     List<TeamMember> findByUserId(String userId);
+    long countByTeamId(String teamId);
     boolean existsByTeamIdAndUserId(String teamId, String userId);
 
     // ADMIN and EDITOR can write content; VIEWER is read-only.
