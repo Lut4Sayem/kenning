@@ -44,7 +44,7 @@ describe('MoveToTeamDialog', () => {
     // projects I can only view, and my private space, are not offered
     expect(screen.queryByRole('option', { name: 'Read only' })).toBeNull()
     expect(screen.queryByRole('option', { name: 'Private' })).toBeNull()
-    expect(await screen.findByText(/includes 3 sub-pages/)).toBeTruthy()
+    expect(await screen.findByText('+ 3 sub-pages')).toBeTruthy()
   })
 
   it('movesUnderTheChosenParent', async () => {

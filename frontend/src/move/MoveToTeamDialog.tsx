@@ -3,6 +3,9 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { getSubtreeCount, getTree, moveToTeam, type NodeDetail } from '../api/nodes'
 import { getMySpaces } from '../api/spaces'
 import { buildTree, type TreeNode } from '../tree/buildTree'
+import Icon from '../ui/Icon'
+import TeamTile from '../ui/TeamTile'
+import s from './MoveToTeam.module.css'
 
 interface Props {
   node: Pick<NodeDetail, 'id' | 'spaceId' | 'title'>
@@ -67,50 +70,75 @@ export default function MoveToTeamDialog({ node, onClose }: Props) {
 
   const subs = count.data?.count ?? 0
   return (
-    <dialog ref={ref} className="kf-dialog kf-move" aria-labelledby={`${id}-t`}
+    <dialog ref={ref} className={s.dialog} aria-labelledby={`${id}-t`} aria-describedby={`${id}-d`}
       onCancel={(e) => { e.preventDefault(); onClose() }}>
-      <h2 id={`${id}-t`} className="kf-dialog-title">Move "{node.title}" to a team project</h2>
-      <p className="kf-dialog-body">From your private space{subs > 0 && ` · includes ${subs} sub-page${subs === 1 ? '' : 's'}`}</p>
-      {spaces.isSuccess && projects.length === 0 ? (
-        <p role="status">You can't edit any team project yet.</p>
-      ) : (
-        <>
-          <div className="kf-move-pick">
-            <label>Team
-              <select value={team} onChange={(e) => { setTeamId(e.target.value); setSpaceId(''); setParentId('') }}>
-                {teams.map(([tid, name]) => <option key={tid} value={tid}>{name}</option>)}
-              </select>
-            </label>
-            <label>Project
-              <select value={space?.id ?? ''} onChange={(e) => { setSpaceId(e.target.value); setParentId('') }}>
-                {inTeam.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </label>
-          </div>
-          <fieldset className="kf-move-parents">
-            <legend>Put it under</legend>
-            <label><input type="radio" name={`${id}-p`} checked={parentId === ''} onChange={() => setParentId('')} />Top of {space?.name}</label>
-            {rows.map(({ n, depth }) => (
-              <label key={n.id} style={{ paddingLeft: 16 * (depth + 1) }}>
-                <input type="radio" name={`${id}-p`} checked={parentId === n.id} disabled={n.titleOnly} onChange={() => setParentId(n.id)} />
-                {n.title}{n.titleOnly && " (you can't edit here)"}
+      <div className={s.head}>
+        <h2 id={`${id}-t`} className={s.title}>Move “{node.title || 'Untitled'}” to a team</h2>
+        <p id={`${id}-d`} className={s.sub}>
+          <Icon name="doc-lines" size={14} />From your private space
+          {subs > 0 && <span className={s.badge}>+ {subs} sub-page{subs === 1 ? '' : 's'}</span>}
+        </p>
+      </div>
+      <div className={s.body}>
+        {spaces.isSuccess && projects.length === 0 ? (
+          <p role="status" className={s.none}>You can't edit any team space yet. Ask a team admin to make you an editor first.</p>
+        ) : (
+          <>
+            <div className={s.pickers}>
+              <label className={s.field}>
+                <span className={s.label}>Team</span>
+                <span className={s.select}>
+                  <TeamTile name={teams.find(([tid]) => tid === team)?.[1] ?? '?'} size={18} />
+                  <select value={team} onChange={(e) => { setTeamId(e.target.value); setSpaceId(''); setParentId('') }}>
+                    {teams.map(([tid, name]) => <option key={tid} value={tid}>{name}</option>)}
+                  </select>
+                  <Icon name="chevron-down" size={14} />
+                </span>
               </label>
-            ))}
-          </fieldset>
-          <section aria-label="What happens" className="kf-move-info">
-            <strong>What happens when you move it</strong>
-            <span>✓ Content, files, tags and comments come along.</span>
-            <span>✓ Everyone with access to "{parentTitle}" can see it.</span>
-            <span>✓ Your earlier versions stay private. The team's history starts at "Published to team".</span>
-            <span>✓ Public links on these pages are turned off.</span>
-            <span>It can't be moved back to your private space later. You can copy it instead.</span>
-          </section>
-        </>
-      )}
-      {error && <p role="alert">{error}</p>}
-      <div className="kf-dialog-actions">
-        <button type="button" onClick={onClose}>Cancel</button>
-        <button type="button" className="kf-primary" disabled={busy || !space} onClick={() => void submit()}>Move to team</button>
+              <label className={s.field}>
+                <span className={s.label}>Space</span>
+                <span className={s.select}>
+                  <span className={s.spaceDot} aria-hidden="true" />
+                  <select value={space?.id ?? ''} onChange={(e) => { setSpaceId(e.target.value); setParentId('') }}>
+                    {inTeam.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  </select>
+                  <Icon name="chevron-down" size={14} />
+                </span>
+              </label>
+            </div>
+            <fieldset className={s.field}>
+              <legend className={s.label}>Put it under</legend>
+              <div className={s.tree}>
+                <label className={s.opt}>
+                  <input type="radio" name={`${id}-p`} checked={parentId === ''} onChange={() => setParentId('')} />
+                  <span className={s.radio} aria-hidden="true" />Top of {space?.name}
+                </label>
+                {tree.isPending && !!space && <span className={s.loading}>Loading pages…</span>}
+                {rows.map(({ n, depth }) => (
+                  <label key={n.id} className={s.opt} style={{ paddingLeft: 10 + 24 * depth }}>
+                    <input type="radio" name={`${id}-p`} checked={parentId === n.id} disabled={n.titleOnly} onChange={() => setParentId(n.id)} />
+                    <span className={s.radio} aria-hidden="true" /><span className={s.dot} aria-hidden="true" />
+                    <span className={s.optText}>{n.title || 'Untitled'}{n.titleOnly && " (you can't edit here)"}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <section aria-labelledby={`${id}-w`} className={s.what}>
+              <h3 id={`${id}-w`} className={s.whatTitle}>What happens when you move it</h3>
+              <p className={s.w}><Icon name="check" size={14} />Content, files, tags and comments come along.</p>
+              <p className={s.w}><Icon name="check" size={14} />Everyone who can see “{parentTitle}” can see it.</p>
+              <p className={s.w}><Icon name="check" size={14} />Your earlier versions stay private. The team's history starts at “Published to team”.</p>
+              <p className={`${s.w} ${s.no}`}><Icon name="info" size={14} />It can't be moved back to your private space later. You can copy it instead.</p>
+            </section>
+          </>
+        )}
+        {error && <p role="alert" className={s.error}>{error}</p>}
+      </div>
+      <div className={s.foot}>
+        <button type="button" className={s.ghost} onClick={onClose}>Cancel</button>
+        <button type="button" className={s.primary} disabled={busy || !space} onClick={() => void submit()}>
+          <Icon name="move-to" size={14} />{busy ? 'Moving…' : 'Move to team'}
+        </button>
       </div>
     </dialog>
   )

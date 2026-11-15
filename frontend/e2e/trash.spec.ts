@@ -59,11 +59,11 @@ test('trash a parent with 2 children, restore it, the tree is back', async ({ pa
   // Trash page: one row for the branch, then restore.
   await page.locator('[data-space]').first().getByRole('button', { name: /More actions for/ }).click()
   await page.getByRole('menuitem', { name: 'Trash' }).click()
-  const row = page.getByRole('row', { name: /Parent/ })
+  const row = page.getByRole('listitem').filter({ hasText: 'Parent' })
   await expect(row).toContainText('+ 2 sub-pages')
   await expect(row).toContainText('30 days')
   await row.getByRole('button', { name: 'Restore' }).click()
-  await expect(page.locator('p.banner[role="status"]')).toContainText('"Parent" was restored.')
+  await expect(page.getByRole('status').filter({ hasText: 'was restored' })).toContainText('"Parent" was restored.')
   expect(await call(page, 'get', `/api/spaces/${space.id}/tree`)).toHaveLength(3)
   await expect(page.locator('[data-space]').first().getByRole('link', { name: 'Parent' })).toBeVisible()
 })

@@ -18,6 +18,9 @@ export interface SearchHit {
   teamName?: string | null
   /** Only on /api/me/recent: when I last opened the page. */
   openedAt?: string | null
+  /** Pages only: when and by whom the page was last edited. */
+  updatedAt?: string | null
+  updatedByName?: string | null
 }
 
 export interface SearchParams {

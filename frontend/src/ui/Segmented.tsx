@@ -5,8 +5,10 @@ export interface SegmentOption<T extends string> { value: T; label: string; coun
 
 /** Pill track with one active segment (DESIGN.md section 6). Arrow keys move between segments. */
 /** `idPrefix`: tab ids are `${idPrefix}-tab-<value>` and they control the element with id `${idPrefix}-panel` (role tabpanel). */
-export default function Segmented<T extends string>({ label, idPrefix, value, onChange, options }: {
+/** `onPage`: on the white page (track --surface-card-hover, segments sized to their text); default is the ground-coloured panel. */
+export default function Segmented<T extends string>({ label, idPrefix, value, onChange, options, onPage }: {
   label: string
+  onPage?: boolean
   idPrefix: string
   value: T
   onChange: (v: T) => void
@@ -21,7 +23,7 @@ export default function Segmented<T extends string>({ label, idPrefix, value, on
     document.getElementById(`${idPrefix}-tab-${next.value}`)?.focus()
   }
   return (
-    <div className={s.track} role="tablist" aria-label={label}>
+    <div className={`${s.track} ${onPage ? s.onPage : ''}`} role="tablist" aria-label={label}>
       {options.map((o, i) => (
         <button
           key={o.value} id={`${idPrefix}-tab-${o.value}`} type="button" role="tab" aria-selected={o.value === value} aria-controls={`${idPrefix}-panel`} tabIndex={o.value === value ? 0 : -1}

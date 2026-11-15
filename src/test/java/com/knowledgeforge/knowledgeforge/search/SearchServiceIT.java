@@ -67,6 +67,8 @@ class SearchServiceIT extends NodeIntegrationTest {
         assertEquals(p.id(), r.get(0).nodeId());
         assertTrue(r.get(0).snippetHtml().contains("<mark>runbook</mark>"), r.get(0).snippetHtml());
         assertEquals(space.getName(), r.get(0).spaceName());
+        assertNotNull(r.get(0).updatedAt());
+        assertEquals("Test User", r.get(0).updatedByName()); // the last editor, for the result's meta row
     }
 
     @Test

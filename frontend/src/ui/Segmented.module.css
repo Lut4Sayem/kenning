@@ -3,3 +3,7 @@
 .seg:hover { color: var(--ink); }
 .seg[aria-selected='true'] { background: var(--canvas); color: var(--ink); box-shadow: var(--shadow-1); }
 .count { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+/* On the white page (Trash, Search): lighter track, content-sized segments, counts in a small badge. */
+.onPage { display: inline-flex; background: var(--surface-card-hover); }
+.onPage .seg { flex: none; gap: 6px; padding: 0 14px; font-size: 13.5px; }
+.onPage .count { padding: 0 6px; border-radius: var(--r-pill); background: var(--hover); color: var(--ink); line-height: 16px; }

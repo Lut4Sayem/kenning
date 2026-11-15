@@ -29,6 +29,10 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
+/** The list item that holds a page title. */
+const rowOf = async (title: string) => (await screen.findByText(title, { selector: 'span' })).closest('li') as HTMLElement
+const statusText = () => waitFor(() => { const t = screen.getByRole('status').textContent; if (!t) throw new Error('empty'); return t })
+
 function mount(url = '/s/s1/trash') {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -46,10 +50,10 @@ describe('trash page', () => {
   it('listsBranchesWithWasInDeletedByAndDaysLeft', async () => {
     api.getTrash.mockResolvedValue({ canPurge: true, items: [branch()] })
     mount()
-    const row = (await screen.findByRole('row', { name: /Old outline/ }))
+    const row = (await rowOf('Old outline'))
     expect(within(row).getByText('+ 4 sub-pages')).toBeTruthy()
     expect(row.textContent).toContain('Thesis / Overview')
-    expect(row.textContent).toContain('Siam · 2 days ago')
+    expect(row.textContent).toContain('Siam deleted 2 days ago')
     expect(row.textContent).toContain('28 days')
   })
 
@@ -57,18 +61,18 @@ describe('trash page', () => {
     api.getTrash.mockResolvedValue({ canPurge: false, items: [branch({ canRestore: false }), branch({ id: 'b2', title: 'Mine', canRestore: true })] })
     api.getArchived.mockResolvedValue({ canPurge: false, items: [branch({ id: 'a1', title: 'Old archive', canRestore: false })] })
     mount()
-    const viewerRow = await screen.findByRole('row', { name: /Old outline/ })
+    const viewerRow = await rowOf('Old outline')
     expect(within(viewerRow).queryByRole('button')).toBeNull()
-    expect(within(screen.getByRole('row', { name: /Mine/ })).getByRole('button', { name: 'Restore' })).toBeTruthy()
+    expect(within(await rowOf('Mine')).getByRole('button', { name: 'Restore' })).toBeTruthy()
     await userEvent.click(screen.getByRole('tab', { name: /Archived/ }))
-    const row = await screen.findByRole('row', { name: /Old archive/ })
+    const row = await rowOf('Old archive')
     expect(within(row).queryByRole('button', { name: 'Unarchive' })).toBeNull()
   })
 
   it('deleteForeverOnlyForAdmins', async () => {
     api.getTrash.mockResolvedValue({ canPurge: false, items: [branch()] })
     mount()
-    await screen.findByRole('row', { name: /Old outline/ })
+    await rowOf('Old outline')
     expect(screen.queryByRole('button', { name: 'Delete forever' })).toBeNull()
     expect(screen.getByText('Only team admins can delete forever.')).toBeTruthy()
     cleanup()
@@ -96,11 +100,10 @@ describe('trash page', () => {
     api.getTrash.mockResolvedValue({ canPurge: true, items: [branch({ parentGone: true })] })
     api.restoreBranch.mockResolvedValue({ movedToTop: true })
     mount()
-    const row = await screen.findByRole('row', { name: /Old outline/ })
-    expect(row.textContent).toContain('restores to the top of Thesis') // said before the click
+    const row = await rowOf('Old outline')
+    expect(row.textContent).toContain('come back at the top of Thesis') // said before the click
     await userEvent.click(within(row).getByRole('button', { name: 'Restore' }))
-    const note = await screen.findByRole('status')
-    expect(note.textContent).toBe('"Old outline" was restored to the top level of Thesis, because its parent was deleted or is in the trash.')
+    expect(await statusText()).toBe('"Old outline" was restored to the top level of Thesis, because its parent was deleted or is in the trash.')
     expect(api.restoreBranch).toHaveBeenCalledWith('b1')
   })
 
@@ -109,7 +112,7 @@ describe('trash page', () => {
     api.restoreBranch.mockResolvedValue({ movedToTop: false })
     mount()
     await userEvent.click(await screen.findByRole('button', { name: 'Restore' }))
-    expect((await screen.findByRole('status')).textContent).toBe('"Old outline" was restored.')
+    expect(await statusText()).toBe('"Old outline" was restored.')
   })
 
   it('archivedTabOffersUnarchiveAndNoDelete', async () => {
@@ -133,7 +136,30 @@ describe('trash page', () => {
   it('emptyTrashSaysSo', async () => {
     api.getTrash.mockResolvedValue({ canPurge: true, items: [] })
     mount()
-    expect(await screen.findByText('The trash is empty.')).toBeTruthy()
+    expect(await screen.findByText(/^The trash is empty\./)).toBeTruthy()
+  })
+})
+
+describe('trash list', () => {
+  it('groupsPagesDueThisWeekFirstWithDaysLeft', async () => {
+    api.getTrash.mockResolvedValue({ canPurge: true, items: [branch(), branch({ id: 'b2', title: 'Scratchpad', purgeAt: new Date(Date.now() + 2 * DAY).toISOString() })] })
+    mount()
+    const soon = await screen.findByRole('region', { name: /Gone for good this week/ })
+    expect(within(soon).getByText('Scratchpad')).toBeTruthy()
+    expect(within(soon).getByText('2 days left')).toBeTruthy()
+    expect(within(screen.getByRole('region', { name: /Later/ })).getByText('Old outline')).toBeTruthy()
+  })
+
+  it('filtersByTitleAndLoadsMoreAfter25', async () => {
+    api.getTrash.mockResolvedValue({ canPurge: true, items: Array.from({ length: 30 }, (_, i) => branch({ id: `x${i}`, title: `Page ${i}` })) })
+    mount()
+    await screen.findByText('Page 24', { selector: 'span' })
+    expect(screen.queryByText('Page 25', { selector: 'span' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Load more' }))
+    expect(screen.getByText('Page 29', { selector: 'span' })).toBeTruthy()
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Filter by title' }), 'page 1')
+    expect(screen.queryByText('Page 2', { selector: 'span' })).toBeNull()
+    expect(screen.getByText('Page 12', { selector: 'span' })).toBeTruthy()
   })
 })
 
