@@ -6,7 +6,8 @@ const PATHS = {
   home: 'M2.5 7.5L8 2.5l5.5 5V13a.5.5 0 01-.5.5h-3V10h-4v3.5H3a.5.5 0 01-.5-.5V7.5z',
   clock: 'M8 14a6 6 0 100-12 6 6 0 000 12zM8 4.5V8l2.5 1.5',
   plus: 'M8 3v10M3 8h10',
-  more: 'M3.5 8h.01M8 8h.01M12.5 8h.01',
+  // Tiny stroked circles, not zero-length dots: a 1.5px dot antialiases to a faint grey (about 3px solid this way).
+  more: 'M2.75 8a.75.75 0 101.5 0 .75.75 0 10-1.5 0zM7.25 8a.75.75 0 101.5 0 .75.75 0 10-1.5 0zM11.75 8a.75.75 0 101.5 0 .75.75 0 10-1.5 0z',
   grip: 'M6 4h.01M10 4h.01M6 8h.01M10 8h.01M6 12h.01M10 12h.01',
   edit: 'M2.5 13.5l.7-3L10.8 3a1.4 1.4 0 012 2L5.2 12.6l-2.7.9zM9.5 4.5l2 2',
   user: 'M8 8a2.7 2.7 0 100-5.4A2.7 2.7 0 008 8zM2.8 13.5c.4-2.4 2.5-3.8 5.2-3.8s4.8 1.4 5.2 3.8',
