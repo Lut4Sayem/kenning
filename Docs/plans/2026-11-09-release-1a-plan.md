@@ -405,6 +405,21 @@ Screen order: Sidebar (owner's ideas: per-page colour dot, parent-child guide li
 
 ---
 
+## Design pass (after 1a works; source of truth `DESIGN.md`)
+
+- [x] DP-0 styling ADR (0009)
+- [ ] DP-1 tokens/fonts/app shell/sidebar + dev token panel
+- [ ] DP-2 auth split screens + invite preview API (GET /api/team-invites/{code} -> teamName, memberCount, invitedByName)
+- [ ] DP-3 home
+- [ ] DP-4 team tabs + team pages list API
+- [ ] DP-5 page view + editor + soft lock + right panel
+- [ ] DP-6 palette/search/trash/move/profile
+- [ ] DP-7 states
+- [ ] DP-8 responsive
+- [ ] DP-9 review
+
+---
+
 ## Requirement coverage
 
 | Requirement | Task(s) |
