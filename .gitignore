@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+Docs/design/BUILD-QUEUE.md
+Docs/screenshots/
