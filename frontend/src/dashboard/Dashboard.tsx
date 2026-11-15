@@ -6,7 +6,6 @@ import { getMe, getMySpaces } from '../api/spaces'
 import { TopBar } from '../app/ShellSlots'
 import Icon from '../ui/Icon'
 import { timeShort } from '../ui/timeAgo'
-import { initialsOf } from '../ui/tint'
 import { useCreatePage } from '../tree/useCreatePage'
 import { greetingFor, locationOf, longDate } from './home'
 import s from './Home.module.css'
@@ -81,7 +80,7 @@ export default function Dashboard() {
               <ul className={s.list}>
                 {drafts.data.items.map((d) => (
                   <PageRow key={d.nodeId} id={d.nodeId} title={d.title} location={locationOf(d.teamName, d.spaceName)}
-                    status="DRAFT" initials={initialsOf(me.data?.fullName ?? '')} when={d.updatedAt} />
+                    status="DRAFT" avatar={{ name: me.data?.fullName ?? '', me: true }} when={d.updatedAt} />
                 ))}
               </ul>
               {drafts.data.total > drafts.data.items.length && (

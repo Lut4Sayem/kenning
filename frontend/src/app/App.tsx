@@ -15,7 +15,8 @@ const TrashPage = lazy(() => import('../trash/TrashPage'))
 const TagPage = lazy(() => import('../page/TagPage'))
 const SpaceHome = lazy(() => import('../page/SpaceHome'))
 const Search = lazy(() => import('../pages/Search'))
-const TeamPage = lazy(() => import('../team/TeamPage'))
+const TeamLayout = lazy(() => import('../team/TeamLayout'))
+const TeamOverview = lazy(() => import('../team/TeamOverview'))
 const Profile = lazy(() => import('../profile/Profile'))
 
 const Plain = ({ children }: { children: string }) => <p style={{ padding: 'var(--space-8)' }}>{children}</p>
@@ -32,7 +33,9 @@ export default function App() {
         <Route element={<Shell />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/recent" element={<Recent />} />
-          <Route path="/teams/:teamId" element={<Suspense fallback={<p>Loading…</p>}><TeamPage /></Suspense>} />
+          <Route path="/teams/:teamId" element={<Suspense fallback={<p>Loading…</p>}><TeamLayout /></Suspense>}>
+            <Route index element={<Suspense fallback={null}><TeamOverview /></Suspense>} />
+          </Route>
           <Route path="/profile" element={<Suspense fallback={<p>Loading…</p>}><Profile /></Suspense>} />
           <Route path="/p/:nodeId" element={<Suspense fallback={<p>Loading…</p>}><PageView /></Suspense>} />
           <Route path="/s/:spaceId" element={<Suspense fallback={<p>Loading…</p>}><SpaceHome /></Suspense>} />

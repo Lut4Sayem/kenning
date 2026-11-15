@@ -7,7 +7,18 @@ export interface Dashboard { teamCount: number; spaceCount: number; documentCoun
 export interface Member { userId: string; fullName: string; email: string; role: string }
 export interface TeamDetail { team: { id: string; name: string; description: string | null }; teamMembers: Member[] }
 export interface JoinRequest { id: string; fullName: string; email: string; status: string; requestedAt: string }
-export interface TeamSpace { id: string; name: string; description: string | null }
+export interface TeamSpace { id: string; name: string; description: string | null; icon?: string | null; pageCount: number; draftCount: number }
+export interface TeamSummary {
+  name: string; description: string | null; memberCount: number; spaceCount: number; pageCount: number; myRole: string
+  updatedAt: string | null; firstMembers: { userId: string; fullName: string; role: string }[]
+}
+export interface TeamPageItem {
+  id: string; title: string; spaceId: string; spaceName: string; publishState: 'DRAFT' | 'PUBLISHED' | null
+  lastEditorName: string | null; lastEditorId: string | null; updatedAt: string; parentTitle: string | null
+}
+export interface TeamPages { items: TeamPageItem[]; total: number }
+export interface TeamActivity { actorName: string | null; action: string; targetTitle: string; targetId: string; createdAt: string }
+export interface TeamPagesQuery { status?: string; spaceId?: string; editedBy?: string; sort?: string; page?: number; size?: number }
 
 const json = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) })
 
@@ -21,3 +32,10 @@ export const removeMember = (id: string, userId: string) => api(`/api/teams/${id
 export const createInvite = (id: string) => api<{ inviteCode: string }>(`/api/teams/${id}/invite`, json('POST'))
 export const getJoinRequests = (id: string) => api<JoinRequest[]>(`/api/teams/${id}/join-requests`)
 export const answerJoinRequest = (id: string, rid: string, accept: boolean) => api(`/api/teams/${id}/join-requests/${rid}/${accept ? 'accept' : 'reject'}`, json('POST'))
+export const getTeamSummary = (id: string) => api<TeamSummary>(`/api/teams/${id}/summary`)
+export const getTeamPages = (id: string, q: TeamPagesQuery) => {
+  const u = new URLSearchParams()
+  for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== '') u.set(k, String(v))
+  return api<TeamPages>(`/api/teams/${id}/pages?${u}`)
+}
+export const getTeamActivity = (id: string, limit = 5) => api<TeamActivity[]>(`/api/teams/${id}/activity?limit=${limit}`)

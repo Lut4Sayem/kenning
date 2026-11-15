@@ -1,0 +1,5 @@
+.avatar { display: inline-grid; place-items: center; flex: none; border-radius: 50%; font-weight: 700; line-height: 1; letter-spacing: 0; }
+.me { background: var(--accent-soft); color: var(--accent-ink); }
+.stack { display: inline-flex; }
+.ring { border: 2px solid var(--canvas); box-sizing: content-box; margin-left: -5px; }
+.stack .ring:first-child { margin-left: 0; }

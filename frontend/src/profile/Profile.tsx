@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { getMe, getMyTeams, type Me } from '../api/spaces'
-import NewTeamForm from '../team/NewTeamForm'
 
 const TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 const MAX = 2 * 1024 * 1024
@@ -59,7 +58,6 @@ export default function Profile() {
       <h2>My teams</h2>
       {teams.data?.length === 0 && <p className="page-note">You are not in a team yet.</p>}
       <ul>{teams.data?.map((t) => <li key={t.teamId}><Link to={`/teams/${t.teamId}`}>{t.teamName}</Link> · {t.role}</li>)}</ul>
-      <NewTeamForm />
     </section>
   )
 }
