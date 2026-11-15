@@ -1,0 +1,27 @@
+.shell { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr) auto; height: 100dvh; background: var(--ground); }
+.sidebarCol { min-height: 0; overflow: hidden; }
+.panel {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  margin: var(--panel-inset) var(--panel-inset) var(--panel-inset) 0;
+  background: var(--canvas); border-radius: var(--r-panel); box-shadow: var(--shadow-2); overflow: hidden;
+}
+.topbar {
+  flex: none; display: flex; align-items: center; gap: var(--space-2); min-height: var(--topbar-height);
+  padding: 0 var(--space-4) 0 var(--space-5); border-bottom: 1px solid var(--line-soft); font-size: 13px;
+}
+.topbar:empty { display: none; }
+.main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-8) var(--space-10); }
+.details { width: var(--details-width); min-height: 0; overflow-y: auto; padding: var(--space-4); }
+.skip {
+  position: absolute; left: var(--space-3); top: var(--space-3); z-index: 100; padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); text-decoration: none; font-weight: 500;
+  transform: translateY(-200%);
+}
+.skip:focus { transform: none; }
+/* Under 640px the sidebar becomes a drawer and the right panel a sheet: DP-8. Until then the page just stacks. */
+@media (max-width: 640px) {
+  .shell { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100dvh; }
+  .sidebarCol { max-height: 50dvh; }
+  .panel { margin: var(--panel-inset); }
+  .main { padding: var(--space-4); }
+}

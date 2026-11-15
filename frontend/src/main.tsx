@@ -17,3 +17,6 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 )
+
+// Dead-code-removed in production builds, so the panel never ships.
+if (import.meta.env.DEV) void import('./dev/mount').then((m) => m.mountTokenPanel())

@@ -30,6 +30,7 @@ export default function App() {
         <Route path="/join/:code" element={<Join />} />
         <Route element={<Shell />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/recent" element={<Plain>Recent pages are coming soon.</Plain>} />
           <Route path="/teams/:teamId" element={<Suspense fallback={<p>Loading…</p>}><TeamPage /></Suspense>} />
           <Route path="/profile" element={<Suspense fallback={<p>Loading…</p>}><Profile /></Suspense>} />
           <Route path="/p/:nodeId" element={<Suspense fallback={<p>Loading…</p>}><PageView /></Suspense>} />

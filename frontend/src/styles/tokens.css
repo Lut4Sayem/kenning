@@ -1,78 +1,119 @@
-/* Tokens copied from DESIGN.md section 0 (via static/style.css). Plain layout only in 1a. */
+/* Tokens from DESIGN.md sections 2-5. Change DESIGN.md first, then this file. No raw colours in components. */
 :root {
-  /* Primary */
-  --color-primary: #1d6fcb;
-  --color-primary-pressed: #1a64b8;
-  --color-primary-deep: #15528f;
-  --color-primary-soft: #eef4fc;
-  --color-primary-ring: rgba(29, 111, 203, 0.35);
-  --color-on-primary: #ffffff;
-  --color-link: var(--color-primary-pressed);
+  /* Surfaces and ink */
+  --ground: #efefec;
+  --canvas: #ffffff;
+  --surface-card: #f7f6f3;
+  --surface-card-hover: #f3f2ee;
+  --hover: #e4e3df;
+  --ink: #1c1b17;
+  --ink-doc: #2f2d28;
+  --ink-label: #3d3b36;
+  --ink-muted: #66635c;
+  --line: rgb(28 27 23 / 0.09);
+  --line-soft: rgb(28 27 23 / 0.06);
+  --input-border: #8f8b84;
 
-  /* Surfaces & lines */
-  --color-canvas: #ffffff;
-  --color-surface: #f7f7f5;
-  --color-surface-soft: #fbfbfa;
-  --color-hover: #efefed;
-  --color-hairline: #e5e3df;
-  --color-hairline-soft: #ede9e4;
-  --color-hairline-strong: #8f8b84;
+  /* Brand and actions */
+  --primary: #1c1b17;
+  --on-primary: #ffffff;
+  --accent: #ffd23f;
+  --accent-soft: #ffefb0;
+  --accent-ink: #5a4500;
+  --link: #3554d1;
+  --ring: rgb(255 208 47 / 0.55);
+  --selection: #ffeaa0;
 
-  /* Text */
-  --color-ink: #37352f;
-  --color-charcoal: #37352f;
-  --color-slate: #5d5b54;
-  --color-steel: #6b6964;
-  --color-stone: #a4a097;
-  --color-muted: #bbb8b1;
+  /* State */
+  --draft-bg: #fffbea;
+  --draft-pill: #ffe48a;
+  --draft-ink: #4d3a00;
+  --published-bg: #d9f3e1;
+  --published-ink: #136c27;
+  --callout: #fff6d6;
+  --success-text: #136c27;
+  --warning-text: #92400e;
+  --error-text: #b42318;
+  --error-soft: #fdecea;
+  --error-ink: #7a1d14;
 
-  /* Semantic: bright for icons/borders, -text for words, -soft for backgrounds */
-  --color-success: #1aae39;  --color-success-text: #136c27;  --color-success-soft: #d9f3e1;
-  --color-warning: #dd5b00;  --color-warning-text: #92400e;  --color-warning-soft: #ffe8d4;
-  --color-error: #e03131;    --color-error-text: #b42318;    --color-error-soft: #fdecea;  --color-error-ink: #7a1d14;
-  --color-info: #0075de;     --color-info-text: #004a8c;     --color-info-soft: #dcecfa;
-  --color-highlight: #fef7d6;
-
-  /* Tints (bg / text on it) */
+  /* Tints (bg / text), picked from a hash of the name */
+  --tint-sky-bg: #dcecfa;      --tint-sky-fg: #0b5c99;
+  --tint-mint-bg: #d9f3e1;     --tint-mint-fg: #136c27;
   --tint-peach-bg: #ffe8d4;    --tint-peach-fg: #793400;
   --tint-rose-bg: #fde0ec;     --tint-rose-fg: #a02e6d;
-  --tint-mint-bg: #d9f3e1;     --tint-mint-fg: #136c27;
   --tint-lavender-bg: #e6e0f5; --tint-lavender-fg: #391c57;
-  --tint-sky-bg: #dcecfa;      --tint-sky-fg: #004a8c;
   --tint-yellow-bg: #fef7d6;   --tint-yellow-fg: #6b5200;
   --tint-gray-bg: #f0eeec;     --tint-gray-fg: #37352f;
 
+  /* Page colours (the dot a user picks per page); default gray */
+  --page-gray: #9b9a97;   --page-brown: #93694f;  --page-orange: #d9730d;
+  --page-yellow: #dfab01; --page-green: #0f7b6c;  --page-blue: #2e7dbb;
+  --page-purple: #8a5cc4; --page-pink: #c4337c;   --page-red: #e03e3e;
+
   /* Type */
-  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-title: "Newsreader", Georgia, serif;
   --font-mono: "Fragment Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
 
   /* Spacing (4px base) */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px; --space-5: 20px;
-  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px;
+  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-14: 56px; --space-16: 64px;
 
   /* Radius */
-  --radius-chip: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-full: 9999px;
+  --r-chip: 4px; --r-tag: 5px; --r-row: 8px; --r-lg: 12px; --r-card: 14px; --r-panel: 18px; --r-dialog: 20px; --r-pill: 999px;
 
-  /* Elevation */
-  --shadow-1: 0 1px 2px rgba(15, 15, 15, 0.04);
-  --shadow-2: 0 4px 12px rgba(15, 15, 15, 0.08);
-  --shadow-3: 0 16px 48px -8px rgba(15, 15, 15, 0.16);
+  /* Depth */
+  --shadow-1: 0 1px 2px rgb(20 20 15 / 0.08);
+  --shadow-2: 0 1px 3px rgb(20 20 15 / 0.06), 0 8px 24px -12px rgb(20 20 15 / 0.10);
+  --shadow-3: 0 12px 32px -12px rgb(20 20 15 / 0.18), 0 0 0 1px rgb(28 27 23 / 0.06);
 
   /* Motion */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --dur-fast: 120ms;
   --dur: 180ms;
 
   /* Layout */
-  --sidebar-width: 248px;
-  --sidebar-rail: 64px;
+  --sidebar-width: 264px;
+  --details-width: 288px;
   --topbar-height: 56px;
-  --content-max: 1120px;
-  --reading-max: 720px;
+  --panel-inset: 10px;
+  --content-max: 1080px;
+  --reading-max: 740px;
+
+  /* ---- legacy, remove in DP-9: names still used by CSS that has not had its design pass yet ---- */
+  --color-primary: var(--primary);
+  --color-primary-pressed: var(--primary);
+  --color-primary-deep: var(--primary);
+  --color-primary-soft: var(--accent-soft);
+  --color-primary-ring: var(--ring);
+  --color-on-primary: var(--on-primary);
+  --color-link: var(--link);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface-card);
+  --color-surface-soft: var(--surface-card);
+  --color-hover: var(--hover);
+  --color-hairline: var(--line);
+  --color-hairline-soft: var(--line-soft);
+  --color-hairline-strong: var(--input-border);
+  --color-ink: var(--ink);
+  --color-charcoal: var(--ink-doc);
+  --color-slate: var(--ink-muted);
+  --color-steel: var(--ink-muted);
+  --color-stone: #a4a097;
+  --color-muted: #bbb8b1;
+  --color-success: #1aae39;  --color-success-text: var(--success-text);  --color-success-soft: var(--published-bg);
+  --color-warning: #dd5b00;  --color-warning-text: var(--warning-text);  --color-warning-soft: var(--tint-peach-bg);
+  --color-error: #e03131;    --color-error-text: var(--error-text);      --color-error-soft: var(--error-soft);  --color-error-ink: var(--error-ink);
+  --color-info: #0075de;     --color-info-text: var(--tint-sky-fg);      --color-info-soft: var(--tint-sky-bg);
+  --color-highlight: var(--tint-yellow-bg);
+  --radius-chip: var(--r-chip);
+  --radius-sm: 6px;
+  --radius-md: var(--r-row);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-pill);
+  --space-12: 48px;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --sidebar-rail: 64px;
   --page-pad: 32px;
 }

@@ -8,7 +8,7 @@ test('create page, create sub-page, drag it to top level, breadcrumbs update', a
   await page.goto('/app')
 
   // A new user only has the private space.
-  const priv = page.locator('details.space').first()
+  const priv = page.locator('[data-space]').first()
   const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' })
   await priv.getByRole('button', { name: /new page/i }).click()
   await page.waitForURL(/\/app\/p\//)
@@ -28,13 +28,13 @@ test('create page, create sub-page, drag it to top level, breadcrumbs update', a
   await priv.getByRole('button', { name: 'Move Child' }).focus()
   // How many steps that takes depends on row heights (fonts), so step until the zone lights up.
   await page.keyboard.press('Space')
-  const dropZone = priv.locator('.tree-top-drop')
+  const dropZone = priv.getByTestId('top-drop')
   await expect(dropZone).toBeVisible()
-  for (let i = 0; i < 12 && !(await dropZone.evaluate((el) => el.classList.contains('is-over'))); i++) {
+  for (let i = 0; i < 12 && (await dropZone.getAttribute('data-over')) !== 'true'; i++) {
     await page.keyboard.press('ArrowDown')
     await page.waitForTimeout(50)
   }
-  await expect(dropZone).toHaveClass(/is-over/)
+  await expect(dropZone).toHaveAttribute('data-over', 'true')
   await page.keyboard.press('Space')
 
   await expect(crumbs).not.toContainText('Parent')
