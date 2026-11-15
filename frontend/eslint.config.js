@@ -12,4 +12,12 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks },
     rules: reactHooks.configs.recommended.rules,
   },
+  {
+    // Mantine is only here for BlockNote (ADR 0009)
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/editor/**'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [{ group: ['@mantine/*'], message: 'Mantine is only allowed in src/editor (ADR 0009).' }] }],
+    },
+  },
 )
