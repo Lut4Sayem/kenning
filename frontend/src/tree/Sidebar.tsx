@@ -7,29 +7,11 @@ import Icon from '../ui/Icon'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
 import PageTree from './PageTree'
 import s from './Sidebar.module.css'
+import NewTeamDialog from '../team/NewTeamDialog'
+import { useRemembered } from '../ui/useRemembered'
 import { useCreatePage } from './useCreatePage'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
-
-/** Open/closed state that survives a reload. Storage can be blocked: then it just starts open. */
-function useRemembered(key: string): [boolean, () => void] {
-  const [open, setOpen] = useState(() => {
-    try {
-      return localStorage.getItem(key) !== '0'
-    } catch {
-      return true
-    }
-  })
-  const toggle = () => {
-    try {
-      localStorage.setItem(key, open ? '0' : '1')
-    } catch {
-      // ignore: the choice just is not remembered
-    }
-    setOpen(!open)
-  }
-  return [open, toggle]
-}
 
 // Loaded on demand: sending unsaved copies needs the editor code, which the rest of the shell does not.
 const logOut = (userId: string) =>
@@ -45,6 +27,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const activeId = useMatch('/p/:nodeId')?.params.nodeId
+  const [newTeam, setNewTeam] = useState(false)
   const priv = (spaces.data ?? []).find((sp) => sp.ownerType === 'USER')
   const name = me.data?.fullName ?? ''
 
@@ -78,7 +61,10 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
         <NavLink to="/recent" className={({ isActive }) => cx(s.navLink, isActive && s.active)}><Icon name="clock" />Recent</NavLink>
       </div>
 
-      <h2 className={s.label}>Your teams</h2>
+      <div className={s.labelRow}>
+        <h2 className={s.label}>Your teams</h2>
+        <button type="button" className={s.rowBtn} aria-label="New team" title="New team" onClick={() => setNewTeam(true)}><Icon name="plus" /></button>
+      </div>
       {(teams.data ?? []).map((t) => (
         <TeamSection key={t.teamId} team={t} spaces={(spaces.data ?? []).filter((sp) => sp.ownerType === 'TEAM' && sp.teamId === t.teamId)}
           loaded={spaces.isSuccess} activeId={activeId} />
@@ -96,6 +82,8 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
       )}
 
       </div>
+
+      {newTeam && <NewTeamDialog onClose={() => setNewTeam(false)} />}
 
       <div className={s.foot}>
         {me.data && (

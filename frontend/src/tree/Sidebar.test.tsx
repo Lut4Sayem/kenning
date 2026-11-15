@@ -131,4 +131,11 @@ describe('Sidebar', () => {
     expect(await screen.findByRole('button', { name: 'More actions for My drafts' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'New page in My drafts' })).toBeTruthy()
   })
+
+  it('theTeamsLabelHasANewTeamButtonThatOpensTheDialog', async () => {
+    renderSidebar()
+    await userEvent.click(await screen.findByRole('button', { name: 'New team' }))
+    expect(screen.getByRole('dialog', { name: 'New team' })).toBeTruthy()
+    expect(screen.getByLabelText('Team name')).toBeTruthy()
+  })
 })

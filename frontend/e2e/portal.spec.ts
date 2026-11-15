@@ -18,15 +18,15 @@ test('register, create team, create space, create page, comment', async ({ page 
   await page.getByLabel('Password', { exact: true }).fill('password123')
   await page.getByRole('button', { name: 'Log in' }).click()
   await expect(page).toHaveURL(/\/app\/?$/)
-  await page.goto('/app/profile') // Home has no team form; it lives on Profile for now
-  await page.getByRole('button', { name: 'New team' }).click()
+  await page.getByRole('button', { name: 'New team' }).click() // the + beside "Your teams" in the sidebar
   await page.getByLabel('Team name').fill('Portal Team')
-  await page.getByRole('button', { name: 'Create a team' }).click()
+  await page.getByRole('button', { name: 'Create team' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Portal Team' })).toBeVisible()
-  await page.getByLabel('Space name').fill('Portal Space')
+  await expect(page.getByRole('heading', { name: 'Portal Team', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'New space' }).click()
-  await expect(page.getByRole('main').getByRole('link', { name: 'Portal Space' })).toBeVisible() // the sidebar lists it too
+  await page.getByLabel('Space name').fill('Portal Space')
+  await page.getByRole('button', { name: 'Create space' }).click()
+  await expect(page.getByRole('main').getByRole('link', { name: /Portal Space/ })).toBeVisible() // the sidebar lists it too
 
   await page.getByRole('button', { name: 'New page in Portal Space' }).click()
   await expect(page).toHaveURL(/\/app\/p\//)

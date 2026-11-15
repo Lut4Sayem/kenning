@@ -26,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import com.knowledgeforge.knowledgeforge.activity.ActivityLogService;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersionService;
 import com.knowledgeforge.knowledgeforge.nodeversion.VersionKind;
 import java.util.Set;
@@ -43,10 +44,11 @@ public class NodeService {
     private final TeamMemberRepository members;
     private final MongoTemplate mongo;
     private final NodeVersionService versions;
+    private final ActivityLogService activity;
 
     public NodeService(NodeRepository nodes, SpaceRepository spaces, NodeContentRepository contents,
                        NodeAccessService access, TeamMemberRepository members, MongoTemplate mongo,
-                       NodeVersionService versions) {
+                       NodeVersionService versions, ActivityLogService activity) {
         this.nodes = nodes;
         this.spaces = spaces;
         this.contents = contents;
@@ -54,6 +56,7 @@ public class NodeService {
         this.members = members;
         this.mongo = mongo;
         this.versions = versions;
+        this.activity = activity;
     }
 
     // ---------- reads ----------
@@ -120,6 +123,7 @@ public class NodeService {
             nodes.deleteById(node.getId());
             throw e;
         }
+        log("CREATE_NODE", space, user, node);
         return toDto(node, user);
     }
 
@@ -192,7 +196,15 @@ public class NodeService {
     public NodeDTO publish(String id) {
         access.requireEdit(id);
         versions.createVersion(id, VersionKind.PUBLISHED, null); // first: a missing content (404) must leave the state alone
-        return setPublishState(id, PublishState.PUBLISHED);
+        NodeDTO published = setPublishState(id, PublishState.PUBLISHED);
+        Node n = nodes.findById(id).orElseThrow();
+        log("PUBLISH_NODE", space(n.getSpaceId()), access.currentUser(), n);
+        return published;
+    }
+
+    /** Team feed events only (personal spaces have no team). Edits are not logged: autosave would flood the feed. */
+    private void log(String action, Space space, User user, Node node) {
+        if (space.getTeamId() != null) activity.log(space.getTeamId(), user.getId(), action, "NODE", node.getId(), node.getTitle());
     }
 
     public NodeDTO unpublish(String id) {

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Avatar from '../ui/Avatar'
 import { timeCompact } from '../ui/timeAgo'
 import s from './Home.module.css'
 
@@ -8,13 +9,13 @@ export interface PageRowProps {
   location: string
   /** null: no pill. */
   status: 'DRAFT' | 'PUBLISHED' | null
-  /** Initials of the person to show (the draft list shows me); omit for no avatar. */
-  initials?: string
+  /** Who to show (the draft list shows me, the team list the last editor); omit for none. */
+  avatar?: { name: string; me?: boolean }
   when: string | null
 }
 
 /** The 42px list row shared by "Your drafts" and Recent (DESIGN.md section 6). */
-export default function PageRow({ id, title, location, status, initials, when }: PageRowProps) {
+export default function PageRow({ id, title, location, status, avatar, when }: PageRowProps) {
   return (
     <li>
       <Link to={`/p/${id}`} className={s.row}>
@@ -22,7 +23,7 @@ export default function PageRow({ id, title, location, status, initials, when }:
         <span className={s.rowTitle}>{title || 'Untitled'}</span>
         <span className={s.rowLoc}>{location}</span>
         {status && <span className={`${s.pill} ${status === 'PUBLISHED' ? s.published : ''}`}>{status === 'PUBLISHED' ? 'Published' : 'Draft'}</span>}
-        {initials && <span className={s.avatar} aria-hidden="true">{initials}</span>}
+        {avatar && <span className={s.rowAvatar}><Avatar name={avatar.name} me={avatar.me} /></span>}
         <time className={s.when} dateTime={when ?? undefined}>{timeCompact(when)}</time>
       </Link>
     </li>
