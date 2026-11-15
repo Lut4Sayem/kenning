@@ -411,12 +411,12 @@ Screen order: Sidebar (owner's ideas: per-page colour dot, parent-child guide li
 - [x] DP-1 tokens/fonts/app shell/sidebar + dev token panel
 - [x] DP-2 auth split screens + invite preview API (GET /api/team-invites/{code} -> teamName, memberCount, invitedByName)
 - [x] DP-3 home (Home + Recent, GET /api/me/drafts)
-- [ ] DP-4 team tabs + team pages list API
-- [ ] DP-5 page view + editor + soft lock + right panel
-- [ ] DP-6 palette/search/trash/move/profile
-- [ ] DP-7 states
-- [ ] DP-8 responsive
-- [ ] DP-9 review
+- [x] DP-4 team tabs + team pages list API
+- [x] DP-5 page view + editor + soft lock + right panel
+- [x] DP-6 palette/search/trash/move/profile
+- [x] DP-7 states
+- [x] DP-8 responsive
+- [x] DP-9 review
 
 ---
 
