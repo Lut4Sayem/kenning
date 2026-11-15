@@ -22,6 +22,9 @@ function backend(over: { preview?: unknown; join?: unknown } = {}) {
   })
 }
 
+/** The h1 changes once the load settles, so wait for the text instead of taking the first heading. */
+const h1Is = (text: string) => waitFor(() => expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(text))
+
 const renderJoin = () =>
   render(<MemoryRouter initialEntries={['/join/abc']}><Routes><Route path="/join/:code" element={<Join />} /></Routes></MemoryRouter>)
 
@@ -42,7 +45,7 @@ describe('Join', () => {
     renderJoin()
     expect(await screen.findByText('CSE391 Thesis Group')).toBeTruthy()
     expect(screen.getByText('4 members · invited by Lutfur Sayem')).toBeTruthy()
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Join this team')
+    await h1Is('Join this team')
     expect(screen.getByText('rafi@bracu.ac.bd')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Not you?' }).getAttribute('href')).toBe('/logout?next=' + encodeURIComponent('/app/join/abc'))
   })
@@ -56,14 +59,14 @@ describe('Join', () => {
   it('previewFailureKeepsTheButton', async () => {
     backend({ preview: new ApiError(500, 'boom') })
     renderJoin()
-    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Join a team')
+    await h1Is('Join a team')
     await waitFor(() => expect(screen.getByRole('button', { name: 'Ask to join' })).toBeTruthy())
   })
 
   it('unknownInviteShowsNoButtonAndALinkHome', async () => {
     backend({ preview: new ApiError(404, 'Invite code not found') })
     renderJoin()
-    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('This invite doesn’t work')
+    await h1Is('This invite doesn’t work')
     expect(screen.getByRole('alert').textContent).toMatch(/ask for a new link/)
     expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
     expect(screen.getByRole('link', { name: 'Go to Home' }).getAttribute('href')).toBe('/')
@@ -96,6 +99,6 @@ describe('Join', () => {
     backend({ join: new ApiError(404, 'Invite code not found') })
     renderJoin()
     await userEvent.click(await screen.findByRole('button', { name: 'Ask to join' }))
-    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('This invite doesn’t work')
+    await h1Is('This invite doesn’t work')
   })
 })
