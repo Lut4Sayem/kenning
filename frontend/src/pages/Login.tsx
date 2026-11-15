@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client'
-import { AuthLayout, Field, FormError, PasswordField } from './AuthLayout'
+import { AuthLayout, Field, FormError, PasswordField, SubmitButton } from './AuthLayout'
 import { safeNext } from './safeNext'
 
 export default function Login() {
@@ -41,17 +41,19 @@ export default function Login() {
     }
   }
 
+  const registerUrl = '/register' + (params.get('next') ? '?next=' + encodeURIComponent(params.get('next')!) : '')
   return (
-    <AuthLayout title="Log in">
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Log in to pick up where you left off."
+      alt={<>New here? <Link to={registerUrl}>Create an account</Link></>}
+    >
       <form onSubmit={submit} noValidate>
         <FormError message={formError} />
-        <Field id="email" label="Email" type="email" autoComplete="email" value={email} error={errors.email} onChange={(e) => setEmail(e.target.value)} />
-        <PasswordField id="password" label="Password" autoComplete="current-password" value={password} error={errors.password} onChange={setPassword} />
-        <button type="submit" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
+        <Field id="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" value={email} error={errors.email} onChange={(e) => setEmail(e.target.value)} />
+        <PasswordField id="password" label="Password" autoComplete="current-password" placeholder="Your password" value={password} error={errors.password} onChange={setPassword} />
+        <SubmitButton busy={busy} label="Log in" busyLabel="Logging in…" />
       </form>
-      <p>
-        New here? <Link to={'/register' + (params.get('next') ? '?next=' + encodeURIComponent(params.get('next')!) : '')}>Create an account</Link>
-      </p>
     </AuthLayout>
   )
 }
