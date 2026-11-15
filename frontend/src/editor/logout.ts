@@ -56,7 +56,8 @@ export async function sendAllPending(userId: string): Promise<number> {
 }
 
 /** false = the user chose to stay logged in. */
-export async function logOut(userId: string): Promise<boolean> {
+/** `next` = a same-origin path to return to after the next login (the join link, for "Not you?"). */
+export async function logOut(userId: string, next?: string): Promise<boolean> {
   const unsent = await sendAllPending(userId)
   if (unsent > 0) {
     const leave = await confirmDialog({
@@ -74,6 +75,6 @@ export async function logOut(userId: string): Promise<boolean> {
   } catch {
     // go to the login page anyway
   }
-  location.assign('/app/login')
+  location.assign('/app/login' + (next ? '?next=' + encodeURIComponent(next) : ''))
   return true
 }

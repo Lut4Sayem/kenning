@@ -1,67 +1,128 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client'
-import { AuthLayout, FormError } from './AuthLayout'
+import Icon from '../ui/Icon'
+import { initialOf, initialsOf, tintOf } from '../ui/tint'
+import { AuthLayout, FormError, SubmitButton } from './AuthLayout'
+import s from './Join.module.css'
 import { DEFAULT_NEXT } from './safeNext'
 
-type State = 'loading' | 'ready' | 'sent' | 'error'
+type Preview = { teamName: string; memberCount: number; invitedByName: string | null }
+type Me = { fullName?: string; email?: string }
+type Problem = { title: string; message: string; home?: boolean }
+
+const tint = (name: string) => ({ background: `var(--tint-${tintOf(name)}-bg)`, color: `var(--tint-${tintOf(name)}-fg)` })
+const NOT_FOUND: Problem = {
+  title: 'This invite doesn’t work',
+  message: 'We couldn’t find this invite. It may have been replaced; ask for a new link.',
+  home: true,
+}
+
+function TeamBlock({ preview }: { preview: Preview }) {
+  const n = preview.memberCount
+  return (
+    <div className={s.team}>
+      <span className={s.tile} aria-hidden="true" style={tint(preview.teamName)}>{initialOf(preview.teamName)}</span>
+      <div className={s.teamText}>
+        <span className={s.teamName}>{preview.teamName}</span>
+        <span>{n} {n === 1 ? 'member' : 'members'}{preview.invitedByName ? ` · invited by ${preview.invitedByName}` : ''}</span>
+      </div>
+    </div>
+  )
+}
+
+function TeamSkeleton() {
+  return (
+    <div className={s.team} aria-busy="true">
+      <span className={s.skelTile} aria-hidden="true" />
+      <span className={s.skelText} aria-hidden="true"><span className={s.skelLine} /><span className={s.skelLine} /></span>
+      <span className={s.sr}>Loading invite…</span>
+    </div>
+  )
+}
 
 export default function Join() {
   const { code = '' } = useParams()
-  const [state, setState] = useState<State>('loading')
-  const [me, setMe] = useState('')
-  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [preview, setPreview] = useState<Preview | null>(null) // null once loaded = the preview failed (not a 404)
+  const [me, setMe] = useState<Me | null>(null)
+  const [problem, setProblem] = useState<Problem | null>(null)
+  const [notice, setNotice] = useState('')
   const [formError, setFormError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const fail = (m: string) => { setMessage(m); setState('error') }
-
   useEffect(() => {
-    // A 401 here sends them to login and back via ?next=
-    api<{ fullName?: string; email?: string }>('/api/me').then(
-      (u) => { setMe(u?.fullName || u?.email || ''); setState('ready') },
-      (err: Error) => fail(err.message),
-    )
-  }, [])
+    let live = true
+    // A 401 on either call sends them to login and back via ?next=
+    Promise.allSettled([
+      api<Me>('/api/me'),
+      api<Preview>(`/api/team-invites/${encodeURIComponent(code)}`),
+    ]).then(([m, p]) => {
+      if (!live) return
+      if (p.status === 'rejected' && p.reason instanceof ApiError && p.reason.status === 404) setProblem(NOT_FOUND)
+      else if (m.status === 'rejected') setProblem({ title: 'Join a team', message: (m.reason as Error).message })
+      else {
+        setMe(m.value)
+        if (p.status === 'fulfilled') setPreview(p.value)
+      }
+      setLoading(false)
+    })
+    return () => { live = false }
+  }, [code])
 
-  async function join() {
+  async function join(e: FormEvent) {
+    e.preventDefault()
     setFormError('')
     setBusy(true)
     try {
       await api(`/api/team-invites/${encodeURIComponent(code)}/join`, { method: 'POST' })
-      setState('sent')
+      setNotice('Request sent. A team admin has to approve it.')
     } catch (err) {
-      const e = err as ApiError
-      if (e.status === 409 && /already a member/i.test(e.message)) {
-        setMessage("You're already a member. Taking you to your dashboard…")
-        setState('sent')
+      const x = err as ApiError
+      if (x.status === 409 && /already a member/i.test(x.message)) {
+        setNotice("You're already a member. Taking you to your dashboard…")
         setTimeout(() => window.location.assign(DEFAULT_NEXT), 1500)
-      } else if (e.status === 409) {
-        setMessage("You've already asked to join. It's waiting for approval.")
-        setState('sent')
-      } else if (e.status === 404) {
-        fail("We couldn't find this invite. It may have been replaced; ask for a new link.")
-      } else {
-        setFormError(e.message)
-      }
+      } else if (x.status === 409) setNotice("You've already asked to join. It's waiting for approval.")
+      else if (x.status === 404) setProblem(NOT_FOUND)
+      else setFormError(x.message)
     } finally {
       setBusy(false)
     }
   }
 
+  const name = me?.fullName || me?.email || ''
+  const title = problem ? problem.title : loading || preview ? 'Join this team' : 'Join a team'
+  const logoutUrl = '/logout?next=' + encodeURIComponent('/app/join/' + encodeURIComponent(code))
+
   return (
-    <AuthLayout title="Join a team">
-      {state === 'loading' && <p>Loading…</p>}
-      {state === 'error' && <p role="alert">{message}</p>}
-      {state === 'ready' && (
+    <AuthLayout
+      title={title}
+      subtitle={problem ? undefined : 'You’ll see its spaces and pages once an admin lets you in.'}
+      lead={loading ? <TeamSkeleton /> : preview && !problem ? <TeamBlock preview={preview} /> : undefined}
+    >
+      {problem && (
         <>
-          <FormError message={formError} />
-          <p>You're signed in as <strong>{me}</strong>. Invite code: <code>{code}</code></p>
-          <button type="button" onClick={join} disabled={busy}>{busy ? 'Sending…' : 'Ask to join'}</button>
+          <p className={s.problem} role="alert">{problem.message}</p>
+          {problem.home && <Link to="/" className={s.home}>Go to Home</Link>}
         </>
       )}
-      {state === 'sent' && (
-        <p role="status">{message || 'Request sent. A team admin has to approve it.'}</p>
+      {!problem && !loading && (
+        <>
+          <div className={s.me}>
+            <span className={s.avatar} aria-hidden="true" style={tint(name)}>{initialsOf(name)}</span>
+            <span className={s.who}><b>{name}</b>{me?.fullName && me.email ? me.email : ''}</span>
+            <Link to={logoutUrl} className={s.switch}>Not you?</Link>
+          </div>
+          <form onSubmit={join} className={s.action}>
+            <FormError message={formError} />
+            <div role="status">{notice && <div className={s.notice}>{notice}</div>}</div>
+            {!notice && <SubmitButton busy={busy} label="Ask to join" busyLabel="Sending…" />}
+          </form>
+          <p className={s.after}>
+            <Icon name="info" />
+            <span>An admin approves each request. When they do, the team appears in your sidebar.</span>
+          </p>
+        </>
       )}
     </AuthLayout>
   )

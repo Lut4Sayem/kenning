@@ -1,6 +1,9 @@
 package com.knowledgeforge.knowledgeforge.team;
 
+import com.knowledgeforge.knowledgeforge.auth.AuthRateLimiter;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,8 +15,19 @@ import java.util.List;
 public class TeamJoinRequestController {
     private final TeamJoinRequestService teamJoinRequestService;
 
-    public TeamJoinRequestController(TeamJoinRequestService teamJoinRequestService) {
+    private final AuthRateLimiter rateLimiter;
+
+    public TeamJoinRequestController(TeamJoinRequestService teamJoinRequestService, AuthRateLimiter rateLimiter) {
         this.teamJoinRequestService = teamJoinRequestService;
+        this.rateLimiter = rateLimiter;
+    }
+
+    /** Preview for the join page. 30 per minute per user and per IP, so codes can't be guessed. */
+    @GetMapping("/api/team-invites/{inviteCode}")
+    public InvitePreviewDTO preview(@PathVariable String inviteCode, Authentication auth, HttpServletRequest request) {
+        rateLimiter.check("invite-preview-user", auth.getName(), 30);
+        rateLimiter.check("invite-preview-ip", request.getRemoteAddr(), 30);
+        return teamJoinRequestService.preview(inviteCode);
     }
 
     @PostMapping("/api/team-invites/{inviteCode}/join")

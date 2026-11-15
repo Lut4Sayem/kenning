@@ -28,6 +28,16 @@ public class TeamJoinRequestService {
         this.teamRepository = teamRepository;
     }
 
+    public InvitePreviewDTO preview(String inviteCode) {
+        TeamInvite invite = teamInviteRepository.findByInviteCode(inviteCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite code not found"));
+        Team team = teamRepository.findById(invite.getTeamId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite code not found"));
+        String by = invite.getCreatedBy() == null ? null
+                : userRepository.findById(invite.getCreatedBy()).map(User::getFullName).orElse(null);
+        return new InvitePreviewDTO(team.getName(), teamMemberRepository.countByTeamId(team.getId()), by);
+    }
+
     public TeamJoinRequest requestToJoin(String inviteCode) {
         TeamInvite teamInvite = teamInviteRepository.findByInviteCode(inviteCode)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite code not found"));

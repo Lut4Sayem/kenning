@@ -3,7 +3,7 @@ import preview from '../assets/auth-preview.webp'
 import Icon from '../ui/Icon'
 import s from './AuthLayout.module.css'
 
-export function AuthLayout({ title, subtitle, alt, children }: { title: string; subtitle?: string; alt?: ReactNode; children: ReactNode }) {
+export function AuthLayout({ title, subtitle, alt, lead, children }: { title: string; subtitle?: string; alt?: ReactNode; lead?: ReactNode; children: ReactNode }) {
   return (
     <div className={s.split}>
       <div className={s.left}>
@@ -16,6 +16,7 @@ export function AuthLayout({ title, subtitle, alt, children }: { title: string; 
           KnowledgeForge
         </div>
         <main className={s.formcol}>
+          {lead}
           <h1 className={s.title}>{title}</h1>
           {subtitle && <p className={s.sub}>{subtitle}</p>}
           {children}

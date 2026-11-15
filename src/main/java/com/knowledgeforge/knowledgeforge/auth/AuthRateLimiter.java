@@ -28,6 +28,11 @@ public class AuthRateLimiter {
         if (count(action + "|" + ip, true) > limit) tooMany();
     }
 
+    /** Any action: every call counts against {@code key}, with its own {@code max} per minute. */
+    public void check(String action, String key, int max) {
+        if (count(action + "|" + key, true) > max) tooMany();
+    }
+
     /** Login: refuses when this IP + email already failed {@code limit} times this minute. Reading does not count. */
     public void assertLoginAllowed(String ip, String email) {
         if (count(loginKey(ip, email), false) >= limit) tooMany();

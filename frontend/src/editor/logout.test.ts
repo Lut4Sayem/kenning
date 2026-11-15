@@ -138,6 +138,11 @@ describe('logging out with unsaved local copies', () => {
     expect(assign).toHaveBeenCalledWith('/app/login')
   })
 
+  it('logOutCanComeBackToAGivenPage', async () => {
+    expect(await logOut(ME, '/app/join/abc')).toBe(true)
+    expect(assign).toHaveBeenCalledWith('/app/login?next=' + encodeURIComponent('/app/join/abc'))
+  })
+
   it('aSaveThatRacesWithAnotherWriterIsMergedAgain', async () => {
     pageWithUnsaved('busy', 'mine. ')
     contentApi.saveContent.mockImplementationOnce(async () => {
