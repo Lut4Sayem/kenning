@@ -43,6 +43,8 @@ export interface Opened {
   release: () => void
   /** Best known plain text of an unsaved copy taken over on open. */
   text?: string
+  /** Slots of earlier sessions merged into this copy: cleared once this session has stored its own. */
+  adopt?: string[]
 }
 
 const DEBOUNCE_MS = 1000
@@ -87,13 +89,14 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
     }
   }
 
+  // Nothing is moved here: React may throw this result away (StrictMode, a re-run effect), and a copy moved into
+  // a slot nobody uses would be hidden from the open that is used (QA-40). The Autosave takes the copies over.
   // A copy from before a restore goes first and alone; the reload after it handles the rest.
   const old = orphans.find((o) => o.pending.epoch !== server.contentEpoch)
   if (old) {
-    if (await store.put(slot, { ...old.pending })) await store.clear(old.id)
     return {
       ...mine, ydoc: docFrom(old.pending.state), revision: old.pending.baseRevision, epoch: old.pending.epoch,
-      recover: true, state: 'saving', text: old.pending.text,
+      recover: true, state: 'saving', text: old.pending.text, adopt: [old.id],
     }
   }
 
@@ -101,11 +104,8 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
   const current = { ...mine, ydoc, revision: server.revision, epoch: server.contentEpoch, recover: false }
   if (!orphans.length) return { ...current, state: 'saved' }
 
-  // Under this session's slot first, and only then remove the old ones: never a moment without a copy.
   const text = orphans.map((o) => o.pending.text).join('\n')
-  const taken = await store.put(slot, { state: encode(ydoc), text, baseRevision: server.revision, epoch: server.contentEpoch, at: Date.now() })
-  if (taken) for (const o of orphans) await store.clear(o.id)
-  return { ...current, state: 'saving', text }
+  return { ...current, state: 'saving', text, adopt: orphans.map((o) => o.id) }
 }
 
 export class Autosave {
@@ -140,6 +140,9 @@ export class Autosave {
     window.addEventListener('pagehide', this.flush)
     window.addEventListener('beforeunload', this.onBeforeUnload)
     document.addEventListener('visibilitychange', this.onVisibility)
+    // Under this session's slot first, and only then remove the old ones: never a moment without a copy.
+    const adopt = opened.adopt ?? []
+    if (adopt.length) void this.storePending().then(async (ok) => { if (ok) for (const id of adopt) await opened.store.clear(id) })
     // A copy taken over on open: wait until the editor has rendered it, so its text can be read.
     if (this.dirty) {
       this.timer = setTimeout(() => {
@@ -177,12 +180,14 @@ export class Autosave {
 
   // shortcut: writes the whole encoded page on every change; store incremental Yjs updates instead if
   // typing on very large pages becomes slow.
-  private storePending() {
+  private storePending(): Promise<boolean> {
     const copy = { ...this.snapshot(), baseRevision: this.revision, epoch: this.opened.epoch, at: Date.now() }
-    void this.opened.store.put(this.opened.slot, copy).then((ok) => {
-      if (ok === this.local) return
-      this.local = ok
-      this.emit()
+    return this.opened.store.put(this.opened.slot, copy).then((ok) => {
+      if (ok !== this.local) {
+        this.local = ok
+        this.emit()
+      }
+      return ok
     })
   }
 
@@ -207,7 +212,7 @@ export class Autosave {
     this.version++
     this.dirty = true
     this.text = this.readText()
-    this.storePending()
+    void this.storePending()
     if (this.state === 'saved' || this.state === 'failed') this.setState('saving')
     this.schedule(DEBOUNCE_MS)
   }
@@ -263,7 +268,7 @@ export class Autosave {
       this.setState('saved')
     } else {
       // Changed again while the save was in flight: the local copy now builds on the new revision.
-      this.storePending()
+      void this.storePending()
       this.setState('saving')
       this.schedule(DEBOUNCE_MS)
     }
@@ -302,7 +307,7 @@ export class Autosave {
       if (server.state) Y.applyUpdate(this.ydoc, fromBase64(server.state), this)
       if (!this.stopped) this.text = this.readText()
       this.version++
-      this.storePending()
+      void this.storePending()
       this.setState('saving')
       this.again = true
     } catch (e) {

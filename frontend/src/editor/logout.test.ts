@@ -143,6 +143,19 @@ describe('logging out with unsaved local copies', () => {
     expect(assign).toHaveBeenCalledWith('/app/login?next=' + encodeURIComponent('/app/join/abc'))
   })
 
+  // QA-40: back online, copies of pages that were left offline are sent; a copy an open editor still owns is its own business.
+  it('backOnlineSendsLeftCopiesButNotOnesAnOpenEditorOwns', async () => {
+    pageWithUnsaved('left', 'typed offline')
+    pageWithUnsaved('open', 'being typed')
+    vi.stubGlobal('navigator', { locks: { query: async () => ({ held: [{ name: `kf.pending.${ME}.open.slot-being typed` }] }) } })
+
+    expect(await sendAllPending(ME, { skipLive: true })).toBe(0)
+    expect(textOf(docOf(pages.get('left')!.state))).toBe('base typed offline')
+    expect(slotsOf('left')).toEqual({})
+    expect(pages.get('open')!.puts).toBe(0)
+    expect(Object.values(slotsOf('open'))).toMatchObject([{ text: 'base being typed' }])
+  })
+
   it('aSaveThatRacesWithAnotherWriterIsMergedAgain', async () => {
     pageWithUnsaved('busy', 'mine. ')
     contentApi.saveContent.mockImplementationOnce(async () => {

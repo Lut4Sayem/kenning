@@ -89,6 +89,25 @@ function setOnline(value: boolean) {
   Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => value })
 }
 
+/** Web Locks stand-in: a lock is held while its callback runs, as in the browser. */
+function fakeLocks() {
+  const held = new Set<string>()
+  vi.stubGlobal('navigator', {
+    onLine: true,
+    locks: {
+      request(name: string, a: unknown, b?: unknown) {
+        const options = typeof a === 'function' ? {} : (a as { ifAvailable?: boolean })
+        const run = (typeof a === 'function' ? a : b) as (lock: object | null) => Promise<unknown>
+        if (held.has(name)) return options.ifAvailable ? Promise.resolve(run(null)) : new Promise(() => {})
+        held.add(name)
+        return Promise.resolve(run({ name })).finally(() => held.delete(name))
+      },
+      query: async () => ({ held: [...held].map((name) => ({ name })) }),
+    },
+  })
+  return held
+}
+
 beforeEach(() => {
   vi.useFakeTimers()
   const base = new Y.Doc()
@@ -216,10 +235,12 @@ describe('autosave', () => {
     const opened = await openContent(NODE, true, USER)
     expect(textOf(opened.ydoc)).toBe('base unsent edit') // local changes first
     expect(opened.state).toBe('saving')
-    expect(pendingOf('old')).toBeUndefined() // taken over under this session's own slot
-    expect(pendingOf(opened.slot)).toMatchObject({ text: 'base unsent edit', baseRevision: 3, epoch: 0 })
+    expect(pendingOf('old')).toBeDefined() // opening alone moves nothing (it may be thrown away)
 
     const { a } = start(opened)
+    await tick(0)
+    expect(pendingOf('old')).toBeUndefined() // taken over under this session's own slot
+    expect(pendingOf(opened.slot)).toMatchObject({ text: 'base unsent edit', baseRevision: 3, epoch: 0 })
     await tick(1000)
     expect(server.puts).toEqual([{ baseRevision: 3, state: stateOf(opened.ydoc), text: 'base unsent edit', keepalive: false }])
     expect(a.state).toBe('saved')
@@ -554,6 +575,7 @@ describe('autosave', () => {
     server.restore(restored)
 
     const { a } = await openTab()
+    await tick(0)
     expect(pending()).toMatchObject({ text: 'base typed a year ago' }) // still on the device while unsent
     await tick(1000)
     expect(server.recovered).toEqual([{ state: stateOf(old), text: 'base typed a year ago', baseEpoch: 0 }])
@@ -575,21 +597,29 @@ describe('autosave', () => {
     expect(pendingOf('garbage')).toBeUndefined()
   })
 
+  // QA-40: React may start loading a page twice and throw the first result away (StrictMode, a re-run effect).
+  // The thrown-away open must not move the unsent copy somewhere the used one never looks.
+  it('anOpenThatIsThrownAwayDoesNotHideTheUnsentCopy', async () => {
+    fakeLocks()
+    const earlier = serverDoc()
+    type(earlier, 'typed offline')
+    leftover({ state: stateOf(earlier), text: 'base typed offline' })
+
+    const [thrownAway, used] = await Promise.all([openContent(NODE, true, USER), openContent(NODE, true, USER)])
+    thrownAway.release()
+    expect(textOf(used.ydoc)).toBe('base typed offline')
+    expect(used.state).toBe('saving')
+
+    const { a } = start(used)
+    await tick(1000)
+    expect(a.state).toBe('saved')
+    expect(textOf(serverDoc())).toBe('base typed offline')
+    expect(pending()).toBeUndefined()
+  })
+
   // Review findings 1 and 9: a second tab must not take over (and later clear) a live tab's copy.
   it('aLiveTabsCopyIsLeftAlone', async () => {
-    const held = new Set<string>()
-    vi.stubGlobal('navigator', {
-      onLine: true,
-      locks: {
-        request(name: string, a: unknown, b?: unknown) {
-          const options = typeof a === 'function' ? {} : (a as { ifAvailable?: boolean })
-          const run = (typeof a === 'function' ? a : b) as (lock: object | null) => Promise<unknown>
-          if (held.has(name)) return options.ifAvailable ? Promise.resolve(run(null)) : new Promise(() => {})
-          held.add(name)
-          return Promise.resolve(run({ name })).finally(() => held.delete(name))
-        },
-      },
-    })
+    const held = fakeLocks()
 
     const tabA = await openTab()
     contentApi.saveContent.mockRejectedValue(new ApiError(500, 'boom')) // A cannot save right now
@@ -615,6 +645,7 @@ describe('autosave', () => {
     })
     const tabD = await openTab()
     expect(textOf(tabD.doc)).toBe('base unsaved in A')
+    await tick(0)
     expect(pendingOf(tabA.slot)).toBeUndefined()
     await tick(1000)
     expect(tabD.a.state).toBe('saved')
