@@ -16,7 +16,7 @@ public class LegacyRedirects {
 
     @GetMapping({"/", "/dashboard.html"})
     public ResponseEntity<Void> dashboard() {
-        return found("/app");
+        return found("/app/");
     }
 
     @GetMapping("/login.html")
@@ -61,7 +61,7 @@ public class LegacyRedirects {
 
     /** The value is a path segment: encoded, so it cannot add path parts or send the user off site. */
     private static ResponseEntity<Void> to(String template, String value) {
-        if (value == null || value.isBlank()) return found("/app");
+        if (value == null || value.isBlank()) return found("/app/");
         return found(template.replace("{v}", UriUtils.encodePathSegment(value, StandardCharsets.UTF_8)));
     }
 

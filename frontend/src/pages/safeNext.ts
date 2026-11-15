@@ -1,4 +1,4 @@
-export const DEFAULT_NEXT = '/app'
+export const DEFAULT_NEXT = '/app/'
 
 /** Returns a same-origin path from ?next=, never an external URL or an auth page. */
 export function safeNext(raw: string | null): string {

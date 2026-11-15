@@ -24,8 +24,8 @@ class LegacyRedirectsTest {
 
     @Test
     void oldUrlsRedirect() throws Exception {
-        redirects("/", "/app");
-        redirects("/dashboard.html", "/app");
+        redirects("/", "/app/");
+        redirects("/dashboard.html", "/app/");
         redirects("/login.html", "/app/login");
         redirects("/login.html?next=%2Fapp%2Fp%2F1", "/app/login?next=%2Fapp%2Fp%2F1");
         redirects("/register.html", "/app/register");
@@ -40,8 +40,8 @@ class LegacyRedirectsTest {
 
     @Test
     void missingIdGoesToTheDashboardAndOddIdsStayOneSegment() throws Exception {
-        redirects("/document.html", "/app");
-        redirects("/join.html?code=", "/app");
+        redirects("/document.html", "/app/");
+        redirects("/join.html?code=", "/app/");
         redirects("/document.html?id=a%2F..%2Fb", "/app/p/a%2F..%2Fb");
     }
 }

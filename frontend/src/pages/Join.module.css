@@ -1,0 +1,38 @@
+/* Join screen, inside the split layout (DESIGN.md section 7). */
+.team { display: flex; align-items: center; gap: 14px; margin-bottom: var(--space-6); line-height: normal; }
+.tile { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: var(--r-card); font-size: 22px; font-weight: 700; }
+.teamText { min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; color: var(--ink-muted); }
+.teamName { font-size: 15px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+
+.skelTile, .skelLine { background: var(--hover); animation: pulse 1.4s ease-in-out infinite; }
+.skelTile { flex: none; width: 52px; height: 52px; border-radius: var(--r-card); }
+.skelText { display: flex; flex-direction: column; gap: var(--space-2); }
+.skelLine { height: 12px; border-radius: var(--r-chip); }
+.skelLine:first-child { width: 160px; }
+.skelLine:last-child { width: 120px; }
+@keyframes pulse { 50% { opacity: 0.5; } }
+
+.me { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 14px; border-radius: var(--r-card); background: var(--surface-card); font-size: 13.5px; line-height: normal; color: var(--ink-muted); }
+.avatar { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; }
+.who { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.who b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.switch { flex: none; font-size: 13px; font-weight: 500; color: var(--link); text-decoration: none; }
+.switch:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+.action > button { margin-top: 20px; }
+.notice { margin-top: 20px; padding: var(--space-3) var(--space-4); border-radius: var(--r-lg); background: var(--published-bg); color: var(--published-ink); font-size: 14px; line-height: 1.5; }
+
+.after { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); }
+.after svg { flex: none; width: 15px; height: 15px; margin-top: 2px; }
+
+.home { align-self: flex-start; margin-top: var(--space-6); padding: var(--space-2) 0; font-size: 15px; font-weight: 500; color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+.problem { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink-muted); }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skelTile, .skelLine { animation: none; }
+}
+@media (pointer: coarse) {
+  .switch, .home { display: inline-flex; align-items: center; min-height: 40px; }
+}
