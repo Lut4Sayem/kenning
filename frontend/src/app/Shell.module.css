@@ -11,6 +11,7 @@
 }
 .topbar:empty { display: none; }
 .main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-8) var(--space-10); }
+.main:has([data-bleed]) { padding: 0; } /* Home and Recent bring their own column padding */
 .details { width: var(--details-width); min-height: 0; overflow-y: auto; padding: var(--space-4); }
 .skip {
   position: absolute; left: var(--space-3); top: var(--space-3); z-index: 100; padding: var(--space-2) var(--space-4);

@@ -1,70 +1,96 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { createTeam, getDashboard } from '../api/teams'
-import { timeAgo } from '../ui/timeAgo'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { getDrafts } from '../api/home'
+import { getRecent } from '../api/search'
+import { getMe, getMySpaces } from '../api/spaces'
+import { TopBar } from '../app/ShellSlots'
+import Icon from '../ui/Icon'
+import { timeShort } from '../ui/timeAgo'
+import { initialsOf } from '../ui/tint'
+import { useCreatePage } from '../tree/useCreatePage'
+import { greetingFor, locationOf, longDate } from './home'
+import s from './Home.module.css'
+import PageRow, { SkeletonRows } from './PageRow'
 
+const CARDS = 6
+const DRAFTS = 5
+
+/** Home (/app/): a greeting, the pages I opened lately, and my own drafts. Nothing that grows with the team. */
 export default function Dashboard() {
-  const dash = useQuery({ queryKey: ['dashboard'], queryFn: getDashboard })
-  const qc = useQueryClient()
-  const nav = useNavigate()
-  const [creating, setCreating] = useState(false)
-  const [name, setName] = useState('')
-  const make = useMutation({
-    mutationFn: () => createTeam(name.trim(), ''),
-    onSuccess: async (t) => {
-      // the sidebar's team picker and project list come from these
-      await Promise.all(['dashboard', 'teams', 'spaces'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
-      nav(`/teams/${t.id}`)
-    },
-  })
+  const me = useQuery({ queryKey: ['me'], queryFn: getMe })
+  const spaces = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces })
+  const recent = useQuery({ queryKey: ['home', 'recent'], queryFn: getRecent })
+  const drafts = useQuery({ queryKey: ['home', 'drafts'], queryFn: () => getDrafts(DRAFTS) })
+  const priv = (spaces.data ?? []).find((sp) => sp.ownerType === 'USER')
+  const { create, message } = useCreatePage(priv?.id ?? '')
 
-  if (dash.isLoading) return <p>Loading…</p>
-  if (!dash.data) return <p role="alert">Could not load your dashboard.</p>
-  const d = dash.data
+  const now = new Date()
+  const first = me.data?.fullName.trim().split(/\s+/)[0]
+  const greeting = greetingFor(now.getHours())
+  const cards = (recent.data ?? []).slice(0, CARDS)
 
   return (
-    <section className="portal">
-      <h1>Dashboard</h1>
-      {!creating ? (
-        <button type="button" onClick={() => setCreating(true)}>New team</button>
-      ) : (
-        <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) make.mutate() }}>
-          <label>Team name <input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} /></label>
-          {!name.trim() && <p className="page-note">Give the team a name.</p>}
-          <button type="submit" disabled={!name.trim() || make.isPending}>Create a team</button>
-          <button type="button" onClick={() => setCreating(false)}>Cancel</button>
-          {make.error && <p role="alert">{make.error.message}</p>}
-        </form>
+    <div className={s.wrap} data-bleed>
+      <TopBar>
+        <nav className={s.crumbs} aria-label="Breadcrumb"><span className={s.here}><Icon name="home" />Home</span></nav>
+        {message && <p className={s.notice} role="alert">{message}</p>}
+        <button type="button" className={s.newPage} disabled={!priv} onClick={() => void create(null)}><Icon name="plus" />New page</button>
+      </TopBar>
+
+      <div>
+        <h1 className={s.hello}>
+          {me.isPending ? <span className={s.skel} style={{ width: 360, maxWidth: '100%', height: 44 }} role="status" aria-label={greeting} /> : first ? `${greeting}, ${first}` : greeting}
+        </h1>
+        <p className={s.date}>{longDate(now)}</p>
+      </div>
+
+      <section aria-labelledby="recent-h">
+        <div className={s.head}><h2 id="recent-h" className={s.sectionTitle}>Recently visited</h2></div>
+        {recent.isPending ? (
+          <ul className={s.cards} aria-hidden="true">{Array.from({ length: 3 }, (_, i) => <li key={i}><span className={`${s.skel} ${s.skelCard}`} /></li>)}</ul>
+        ) : recent.isError ? (
+          <p className={s.retry} role="alert">Could not load your recent pages. <button type="button" onClick={() => void recent.refetch()}>Try again</button></p>
+        ) : cards.length === 0 ? (
+          <p className={s.empty}>Pages you open show up here.</p>
+        ) : (
+          <ul className={s.cards}>
+            {cards.map((p) => (
+              <li key={p.nodeId}>
+                <Link to={`/p/${p.nodeId}`} className={s.card}>
+                  <span className={s.cardDot} aria-hidden="true" />
+                  <span className={s.cardTitle}>{p.title || 'Untitled'}</span>
+                  <span className={s.cardMeta}>
+                    <span>{p.teamName == null ? 'Private' : p.spaceName}</span>
+                    <time dateTime={p.openedAt ?? undefined}>{timeShort(p.openedAt ?? null)}</time>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {(drafts.isPending || (drafts.data && drafts.data.total > 0)) && (
+        <section aria-labelledby="drafts-h">
+          <div className={s.head}>
+            <h2 id="drafts-h" className={s.sectionTitle}>Your drafts</h2>
+            {drafts.data && <span className={s.count}>{drafts.data.total}</span>}
+          </div>
+          {drafts.data ? (
+            <>
+              <ul className={s.list}>
+                {drafts.data.items.map((d) => (
+                  <PageRow key={d.nodeId} id={d.nodeId} title={d.title} location={locationOf(d.teamName, d.spaceName)}
+                    status="DRAFT" initials={initialsOf(me.data?.fullName ?? '')} when={d.updatedAt} />
+                ))}
+              </ul>
+              {drafts.data.total > drafts.data.items.length && (
+                <p className={s.moreRow}><Link to="/search?status=DRAFT" className={s.more}>View all drafts →</Link></p>
+              )}
+            </>
+          ) : <SkeletonRows n={2} />}
+        </section>
       )}
-
-      <h2>My teams</h2>
-      {d.teams.length === 0 && <p className="page-note">Start with a team</p>}
-      <ul>
-        {d.teams.map((t) => (
-          <li key={t.teamId}>
-            <Link to={`/teams/${t.teamId}`}>{t.name}</Link> · {t.role} · {t.spaceCount} spaces · {t.documentCount} pages
-          </li>
-        ))}
-      </ul>
-
-      <h2>Recently updated</h2>
-      {d.recentDocuments.length === 0 && <p className="page-note">No pages yet.</p>}
-      <ul>
-        {d.recentDocuments.map((p) => (
-          <li key={p.documentId}>
-            <Link to={`/p/${p.documentId}`}>{p.title || 'Untitled'}</Link> · {p.teamName} / {p.spaceName} · {timeAgo(p.updatedAt, Date.now())}
-          </li>
-        ))}
-      </ul>
-
-      <h2>Activity</h2>
-      {d.recentActivity.length === 0 && <p className="page-note">Nothing yet. Creating, editing and restoring documents shows up here.</p>}
-      <ul>
-        {d.recentActivity.map((a) => (
-          <li key={a.id}>{a.actorFullName || a.actorEmail} {a.action.toLowerCase().replace(/_/g, ' ')} {a.targetTitle} · {a.teamName} · {timeAgo(a.createdAt, Date.now())}</li>
-        ))}
-      </ul>
-    </section>
+    </div>
   )
 }

@@ -117,3 +117,6 @@
   --sidebar-rail: 64px;
   --page-pad: 32px;
 }
+
+/* Neutral Draft pill used in lists (Home, Recent); the yellow --draft-pill is for the page's properties block. */
+:root { --pill-bg: #efeeea; --pill-ink: #4a4843; }

@@ -76,6 +76,11 @@ public class SchemaSetup implements ApplicationRunner {
                 .on("status", Sort.Direction.ASC).on("contentUpdatedAt", Sort.Direction.DESC));
         ops.createIndex(new Index().named("trashedAt_trashed").on("trashedAt", Sort.Direction.ASC)
                 .partial(PartialIndexFilter.of(Criteria.where("status").is("TRASHED"))));
+        // Home "Your drafts": one index per branch of the created-or-last-edited $or.
+        for (String by : new String[]{"createdBy", "updatedBy"}) {
+            ops.createIndex(new Index().named(by + "_drafts").on(by + ".id", Sort.Direction.ASC).on("status", Sort.Direction.ASC)
+                    .on("publishState", Sort.Direction.ASC).on("updatedAt", Sort.Direction.DESC));
+        }
         ops.createIndex(new Index().named("tags").on("tags", Sort.Direction.ASC));
         ops.createIndex(new Index().named("restriction_viewers").on("restriction.viewers", Sort.Direction.ASC).sparse());
         ops.createIndex(new Index().named("restriction_editors").on("restriction.editors", Sort.Direction.ASC).sparse());

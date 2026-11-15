@@ -61,7 +61,7 @@ public class SearchService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid publishState: " + publishState);
         }
         int limit = limitParam == null ? DEFAULT_LIMIT : Math.max(1, Math.min(limitParam, MAX_LIMIT));
-        if (query.isEmpty() && tagFilter == null) return List.of();
+        if (query.isEmpty() && tagFilter == null && stateFilter == null) return List.of();
 
         User user = access.currentUser();
         List<String> teamIds = members.findByUserId(user.getId()).stream().map(TeamMember::getTeamId).toList();
@@ -78,12 +78,12 @@ public class SearchService {
             String needle = query.toLowerCase();
             for (Team t : myTeams) {
                 if (t.getName() != null && t.getName().toLowerCase().contains(needle)) {
-                    out.add(new SearchResultDTO("TEAM", null, t.getId(), null, null, t.getName(), "", "", List.of(), null, false));
+                    out.add(new SearchResultDTO("TEAM", null, t.getId(), null, null, t.getName(), "", "", List.of(), null, false, null, null));
                 }
             }
             for (Space s : mySpaces) {
                 if (s.getName() != null && s.getName().toLowerCase().contains(needle)) {
-                    out.add(new SearchResultDTO("SPACE", null, s.getTeamId(), s.getId(), s.getName(), s.getName(), "", "", List.of(), null, false));
+                    out.add(new SearchResultDTO("SPACE", null, s.getTeamId(), s.getId(), s.getName(), s.getName(), "", "", List.of(), null, false, null, null));
                 }
             }
         }
@@ -142,9 +142,9 @@ public class SearchService {
             if (a == Access.TITLE_ONLY) {
                 // Title-only users must not learn what is inside: keep the hit only if the title matched.
                 if (hl.stream().noneMatch(d -> "search.title".equals(d.getString("path")))) continue;
-                out.add(dto(n, lookup, "", List.of()));
+                out.add(dto(n, lookup, "", List.of(), null));
             } else {
-                out.add(dto(n, lookup, snippet(hl, h.getString("head")), n.getTags()));
+                out.add(dto(n, lookup, snippet(hl, h.getString("head")), n.getTags(), null));
             }
             if (out.size() == limit) break;
         }
@@ -163,30 +163,40 @@ public class SearchService {
         for (User.RecentNode r : recent) {
             Node n = found.get(r.getNodeId());
             if (n != null && access.resolve(user.getId(), n).compareTo(Access.VIEW) >= 0) {
-                out.add(dto(n, lookup, "", n.getTags()));
+                out.add(dto(n, lookup, "", n.getTags(), r.getAt()));
             }
         }
         return out;
     }
 
-    private record Lookup(Map<String, String> spaceNames, Map<String, Node> ancestors) {}
+    /** teamNames is keyed by space id; a personal space has no entry. */
+    private record Lookup(Map<String, String> spaceNames, Map<String, String> teamNames, Map<String, Node> ancestors) {}
 
     /** Space names and ancestor titles for a set of nodes, in two queries. */
     private Lookup lookup(Collection<Node> ns) {
         Set<String> spaceIds = ns.stream().map(Node::getSpaceId).collect(Collectors.toSet());
         Set<String> ancestorIds = ns.stream().flatMap(n -> n.getAncestors().stream()).collect(Collectors.toSet());
         Map<String, String> spaceNames = new HashMap<>();
-        spaces.findAllById(spaceIds).forEach(s -> spaceNames.put(s.getId(), s.getName()));
+        Map<String, String> teamIdBySpace = new HashMap<>();
+        spaces.findAllById(spaceIds).forEach(s -> {
+            spaceNames.put(s.getId(), s.getName());
+            if (s.getTeamId() != null) teamIdBySpace.put(s.getId(), s.getTeamId());
+        });
+        Map<String, String> teamName = new HashMap<>();
+        teams.findAllById(new HashSet<>(teamIdBySpace.values())).forEach(t -> teamName.put(t.getId(), t.getName()));
+        Map<String, String> teamNames = new HashMap<>();
+        teamIdBySpace.forEach((sid, tid) -> { if (teamName.containsKey(tid)) teamNames.put(sid, teamName.get(tid)); });
         Map<String, Node> ancestors = nodes.findAllById(ancestorIds).stream()
                 .collect(Collectors.toMap(Node::getId, Function.identity()));
-        return new Lookup(spaceNames, ancestors);
+        return new Lookup(spaceNames, teamNames, ancestors);
     }
 
-    private static SearchResultDTO dto(Node n, Lookup l, String snippet, List<String> tags) {
+    private static SearchResultDTO dto(Node n, Lookup l, String snippet, List<String> tags, Date openedAt) {
         String path = n.getAncestors().stream().map(id -> l.ancestors().containsKey(id) ? l.ancestors().get(id).getTitle() : "")
                 .collect(Collectors.joining(" / "));
         return new SearchResultDTO("PAGE", n.getId(), null, n.getSpaceId(), l.spaceNames().get(n.getSpaceId()),
-                n.getTitle(), path, snippet, tags, n.getPublishState(), n.getStatus() == NodeStatus.ARCHIVED);
+                n.getTitle(), path, snippet, tags, n.getPublishState(), n.getStatus() == NodeStatus.ARCHIVED,
+                l.teamNames().get(n.getSpaceId()), openedAt);
     }
 
     /** First text highlight with hits wrapped in mark, else the plain start of the text. Everything is HTML-escaped. */

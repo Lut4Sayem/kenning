@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import Dashboard from '../dashboard/Dashboard'
+import Recent from '../dashboard/Recent'
 import Join from '../pages/Join'
 import Login from '../pages/Login'
 import Logout from '../pages/Logout'
@@ -30,7 +31,7 @@ export default function App() {
         <Route path="/join/:code" element={<Join />} />
         <Route element={<Shell />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/recent" element={<Plain>Recent pages are coming soon.</Plain>} />
+          <Route path="/recent" element={<Recent />} />
           <Route path="/teams/:teamId" element={<Suspense fallback={<p>Loading…</p>}><TeamPage /></Suspense>} />
           <Route path="/profile" element={<Suspense fallback={<p>Loading…</p>}><Profile /></Suspense>} />
           <Route path="/p/:nodeId" element={<Suspense fallback={<p>Loading…</p>}><PageView /></Suspense>} />
