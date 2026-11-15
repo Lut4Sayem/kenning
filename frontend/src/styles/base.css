@@ -47,13 +47,6 @@ h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
 .trash-actions .danger { color: var(--color-error-text); }
 @media (max-width: 720px) { .trash-table { display: block; overflow-x: auto; } }
 
-/* Search page (until C2) */
-.search-page form { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
-.search-page input[type='search'] { flex: 1; padding: var(--space-2); font: inherit; }
-.search-page .results { list-style: none; padding: 0; }
-.search-page .results li { margin-bottom: var(--space-4); }
-.chips { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
-.chips button[aria-pressed='true'] { background: var(--color-primary-soft); }
 
 /* Move to team dialog */
 .kf-move { max-width: 560px; }

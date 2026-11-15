@@ -39,7 +39,7 @@ describe('search page', () => {
     setup('/search?tag=ops&status=DRAFT')
     expect(await screen.findByRole('link', { name: 'Runbook' })).toBeTruthy()
     expect(api.searchAll).toHaveBeenCalledWith({ q: '', tag: 'ops', publishState: 'DRAFT', limit: 50 })
-    expect(screen.getByText('· Draft')).toBeTruthy()
+    expect(screen.getByText('Draft', { selector: 'span' })).toBeTruthy()
   })
 
   it('snippetKeepsMarkAndEscapesTheRest', async () => {
@@ -70,5 +70,27 @@ describe('search page', () => {
     setup('/search?q=x')
     expect((await screen.findByRole('alert')).textContent).toContain('Search failed. boom')
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+  })
+
+  it('showsThreePerGroupThenShowAll', async () => {
+    api.searchAll.mockResolvedValue(['a', 'b', 'c', 'd'].map((x) => page({ nodeId: x, title: `Page ${x}` })))
+    setup('/search?q=page')
+    await screen.findByRole('link', { name: 'Page a' })
+    expect(screen.queryByRole('link', { name: 'Page d' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Show all 4' }))
+    expect(await screen.findByRole('link', { name: 'Page d' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: /Pages/, selected: true })).toBeTruthy()
+  })
+
+  it('metaRowShowsPlaceEditorAndSpacesLink', async () => {
+    api.searchAll.mockResolvedValue([
+      page({ teamName: 'Thesis', spaceName: 'Docs', path: 'Guides', updatedByName: 'Rafi Ahmed', updatedAt: new Date().toISOString() }),
+      { ...page({}), type: 'SPACE', nodeId: null, teamId: 't1', spaceId: 's9', title: 'Room booking', teamName: 'Robotics', publishState: null, snippetHtml: '', tags: [] },
+    ])
+    setup('/search?q=room')
+    expect(await screen.findByText('Thesis / Docs / Guides')).toBeTruthy()
+    expect(screen.getByText('Last edited by Rafi Ahmed')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Room booking' }).getAttribute('href')).toBe('/s/s9')
+    expect(screen.getByText('Robotics')).toBeTruthy()
   })
 })

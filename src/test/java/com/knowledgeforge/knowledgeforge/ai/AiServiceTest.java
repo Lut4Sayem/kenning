@@ -288,7 +288,7 @@ class AiServiceTest {
         });
         List<SearchResultDTO> hits = new ArrayList<>();
         for (String id : hitIds) {
-            hits.add(new SearchResultDTO("PAGE", id, TEAM_ID, SPACE_ID, "S", "t", "", "", List.of(), null, false, null, null));
+            hits.add(new SearchResultDTO("PAGE", id, TEAM_ID, SPACE_ID, "S", "t", "", "", List.of(), null, false, null, null, null, null));
         }
         when(search.search(anyString(), isNull(), isNull(), eq(SPACE_ID), any())).thenReturn(hits);
     }
