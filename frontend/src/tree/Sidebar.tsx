@@ -152,7 +152,7 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
         <span className={s.tile} aria-hidden="true" style={{ background: `var(--tint-${tint}-bg)`, color: `var(--tint-${tint}-fg)` }}>{initialOf(label)}</span>
-        <Link to={`/teams/${team.teamId}`} className={cx(s.groupLink, s.teamLink)}>{label}</Link>
+        <Link to={`/teams/${team.teamId}`} className={s.groupLink}>{label}</Link>
       </div>
       {open && (
         <div className={s.nested}>

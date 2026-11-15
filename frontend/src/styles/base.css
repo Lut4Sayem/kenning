@@ -3,7 +3,12 @@
 html, body { overflow-x: clip; }
 body { margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.5; color: var(--ink); background: var(--ground); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; }
-h1, h2, h3 { text-wrap: balance; }
+h1, h2, h3 { margin: 0; font-family: var(--font-title); font-weight: 500; text-wrap: balance; }
+h1 { font-size: 44px; line-height: 1.1; letter-spacing: -0.015em; }
+h2 { font-size: 26px; line-height: 1.25; letter-spacing: -0.01em; }
+h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
+/* A heading that labels a block (panel section head), not a title: stays in the UI font. */
+.ui-label { font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: 1.4; letter-spacing: 0; color: var(--ink-muted); }
 ::selection { background: var(--selection); }
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

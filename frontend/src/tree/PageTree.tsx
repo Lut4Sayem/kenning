@@ -137,7 +137,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew }: RowProps) {
       <div
         ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el) }}
         className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
-        style={{ paddingLeft: depth * 16 }}
+        style={{ paddingLeft: depth * 12 }}
       >
         <button type="button" className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
@@ -159,7 +159,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew }: RowProps) {
           ))}
         </ul>
       )}
-      <div ref={after.setNodeRef} className={cx(s.gap, after.isOver && s.over)} style={{ marginLeft: depth * 16 }} />
+      <div ref={after.setNodeRef} className={cx(s.gap, after.isOver && s.over)} style={{ marginLeft: depth * 12 }} />
     </li>
   )
 }

@@ -29,7 +29,7 @@ export function Comments({ nodeId }: { nodeId: string }) {
 
   return (
     <section className="comments" aria-label="Comments">
-      <h2>Comments</h2>
+      <h2 className="ui-label">Comments</h2>
       {list.isError && <p role="alert">Could not load comments: {list.error.message}</p>}
       {list.data?.length === 0 && <p className="page-note">No comments yet. Questions and suggestions go here.</p>}
       <ul>
@@ -70,7 +70,7 @@ export function AskPanel({ spaceId }: { spaceId: string }) {
   if (run.error && NOT_CONFIGURED.test(run.error.message)) return null
   return (
     <section aria-label="Ask">
-      <h2>Ask this project</h2>
+      <h2 className="ui-label">Ask this project</h2>
       <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) run.mutate() }}>
         <label>Question <input value={q} onChange={(e) => setQ(e.target.value)} maxLength={500} /></label>
         <button type="submit" disabled={!q.trim() || run.isPending}>{run.isPending ? 'Asking…' : 'Ask'}</button>
