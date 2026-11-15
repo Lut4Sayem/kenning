@@ -1,4 +1,7 @@
 .shell { display: grid; overflow: hidden; grid-template-columns: var(--sidebar-width) minmax(0, 1fr) auto; height: 100dvh; background: var(--ground); }
+.shell[data-sidebar='hidden'], .shell[data-sidebar='drawer'] { grid-template-columns: minmax(0, 1fr) auto; }
+.shell[data-sidebar='hidden'] .sidebarCol { display: none; }
+.shell:not([data-sidebar='shown']) .panel { margin-left: var(--panel-inset); }
 .sidebarCol { min-height: 0; overflow: hidden; }
 .panel {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
@@ -9,7 +12,14 @@
   flex: none; display: flex; align-items: center; gap: var(--space-2); height: var(--topbar-height);
   padding: 0 14px 0 var(--space-5); border-bottom: 1px solid var(--line-soft); font-size: 13px;
 }
-.topbar:empty { display: none; }
+.topbar:has(.slot:empty):not(:has(.menuBtn)) { display: none; }
+.slot { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: var(--space-2); }
+.slot:empty { display: none; }
+.menuBtn {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-left: -6px; padding: 0; border: 0;
+  border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer;
+}
+.menuBtn:hover { background: var(--hover); color: var(--ink); }
 .main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-8) var(--space-10); container-type: inline-size; } /* screens can adapt to the room they really have (details panel open or not) */
 .main:has([data-bleed]) { padding: 0; } /* Home and Recent bring their own column padding */
 .details { width: var(--details-width); min-height: 0; overflow-y: auto; padding: var(--space-4); }
@@ -19,10 +29,32 @@
   transform: translateY(-200%);
 }
 .skip:focus { transform: none; }
-/* Under 640px the sidebar becomes a drawer and the right panel a sheet: DP-8. Until then the page just stacks. */
-@media (max-width: 640px) {
-  .shell { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100dvh; }
-  .sidebarCol { max-height: 50dvh; }
-  .panel { margin: var(--panel-inset); }
-  .main { padding: var(--space-4); }
+.scrim { position: fixed; inset: 0; z-index: 60; background: rgb(28 27 23 / 0.32); animation: fade var(--dur) var(--ease-out); }
+.drawerClose { display: none; }
+
+/* 640-1023: the details panel floats over the page instead of squeezing it. */
+@media (max-width: 1023.98px) {
+  .details { position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; background: var(--ground); box-shadow: var(--shadow-3); }
 }
+/* Under 640: the sidebar is a drawer, the details panel a full-screen sheet (DESIGN.md section 10). */
+@media (max-width: 639.98px) {
+  .main { padding: var(--space-6) var(--space-4); }
+  .topbar { padding: 0 var(--space-2) 0 var(--space-3); }
+  .menuBtn { margin-left: 0; }
+  .shell[data-sidebar='drawer'] .sidebarCol {
+    position: fixed; z-index: 70; top: 0; bottom: 0; left: 0; width: min(300px, calc(100vw - 48px));
+    background: var(--ground); box-shadow: var(--shadow-3); animation: slide var(--dur) var(--ease-out);
+  }
+  .drawerClose {
+    position: absolute; z-index: 1; top: 10px; right: 8px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0;
+    border-radius: var(--r-row); background: var(--canvas); box-shadow: var(--shadow-1); color: var(--ink); cursor: pointer;
+  }
+  .shell[data-sidebar='drawer'] .sidebarCol nav > div:first-child { padding-right: 40px; } /* room for the close button */
+  .details { left: 0; width: auto; box-shadow: none; z-index: 70; padding: var(--space-4); }
+}
+@media (pointer: coarse) {
+  .menuBtn, .drawerClose { width: 40px; height: 40px; }
+}
+@keyframes slide { from { transform: translateX(-100%); } }
+@keyframes fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { @keyframes slide { from { opacity: 0; } } }

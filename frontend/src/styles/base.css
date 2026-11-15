@@ -13,6 +13,12 @@ h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 /* Disabled controls (DESIGN.md section 6): 50% and no press. The editor's own buttons keep their library styles. */
 :is(button, input, select, textarea):disabled:not(.bn-container *) { opacity: 0.5; cursor: not-allowed; }
+/* Touch screens: every control is at least 40px to hit (DESIGN.md section 10). The editor keeps its own sizes. */
+@media (pointer: coarse) {
+  :is(button, select, [role='tab'], input:not([type='checkbox'], [type='radio'], [type='file'])):not(.sr-only, .bn-container *) { min-height: 40px; }
+  button:not(.sr-only, .bn-container *) { min-width: 40px; }
+  nav a { min-height: 40px; align-content: center; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

@@ -58,3 +58,4 @@
   .cEditor, .cEnd { display: none !important; }
   .parent { display: none; }
 }
+@media (max-width: 639.98px) { .viewBar { flex-wrap: nowrap; align-items: flex-start; } .views { flex: 1 1 0; min-width: 0; } .tools { flex: none; } }
