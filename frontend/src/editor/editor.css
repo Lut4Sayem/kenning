@@ -1,21 +1,56 @@
-/* Plain, token-based styles for our custom blocks (visual pass comes after 1a). */
-.kf-status { position: relative; display: inline-block; border-radius: var(--radius-chip); padding: 0 var(--space-2); font-size: 0.8em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.6; white-space: nowrap; }
-.kf-status > button { all: unset; cursor: pointer; }
-.kf-status > button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.kf-status--gray { background: #edecea; color: #37352f; }
-.kf-status--blue { background: var(--color-info-soft); color: var(--color-info-text); }
-.kf-status--green { background: var(--color-success-soft); color: var(--color-success-text); }
-.kf-status--yellow { background: #fef7d6; color: #6b4e00; }
-.kf-status--red { background: var(--color-error-soft); color: var(--color-error-text); }
-.kf-status--purple { background: #ede4f7; color: #5b2a91; }
-.kf-status-edit { position: absolute; z-index: 10; top: 100%; left: 0; margin-top: 4px; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2); background: var(--color-canvas); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(15, 15, 15, 0.08); text-transform: none; letter-spacing: 0; }
-.kf-status-edit input { font: inherit; font-weight: 400; padding: var(--space-1) var(--space-2); width: 160px; }
-.kf-status-edit [role='radiogroup'] { display: flex; gap: var(--space-1); }
-.kf-status-swatch { width: 24px; height: 24px; border: 1px solid var(--color-hairline-strong); border-radius: var(--radius-full); cursor: pointer; padding: 0; }
-.kf-status-swatch[aria-checked='true'] { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+/* The page's text and our custom blocks, from the design tokens (DESIGN.md sections 2, 3, 6). Mantine only lives in this folder (ADR 0009). */
 
-.kf-bookmark { display: flex; gap: var(--space-3); align-items: center; width: 100%; box-sizing: border-box; padding: var(--space-3); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); color: inherit; text-decoration: none; font: inherit; }
+/* BlockNote keeps room for its block handles inside the editor; the page column does that now, so text, title and properties share one left edge. */
+.bn-editor { padding-inline: 0; font-family: var(--font-sans); font-size: 16.5px; line-height: 1.65; color: var(--ink-doc); }
+.bn-editor a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+.bn-editor .bn-block-content:has(.ProseMirror-trailingBreak:only-child)::after { font-style: normal; color: var(--ink-muted); }
+.bn-editor strong, .bn-editor b { font-weight: 600; color: var(--ink); }
+
+/* Headings: Newsreader 500. BlockNote sizes the block with --level; our global h1/h2/h3 rules must not apply inside it. */
+.bn-block-content[data-content-type='heading'] { font-family: var(--font-title); font-weight: 500; letter-spacing: -0.01em; line-height: 1.25; color: var(--ink); }
+.bn-editor .bn-block-content[data-content-type='heading'] .bn-inline-content { font: inherit; font-weight: 500; letter-spacing: inherit; margin: 0; }
+.bn-block-content[data-content-type='heading'][data-level='1'] { --level: 30px; }
+.bn-block-content[data-content-type='heading'][data-level='2'] { --level: 26px; }
+.bn-block-content[data-content-type='heading'][data-level='3'] { --level: 22px; }
+
+/* Hovering a block (when it can be edited): soft background, a little wider than the text */
+.bn-editor[contenteditable='true'] .bn-block-content { margin-inline: -8px; padding-inline: 8px; border-radius: 6px; transition: background-color 120ms var(--ease-out); }
+.bn-editor[contenteditable='true'] .bn-block-content:hover { background: var(--surface-card); }
+
+/* Block handles: "+" and the drag grip, 22 x 24 */
+.bn-side-menu { align-items: center; padding-right: 6px; }
+.bn-side-menu .bn-button, .bn-side-menu button { width: 22px; height: 24px; min-width: 0; padding: 0; border-radius: 6px; background: transparent; color: var(--ink-muted); }
+.bn-side-menu .bn-button:hover, .bn-side-menu button:hover { background: var(--surface-card-hover); color: var(--ink); }
+
+/* Quote reads as a callout; check list uses the primary colour */
+.bn-block-content[data-content-type='quote'] blockquote { width: 100%; margin: 0; padding: 14px 16px; border: 0; border-radius: var(--r-lg); background: var(--callout); color: var(--ink); }
+.bn-editor[contenteditable='true'] .bn-block-content[data-content-type='quote']:hover { background: transparent; }
+.bn-block-content[data-content-type='checkListItem'] input[type='checkbox'] { accent-color: var(--primary); }
+.bn-block-content[data-content-type='checkListItem'][data-checked='true'] .bn-inline-content { color: var(--ink-muted); text-decoration: line-through; }
+
+.bn-editor code, .bn-block-content[data-content-type='codeBlock'] { font-family: var(--font-mono); }
+.bn-editor code { padding: 1px 5px; border-radius: 5px; background: var(--surface-card-hover); font-size: 0.9em; }
+
+/* Status (inline) */
+.kf-status { position: relative; display: inline-block; border-radius: var(--r-pill); padding: 0 10px; font-size: 12px; font-weight: 600; line-height: 22px; white-space: nowrap; }
+.kf-status > button { all: unset; cursor: pointer; }
+.kf-status > button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.kf-status--gray { background: var(--tint-gray-bg); color: var(--tint-gray-fg); }
+.kf-status--blue { background: var(--tint-sky-bg); color: var(--tint-sky-fg); }
+.kf-status--green { background: var(--tint-mint-bg); color: var(--tint-mint-fg); }
+.kf-status--yellow { background: var(--tint-yellow-bg); color: var(--tint-yellow-fg); }
+.kf-status--red { background: var(--error-soft); color: var(--error-ink); }
+.kf-status--purple { background: var(--tint-lavender-bg); color: var(--tint-lavender-fg); }
+.kf-status-edit { position: absolute; z-index: 10; top: 100%; left: 0; margin-top: 4px; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: var(--canvas); border-radius: var(--r-lg); box-shadow: var(--shadow-3); font-weight: 400; }
+.kf-status-edit input { font: inherit; padding: 4px 8px; width: 160px; border: 1px solid var(--input-border); border-radius: var(--r-row); }
+.kf-status-edit [role='radiogroup'] { display: flex; gap: 4px; }
+.kf-status-swatch { width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 50%; cursor: pointer; padding: 0; }
+.kf-status-swatch[aria-checked='true'] { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* Bookmark */
+.kf-bookmark { display: flex; gap: 12px; align-items: center; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--canvas); color: inherit; text-decoration: none; font: inherit; }
+.kf-bookmark:hover { background: var(--surface-card); }
 .kf-bookmark-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
-.kf-bookmark-text span, .kf-bookmark-text small { color: var(--color-slate); font-size: 13px; }
-.kf-bookmark img { width: 96px; height: 64px; object-fit: cover; border-radius: var(--radius-sm); }
-.kf-offer { margin: var(--space-2) 0; font-size: 14px; color: var(--color-slate); }
+.kf-bookmark-text span, .kf-bookmark-text small { color: var(--ink-muted); font-size: 13px; }
+.kf-bookmark img { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; }
+.kf-offer { margin: 8px 0; font-size: 14px; color: var(--ink-muted); }
