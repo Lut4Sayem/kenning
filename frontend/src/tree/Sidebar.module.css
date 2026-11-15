@@ -1,4 +1,5 @@
-.sidebar { display: flex; flex-direction: column; gap: var(--space-1); min-height: 100%; padding: var(--space-3) var(--space-2) var(--space-3) var(--space-3); }
+.sidebar { display: flex; flex-direction: column; height: 100%; padding: var(--space-3) var(--space-2) var(--space-2) var(--space-3); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1); }
 .top { display: flex; align-items: center; gap: var(--space-1); position: relative; }
 .account { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); font-weight: 600; cursor: pointer; text-align: left; }
 .account:hover, .account[aria-expanded='true'] { background: var(--hover); }
@@ -30,10 +31,11 @@
 .groupLink { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; font-weight: 500; line-height: 32px; }
 .teamLink { font-weight: 600; }
 .nested { padding-left: var(--space-4); display: flex; flex-direction: column; gap: 2px; }
-.quiet { display: flex; align-items: center; height: 28px; padding: 0 var(--space-2) 0 var(--space-6); border-radius: var(--r-row); color: var(--ink-muted); text-decoration: none; font-size: 13px; }
+.quietRow { display: flex; gap: var(--space-1); padding-left: var(--space-6); }
+.quiet { display: flex; align-items: center; height: 26px; padding: 0 var(--space-2); border-radius: var(--r-row); color: var(--ink-muted); text-decoration: none; font-size: 12px; }
 .quiet:hover { background: var(--hover); color: var(--ink); }
 .note { margin: 0; padding: var(--space-1) var(--space-2); color: var(--ink-muted); font-size: 12px; }
-.foot { margin-top: auto; padding-top: var(--space-6); }
+.foot { flex: none; padding-top: var(--space-2); }
 .me { display: flex; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-2); border-radius: var(--r-row); color: var(--ink); text-decoration: none; font-weight: 500; }
 .me:hover { background: var(--hover); }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }

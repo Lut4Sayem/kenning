@@ -162,7 +162,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew }: RowProps) {
         <Link to={`/p/${node.id}`} className={s.link} aria-current={node.id === activeId ? 'page' : undefined}>
           {title}
         </Link>
-        {node.publishState === 'DRAFT' && <span className={s.badge}>Draft</span>}
+        {node.publishState === 'DRAFT' && <span className={s.draftDot} title="Draft"><span className="sr-only">Draft</span></span>}
         <button type="button" className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
         <button type="button" className={cx(s.btn, s.grip)} aria-label={`Move ${title}`}
           {...drag.listeners} {...drag.attributes}><Icon name="grip" /></button>

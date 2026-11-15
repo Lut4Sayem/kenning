@@ -67,6 +67,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
         </button>
       </div>
 
+      <div className={s.scroll}>
       <button type="button" className={s.search} onClick={onSearch}>
         <Icon name="search" /><span>Search</span><kbd className={s.kbd}>Ctrl K</kbd>
       </button>
@@ -90,6 +91,8 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
           <SpaceLinks spaceId={priv.id} />
         </section>
       )}
+
+      </div>
 
       <div className={s.foot}>
         {me.data && (
@@ -181,9 +184,9 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
 // shortcut: Trash and Archived are per space today, so they sit under each space; a global Trash comes with its own route
 function SpaceLinks({ spaceId }: { spaceId: string }) {
   return (
-    <>
+    <div className={s.quietRow}>
       <Link to={`/s/${spaceId}/trash?tab=archived`} className={s.quiet}>Archived</Link>
       <Link to={`/s/${spaceId}/trash`} className={s.quiet}>Trash</Link>
-    </>
+    </div>
   )
 }
