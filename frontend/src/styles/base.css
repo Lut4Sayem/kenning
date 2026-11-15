@@ -16,28 +16,12 @@ h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 
-.page { max-width: 760px; }
-.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); padding: 0; font-size: 13px; color: var(--color-slate); }
-.crumbs li + li::before { content: '›'; margin-right: var(--space-2); }
-.crumbs a { color: inherit; }
-.page-title { width: 100%; border: 0; font: inherit; font-size: 32px; font-weight: 700; color: inherit; padding: 0; outline-offset: 4px; }
 .page-note { color: var(--color-slate); }
 
-/* Page top bar: breadcrumbs + save state (wireframe Editing) */
-.page-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
-.page-head .crumbs { flex: 1; min-width: 0; }
-.page-head .crumbs ol { margin: 0; }
-.save-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-slate); }
-.save-dot { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--color-stone); }
-.save-indicator--saved .save-dot { background: var(--color-success); }
-.save-indicator--offline .save-dot, .save-indicator--retrying .save-dot { background: var(--color-warning); }
-.save-indicator--conflict .save-dot { background: var(--color-error); }
 .banner { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid #f5d75e; background: #fef7d6; border-radius: var(--radius-md); font-size: 14px; }
 .banner > span { flex: 1; min-width: 12em; }
 .banner-btn { min-height: 32px; padding: 0 var(--space-3); border: 1px solid var(--color-hairline-strong); background: var(--color-canvas); border-radius: var(--radius-md); font: inherit; font-size: 13px; cursor: pointer; }
 .banner-btn--quiet { border-color: transparent; background: transparent; color: var(--color-warning-text); }
-/* BlockNote indents its text to make room for the block handles; the title lines up with it. */
-.page-title { box-sizing: border-box; padding-inline: 54px; }
 
 /* Confirm dialog (native <dialog>, opened with showModal) */
 .kf-dialog { border: 1px solid var(--color-hairline-strong); border-radius: var(--radius-md); padding: var(--space-5); max-width: 420px; width: calc(100% - 2 * var(--space-4)); box-sizing: border-box; color: var(--color-ink); background: var(--color-canvas); }
@@ -49,23 +33,7 @@ h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
 .kf-dialog-actions .kf-primary { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 .kf-dialog-actions .kf-danger { background: var(--color-error); border-color: var(--color-error); color: #fff; }
 
-/* Draft bar, page menu, tags, trash (wireframes Main and Trash; plain styling) */
-.draft-bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); padding: var(--space-2) var(--space-4); border: 1px solid var(--color-hairline); background: var(--color-surface); border-radius: var(--radius-md); font-size: 14px; }
-.draft-bar button { margin-left: auto; font: inherit; padding: var(--space-1) var(--space-3); cursor: pointer; }
-.page-menu { position: relative; }
-.page-menu-btn { font: inherit; font-size: 18px; line-height: 1; padding: var(--space-1) var(--space-2); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); background: var(--color-canvas); cursor: pointer; }
-.page-menu-list { position: absolute; right: 0; z-index: 5; min-width: 200px; margin-top: var(--space-1); padding: var(--space-1); background: var(--color-canvas); border: 1px solid var(--color-hairline-strong); border-radius: var(--radius-md); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); display: flex; flex-direction: column; }
-.page-menu-list button { text-align: left; font: inherit; padding: var(--space-2) var(--space-3); border: 0; background: none; cursor: pointer; border-radius: 4px; color: inherit; }
-.page-menu-list button:hover:not(:disabled), .page-menu-list button:focus-visible { background: var(--color-hover); }
-.page-menu-list button:disabled { color: var(--color-slate); cursor: not-allowed; }
-.page-menu-error { position: absolute; right: 0; margin: var(--space-1) 0 0; color: var(--color-error-text); font-size: 13px; white-space: nowrap; }
-.page-menu-note { position: absolute; right: 0; z-index: 4; width: 280px; margin: var(--space-1) 0 0; padding: var(--space-2) var(--space-3); background: var(--color-surface); border: 1px solid var(--color-hairline); border-radius: var(--radius-md); font-size: 13px; }
-.tags { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
-.tag-list { display: contents; list-style: none; margin: 0; padding: 0; }
-.tag { display: inline-flex; align-items: center; gap: 2px; padding: 0 var(--space-2); border-radius: var(--radius-full); background: var(--color-surface); font-size: 13px; }
-.tag a { color: inherit; text-decoration: none; }
-.tag button { border: 0; background: none; cursor: pointer; color: var(--color-slate); padding: 0 2px; font: inherit; }
-.tag-input { border: 0; font: inherit; font-size: 13px; width: 100px; padding: var(--space-1); }
+/* Trash (wireframe; plain styling until its design pass) */
 .tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-3); }
 .tabs button { font: inherit; padding: var(--space-2) var(--space-3); border: 0; border-bottom: 2px solid transparent; background: none; cursor: pointer; }
 .tabs button[aria-selected="true"] { border-bottom-color: var(--color-primary); font-weight: 600; }

@@ -1,17 +1,18 @@
-import '@blocknote/core/fonts/inter.css'
 import '@blocknote/mantine/style.css'
 import './editor.css'
 import { filterSuggestionItems } from '@blocknote/core'
 import { withCollaboration } from '@blocknote/core/yjs'
 import { BlockNoteView } from '@blocknote/mantine'
-import { SuggestionMenuController, useCreateBlockNote } from '@blocknote/react'
+import { SuggestionMenuController, useCreateBlockNote, type DefaultReactSuggestionItem } from '@blocknote/react'
 import { useState } from 'react'
 import type * as Y from 'yjs'
 import { uploadAttachment } from '../api/attachments'
 import { safeHttpUrl } from './BookmarkBlock'
 import { extractText } from './extractText'
 import { FRAGMENT, kfSchema, type KfEditor } from './schema'
+import SlashMenu from './SlashMenu'
 import { getKfSlashItems } from './slashItems'
+import { kfTheme } from './theme'
 
 /**
  * Editor bound to the page's local Y.Doc. No provider in 1a: the browser saves the encoded doc itself.
@@ -75,10 +76,11 @@ export default function Editor({ editor, editable }: { editor: KfEditor; editabl
 
   return (
     <div onPasteCapture={onPaste}>
-      <BlockNoteView editor={editor} editable={editable} slashMenu={false} theme="light">
+      <BlockNoteView editor={editor} editable={editable} slashMenu={false} theme={kfTheme}>
         <SuggestionMenuController
           triggerCharacter="/"
-          getItems={async (query) => filterSuggestionItems(getKfSlashItems(editor), query)}
+          getItems={async (query): Promise<DefaultReactSuggestionItem[]> => filterSuggestionItems(getKfSlashItems(editor), query)}
+          suggestionMenuComponent={SlashMenu}
         />
       </BlockNoteView>
       {editable && offer && (

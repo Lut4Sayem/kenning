@@ -31,7 +31,7 @@ test('register, create team, create space, create page, comment', async ({ page 
   await page.getByRole('button', { name: 'New page in Portal Space' }).click()
   await expect(page).toHaveURL(/\/app\/p\//)
 
-  await page.getByLabel('Add a comment').fill('First comment')
-  await page.getByRole('button', { name: 'Comment', exact: true }).click()
+  await page.getByLabel('Write a comment').fill('First comment')
+  await page.getByRole('button', { name: 'Send comment' }).click()
   await expect(page.getByText('First comment')).toBeVisible()
 })

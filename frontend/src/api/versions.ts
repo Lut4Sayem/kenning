@@ -3,7 +3,7 @@ import { api } from './client'
 export type VersionKind = 'AUTO' | 'NAMED' | 'PUBLISHED' | 'RESTORED' | 'RECOVERED'
 
 export interface VersionAuthor {
-  userId: string
+  id: string // the server's UserRef: the JSON name is "id"
   name: string
   avatarUrl: string | null
 }

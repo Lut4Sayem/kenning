@@ -2,11 +2,15 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { updateNode, type NodeDetail } from '../api/nodes'
+import Icon from '../ui/Icon'
+import { tintOf } from '../ui/tint'
+import s from './Page.module.css'
 
-/** Tag chips under the title; each links to the tag's page list. Editors can add and remove. */
+/** Tag chips (tint by name) that link to the tag's page list. Editors add with "+ Add" and remove with ×. */
 export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit: boolean }) {
   const qc = useQueryClient()
   const [draft, setDraft] = useState('')
+  const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
 
   async function save(tags: string[]) {
@@ -21,38 +25,45 @@ export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit
   function add() {
     const tag = draft.trim().replace(/^#/, '').toLowerCase()
     setDraft('')
+    setAdding(false)
     if (tag && !node.tags.includes(tag)) void save([...node.tags, tag])
   }
 
-  if (!canEdit && node.tags.length === 0) return null
+  if (!canEdit && node.tags.length === 0) return <span className={s.hint}>No tags</span>
   return (
-    <div className="tags">
-      <ul className="tag-list" aria-label="Tags">
-        {node.tags.map((t) => (
-          <li key={t} className="tag">
-            <Link to={`/tags/${encodeURIComponent(t)}`}>#{t}</Link>
-            {canEdit && <button type="button" aria-label={`Remove tag ${t}`} onClick={() => void save(node.tags.filter((x) => x !== t))}>×</button>}
+    <>
+      <ul className={s.tags} aria-label="Tags">
+        {node.tags.map((t) => {
+          const tint = tintOf(t)
+          return (
+            <li key={t} className={s.chip} style={{ background: `var(--tint-${tint}-bg)`, color: `var(--tint-${tint}-fg)` }}>
+              <Link to={`/tags/${encodeURIComponent(t)}`}>{t}</Link>
+              {canEdit && <button type="button" aria-label={`Remove tag ${t}`} onClick={() => void save(node.tags.filter((x) => x !== t))}><Icon name="close" size={12} /></button>}
+            </li>
+          )
+        })}
+        {canEdit && (adding ? (
+          <li>
+            <input
+              className={s.tagInput}
+              aria-label="Add tag"
+              placeholder="Tag name"
+              maxLength={40}
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() }
+                else if (e.key === 'Escape') { setDraft(''); setAdding(false) }
+              }}
+              onBlur={add}
+            />
           </li>
+        ) : (
+          <li><button type="button" className={s.add} onClick={() => setAdding(true)}><Icon name="plus" size={12} />Add</button></li>
         ))}
       </ul>
-      {canEdit && (
-        <input
-          className="tag-input"
-          aria-label="Add tag"
-          placeholder="+ Add tag"
-          maxLength={40}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ',') {
-              e.preventDefault()
-              add()
-            }
-          }}
-          onBlur={add}
-        />
-      )}
-      {error && <p role="alert">{error}</p>}
-    </div>
+      {error && <p role="alert" className={s.error}>{error}</p>}
+    </>
   )
 }

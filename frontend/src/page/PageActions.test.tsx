@@ -5,7 +5,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NodeDetail } from '../api/nodes'
 import { ConfirmHost } from '../ui/ConfirmDialog'
-import DraftBar from './DraftBar'
 import PageMenu from './PageMenu'
 
 const api = vi.hoisted(() => ({
@@ -16,7 +15,7 @@ vi.mock('../api/nodes', () => api)
 
 const NODE: NodeDetail = {
   id: 'n1', spaceId: 's1', parentId: null, title: 'Methodology', icon: null, tags: [], publishState: 'PUBLISHED', locked: false,
-  lockedBy: null, status: 'ACTIVE', access: 'EDIT', canManage: true, breadcrumbs: [], contentUpdatedAt: '',
+  lockedBy: null, status: 'ACTIVE', access: 'EDIT', canManage: true, breadcrumbs: [], createdBy: null, updatedBy: null, contentUpdatedAt: '',
 }
 
 beforeEach(() => {
@@ -42,23 +41,6 @@ function mount(node: NodeDetail, unsaved = false) {
   )
 }
 const openMenu = () => userEvent.click(screen.getByRole('button', { name: 'Page actions' }))
-
-describe('draft bar', () => {
-  it('draftBarHiddenWhenPublished', () => {
-    const { container } = render(<DraftBar publishState="PUBLISHED" canEdit busy={false} onPublish={() => {}} />)
-    expect(container.textContent).toBe('')
-  })
-
-  it('draftShowsPublishToEditorsOnly', async () => {
-    const onPublish = vi.fn()
-    const { rerender } = render(<DraftBar publishState="DRAFT" canEdit busy={false} onPublish={onPublish} />)
-    await userEvent.click(screen.getByRole('button', { name: 'Publish' }))
-    expect(onPublish).toHaveBeenCalled()
-    rerender(<DraftBar publishState="DRAFT" canEdit={false} busy={false} onPublish={onPublish} />)
-    expect(screen.getByText('Draft')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()
-  })
-})
 
 describe('page menu', () => {
   it('confirmShowsSubpageCount', async () => {

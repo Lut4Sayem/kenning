@@ -40,11 +40,11 @@ describe('soft lock', () => {
     await tick(0)
 
     expect(contentApi.acquireEditLock).toHaveBeenCalledWith('n1', false)
-    expect(screen.getByRole('alert').textContent).toContain('Rafi is editing this page right now.')
+    expect(screen.getByRole('status').textContent).toContain('Rafi is editing right now.')
     expect(mode()).toBe('blocked')
 
     fireEvent.click(screen.getByRole('button', { name: 'Open read-only' }))
-    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
     expect(mode()).toBe('readonly')
     await tick(60_000)
     expect(contentApi.acquireEditLock).toHaveBeenCalledTimes(1) // a reader neither forces nor heartbeats
@@ -59,7 +59,7 @@ describe('soft lock', () => {
     await tick(0)
     expect(contentApi.acquireEditLock).toHaveBeenLastCalledWith('n1', true)
     expect(mode()).toBe('editing')
-    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('heartbeatEvery20s', async () => {
@@ -98,7 +98,7 @@ describe('soft lock', () => {
     expect(mode()).toBe('editing')
     await tick(20_000) // my heartbeat finds Rafi holding it
     expect(mode()).toBe('blocked')
-    expect(screen.getByRole('alert').textContent).toContain('Rafi is editing this page right now.')
+    expect(screen.getByRole('status').textContent).toContain('Rafi is editing right now.')
   })
 
   it('viewersNeverAskForTheLock', async () => {
@@ -124,7 +124,7 @@ describe('soft lock', () => {
     contentApi.acquireEditLock.mockResolvedValue(mine) // Rafi left; his lock is gone
     await tick(20_000)
     expect(mode()).toBe('editing')
-    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   // Review finding 15: a refused lock check used to let the user type into a page that can't be saved.

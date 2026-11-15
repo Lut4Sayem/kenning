@@ -39,11 +39,11 @@ test('second editor sees who is editing, can read, or take over', async ({ brows
   await expect(first.locator('.bn-editor[contenteditable="true"]')).toBeVisible()
   await first.locator('.bn-editor').click()
   await first.keyboard.type('Written by Rafi')
-  await expect(first.locator('.save-indicator')).toHaveText('Saved')
+  await expect(first.locator('header [role="status"]')).toHaveText('Saved')
 
   const second = await mina.newPage()
   await second.goto(`/app/p/${node.id}`)
-  const banner = second.getByRole('alert').filter({ hasText: 'Rafi Lockholder is editing this page right now.' })
+  const banner = second.getByRole('status').filter({ hasText: 'Rafi Lockholder is editing right now.' })
   await expect(banner).toBeVisible()
   await expect(second.locator('.bn-editor')).toContainText('Written by Rafi')
   await expect(second.locator('.bn-editor[contenteditable="true"]')).toHaveCount(0) // not editable behind the banner
@@ -58,10 +58,10 @@ test('second editor sees who is editing, can read, or take over', async ({ brows
   await second.locator('.bn-editor[contenteditable="true"]').click()
   await second.keyboard.press('Control+End')
   await second.keyboard.type(' and Mina')
-  await expect(second.locator('.save-indicator')).toHaveText('Saved')
+  await expect(second.locator('header [role="status"]')).toHaveText('Saved')
 
   // Rafi's next heartbeat (every 20 s) finds the lock taken and puts him behind the banner.
-  await expect(first.getByRole('alert').filter({ hasText: 'Mina Second is editing this page right now.' })).toBeVisible({ timeout: 30_000 })
+  await expect(first.getByRole('status').filter({ hasText: 'Mina Second is editing right now.' })).toBeVisible({ timeout: 30_000 })
   await expect(first.locator('.bn-editor[contenteditable="true"]')).toHaveCount(0)
 
   await rafi.close()

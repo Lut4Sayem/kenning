@@ -23,7 +23,7 @@ vi.mock('../api/content', () => contentApi)
 
 const NODE: NodeDetail = {
   id: 'n1', spaceId: 's1', parentId: null, title: 'Plan', icon: null, tags: [], publishState: 'PUBLISHED', locked: false,
-  lockedBy: null, status: 'ACTIVE', access: 'EDIT', canManage: true, breadcrumbs: [], contentUpdatedAt: '',
+  lockedBy: null, status: 'ACTIVE', access: 'EDIT', canManage: true, breadcrumbs: [], createdBy: null, updatedBy: null, contentUpdatedAt: '',
 }
 const TRASHED = 'This page is in the trash'
 

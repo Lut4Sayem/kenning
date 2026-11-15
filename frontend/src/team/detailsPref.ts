@@ -1,17 +1,17 @@
-const KEY = 'kf.details.team-overview'
+const key = (screen: string) => `kf.details.${screen}`
 
-/** The team overview's details panel is open by default; the choice is remembered for this screen. */
-export function readPref(): boolean {
+/** A screen's details panel is open by default; the choice is remembered per screen. */
+export function readPref(screen = 'team-overview'): boolean {
   try {
-    return localStorage.getItem(KEY) !== '0'
+    return localStorage.getItem(key(screen)) !== '0'
   } catch {
     return true
   }
 }
 
-export function savePref(open: boolean) {
+export function savePref(open: boolean, screen = 'team-overview') {
   try {
-    localStorage.setItem(KEY, open ? '1' : '0')
+    localStorage.setItem(key(screen), open ? '1' : '0')
   } catch {
     // ignore: the choice just is not remembered
   }

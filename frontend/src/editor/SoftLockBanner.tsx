@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
 import { acquireEditLock, releaseEditLock } from '../api/content'
+import Avatar from '../ui/Avatar'
+import b from './SoftLock.module.css'
 
 /**
  * checking: asking the server · editing: I hold the lock · blocked: someone else does (banner up) ·
@@ -84,10 +86,11 @@ interface Props {
 
 export default function SoftLockBanner({ holder, onReadOnly, onEditAnyway }: Props) {
   return (
-    <div role="alert" className="banner">
-      <span>{holder} is editing this page right now.</span>
-      <button type="button" className="banner-btn" onClick={onReadOnly}>Open read-only</button>
-      <button type="button" className="banner-btn banner-btn--quiet" onClick={onEditAnyway}>Edit anyway</button>
+    <div role="status" className={b.banner}>
+      <span className={b.who}><Avatar name={holder} size={28} /><span className={b.live} aria-hidden="true" /></span>
+      <span className={b.text}><strong>{holder}</strong> is editing right now.</span>
+      <button type="button" className={b.open} onClick={onReadOnly}>Open read-only</button>
+      <button type="button" className={b.anyway} onClick={onEditAnyway}>Edit anyway</button>
     </div>
   )
 }

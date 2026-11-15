@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { VersionSummary } from '../api/versions'
 import { useEndSessionOnLeave } from '../editor/session'
 import DiffView from './DiffView'
-import HistoryPanel from './HistoryPanel'
+import HistoryPanel, { type Viewing } from './HistoryPanel'
 import { groupVersions } from './groupVersions'
 
 afterEach(() => {
@@ -16,8 +16,8 @@ afterEach(() => {
 
 const NOW = new Date(2026, 10, 12, 15, 0) // Thu 12 Nov 2026, 15:00 local
 const at = (day: number, h: number, m = 0) => new Date(2026, 10, day, h, m).toISOString()
-const sayem = { userId: 'u1', name: 'Sayem', avatarUrl: null }
-const rafi = { userId: 'u2', name: 'Rafi', avatarUrl: null }
+const sayem = { id: 'u1', name: 'Sayem', avatarUrl: null }
+const rafi = { id: 'u2', name: 'Rafi', avatarUrl: null }
 
 function v(id: string, kind: VersionSummary['kind'], createdAt: string, extra: Partial<VersionSummary> = {}): VersionSummary {
   return { id, kind, name: null, authors: [sayem], createdAt, updatedAt: createdAt, private: false, ...extra }
@@ -25,7 +25,7 @@ function v(id: string, kind: VersionSummary['kind'], createdAt: string, extra: P
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
-function renderPanel(versions: VersionSummary[], canEdit: boolean, onView = vi.fn()) {
+function renderPanel(versions: VersionSummary[], canEdit: boolean, onView = vi.fn(), viewing: Viewing | null = null) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const u = String(input)
@@ -36,8 +36,12 @@ function renderPanel(versions: VersionSummary[], canEdit: boolean, onView = vi.f
   })
   vi.stubGlobal('fetch', fetchMock)
   const wrap = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
-  render(<HistoryPanel nodeId="n1" canEdit={canEdit} viewingId={null} onView={onView} onClose={() => {}} onRestored={() => {}} now={NOW} />, { wrapper: wrap })
-  return { onView, fetchMock }
+  const onRestore = vi.fn()
+  render(
+    <HistoryPanel nodeId="n1" canEdit={canEdit} viewing={viewing} onView={onView} getCurrentText={() => 'current text'} restoring={false} restoreError="" onRestore={onRestore} onClose={() => {}} now={NOW} />,
+    { wrapper: wrap },
+  )
+  return { onView, onRestore, fetchMock }
 }
 
 describe('groupVersions', () => {
@@ -79,29 +83,65 @@ describe('groupVersions', () => {
 
 describe('history panel', () => {
   const list = [v('n1', 'NAMED', at(12, 11), { name: 'Before submission' }), v('a1', 'AUTO', at(12, 9))]
+  const viewing = (id: string, extra: Partial<Viewing> = {}): Viewing => ({
+    version: list.find((x) => x.id === id)!, number: 1, previousNumber: null, text: 'old', previousText: '', canRestore: true, against: 'previous', ...extra,
+  })
+
+  it('showsAuthorKindTimeAndACurrentPillOnTheNewestOnly', async () => {
+    renderPanel(list, true)
+    expect(await screen.findByText('Before submission')).toBeTruthy() // a named version shows its name as the kind
+    expect(screen.getByText('Autosaved')).toBeTruthy()
+    expect(screen.getAllByText('Current')).toHaveLength(1)
+    expect(screen.getByText('11:00 am')).toBeTruthy()
+    expect(screen.getByRole('list', { name: 'Authors' }).textContent).toContain('Sayem')
+  })
 
   it('namedOnlyFilter', async () => {
     renderPanel(list, true)
-    expect(await screen.findByText('★ Before submission')).toBeTruthy()
-    expect(screen.getAllByRole('button', { name: /AM|PM|\d/ }).length).toBeGreaterThan(1)
+    expect(await screen.findByText('Autosaved')).toBeTruthy()
     await userEvent.click(screen.getByLabelText('Named versions only'))
-    expect(screen.getByText('★ Before submission')).toBeTruthy()
-    expect(screen.queryByText(/^9:00/)).toBeNull()
+    expect(screen.getByText('Before submission')).toBeTruthy()
+    expect(screen.queryByText('Autosaved')).toBeNull()
   })
 
   it('selectingShowsTheVersionAgainstTheOneBefore', async () => {
     const { onView } = renderPanel(list, true)
-    await userEvent.click(await screen.findByText('★ Before submission'))
+    await userEvent.click(await screen.findByText('Before submission'))
     await waitFor(() => expect(onView).toHaveBeenCalled())
-    expect(onView.mock.calls[0][0]).toMatchObject({ version: { id: 'n1' }, text: 'text of n1', previousText: 'text of a1' })
+    expect(onView.mock.calls[0][0]).toMatchObject({ version: { id: 'n1' }, number: 2, previousNumber: 1, text: 'text of n1', previousText: 'text of a1', against: 'previous' })
   })
 
   it('restoreHiddenForViewers', async () => {
     const { onView } = renderPanel(list, false)
-    await userEvent.click(await screen.findByText('★ Before submission'))
+    await userEvent.click(await screen.findByText('Before submission'))
     await waitFor(() => expect(onView).toHaveBeenCalled())
     expect(onView.mock.calls[0][0].canRestore).toBe(false)
     expect(screen.queryByRole('button', { name: /Name the current version/ })).toBeNull()
+  })
+
+  it('footerOffersRestoreAndCompareForAnOlderVersionButNotRestoreForTheCurrentOne', async () => {
+    const older = renderPanel(list, true, vi.fn(), viewing('a1'))
+    await screen.findByText('Autosaved')
+    await userEvent.click(screen.getByRole('button', { name: 'Restore this version' }))
+    expect(older.onRestore).toHaveBeenCalledWith('a1')
+    await userEvent.click(screen.getByRole('button', { name: 'Compare with current' }))
+    await waitFor(() => expect(older.onView).toHaveBeenCalled())
+    expect(older.onView.mock.calls[0][0]).toMatchObject({ against: 'current', text: 'current text', previousText: 'text of a1' })
+    cleanup()
+    renderPanel(list, true, vi.fn(), viewing('n1', { number: 2 }))
+    await screen.findByText('Before submission')
+    expect(screen.queryByRole('button', { name: 'Restore this version' })).toBeNull() // restoring the current one changes nothing
+    expect(screen.getByRole('button', { name: 'Compare with current' })).toBeTruthy()
+  })
+
+  it('showsTwentyVersionsThenLoadsOlderOnRequest', async () => {
+    const many = Array.from({ length: 25 }, (_, i) => v(`m${i}`, 'NAMED', at(12, 8, i), { name: `Named ${i}` }))
+    renderPanel(many, true)
+    expect(await screen.findByText('Named 24')).toBeTruthy() // newest
+    expect(screen.queryByText('Named 4')).toBeNull() // the 21st newest and older wait
+    await userEvent.click(screen.getByRole('button', { name: 'Load older versions' }))
+    expect(screen.getByText('Named 0')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Load older versions' })).toBeNull()
   })
 })
 

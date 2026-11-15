@@ -10,7 +10,7 @@
   padding: 0 14px 0 var(--space-5); border-bottom: 1px solid var(--line-soft); font-size: 13px;
 }
 .topbar:empty { display: none; }
-.main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-8) var(--space-10); }
+.main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-8) var(--space-10); container-type: inline-size; } /* screens can adapt to the room they really have (details panel open or not) */
 .main:has([data-bleed]) { padding: 0; } /* Home and Recent bring their own column padding */
 .details { width: var(--details-width); min-height: 0; overflow-y: auto; padding: var(--space-4); }
 .skip {

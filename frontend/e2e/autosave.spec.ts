@@ -15,7 +15,7 @@ async function openNewPage(page: Page): Promise<string> {
 }
 
 const editor = (page: Page) => page.locator('.bn-editor')
-const saveState = (page: Page) => page.locator('.save-indicator')
+const saveState = (page: Page) => page.locator('header [role="status"]')
 
 async function typeInEditor(page: Page, text: string) {
   // The editor is read-only until the soft lock answers, and is rebuilt (losing focus) when it turns editable.

@@ -13,6 +13,8 @@ import {
 } from '../api/nodes'
 import MoveToTeamDialog from '../move/MoveToTeamDialog'
 import { confirmTrash } from '../trash/ConfirmTrashDialog'
+import Icon from '../ui/Icon'
+import m from './PageMenu.module.css'
 
 interface Props {
   node: NodeDetail
@@ -123,23 +125,23 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
   }
 
   return (
-    <div className="page-menu" ref={root} onKeyDown={onKeyDown}>
-      <button ref={button} type="button" className="page-menu-btn" aria-label="Page actions" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        …
+    <div className={m.root} ref={root} onKeyDown={onKeyDown}>
+      <button ref={button} type="button" className={m.btn} aria-label="Page actions" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Icon name="more" />
       </button>
       {open && (
-        <div className="page-menu-list" role="menu" aria-label="Page actions">
+        <div className={m.list} role="menu" aria-label="Page actions">
           {items.map((item) => (
             <button key={item.label} type="button" role="menuitem" disabled={!!item.blocked} title={item.blocked} onClick={() => void choose(item)}>
               {item.label}
-              {item.blocked && <small> ({item.blocked.toLowerCase()})</small>}
+              {item.blocked && <small>{item.blocked}</small>}
             </button>
           ))}
         </div>
       )}
       {moving && <MoveToTeamDialog node={node} onClose={() => { setMoving(false); button.current?.focus() }} />}
-      {error && <p role="alert" className="page-menu-error">{error}</p>}
-      {notice && <p role="status" className="page-menu-note">{notice}</p>}
+      {error && <p role="alert" className={m.error}>{error}</p>}
+      {notice && <p role="status" className={m.note}>{notice}</p>}
     </div>
   )
 }
