@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client'
-import { AuthLayout, Field, FormError, PasswordField } from './AuthLayout'
+import { AuthLayout, Field, FormError, PasswordField, SubmitButton } from './AuthLayout'
 import { DEFAULT_NEXT, safeNext } from './safeNext'
 
 type Errors = Partial<Record<'fullName' | 'email' | 'password' | 'confirm', string>>
@@ -52,18 +52,19 @@ export default function Register() {
   }
 
   return (
-    <AuthLayout title="Create your account">
+    <AuthLayout
+      title="Create your account"
+      subtitle="Write things down once. Your team finds them later."
+      alt={<>Already have an account? <Link to={loginUrl}>Log in</Link></>}
+    >
       <form onSubmit={submit} noValidate>
         <FormError message={formError} />
-        <Field id="fullName" label="Full name" autoComplete="name" value={fullName} error={errors.fullName} onChange={(e) => setFullName(e.target.value)} />
-        <Field id="email" label="Email" type="email" autoComplete="email" value={email} error={errors.email} onChange={(e) => setEmail(e.target.value)} />
-        <PasswordField id="password" label="Password" autoComplete="new-password" value={password} error={errors.password} onChange={setPassword} />
-        <PasswordField id="confirmPassword" label="Confirm password" autoComplete="new-password" value={confirm} error={errors.confirm} onChange={setConfirm} />
-        <button type="submit" disabled={busy}>{busy ? 'Creating account…' : 'Create account'}</button>
+        <Field id="fullName" label="Full name" autoComplete="name" placeholder="Your name" value={fullName} error={errors.fullName} onChange={(e) => setFullName(e.target.value)} />
+        <Field id="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" value={email} error={errors.email} onChange={(e) => setEmail(e.target.value)} />
+        <PasswordField id="password" label="Password" autoComplete="new-password" placeholder="At least 8 characters" value={password} error={errors.password} onChange={setPassword} />
+        <PasswordField id="confirmPassword" label="Confirm password" autoComplete="new-password" placeholder="Type it again" value={confirm} error={errors.confirm} onChange={setConfirm} />
+        <SubmitButton busy={busy} label="Create account" busyLabel="Creating account…" />
       </form>
-      <p>
-        Already have an account? <Link to={loginUrl}>Log in</Link>
-      </p>
     </AuthLayout>
   )
 }
