@@ -14,6 +14,10 @@ export interface SearchHit {
   tags: string[]
   publishState: 'DRAFT' | 'PUBLISHED' | null
   archived: boolean
+  /** null = a page in my personal space. */
+  teamName?: string | null
+  /** Only on /api/me/recent: when I last opened the page. */
+  openedAt?: string | null
 }
 
 export interface SearchParams {
