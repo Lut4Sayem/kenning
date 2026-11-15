@@ -10,29 +10,43 @@ import {
   type Branch,
 } from '../api/nodes'
 import { getMySpaces } from '../api/spaces'
+import { TopBar } from '../app/ShellSlots'
+import Avatar from '../ui/Avatar'
+import Icon from '../ui/Icon'
+import Segmented from '../ui/Segmented'
 import { timeAgo } from '../ui/timeAgo'
 import { confirmDeleteForever } from './ConfirmTrashDialog'
+import s from './Trash.module.css'
 
 const DAY = 24 * 60 * 60 * 1000
+const PAGE = 25 // DESIGN.md section 8: 25, then "Load more"
+const URGENT_DAYS = 7
+
+const daysUntil = (purgeAt: string, now: number) => Math.max(0, Math.ceil((new Date(purgeAt).getTime() - now) / DAY))
 
 export function daysLeft(purgeAt: string | null, now = Date.now()): string {
   if (!purgeAt) return ''
-  const days = Math.max(0, Math.ceil((new Date(purgeAt).getTime() - now) / DAY))
+  const days = daysUntil(purgeAt, now)
   return days === 1 ? '1 day' : `${days} days`
 }
 
-/** Trash and Archived tabs of one space (wireframe Trash). */
+type Tab = 'trash' | 'archived'
+
+/** Trash and Archived tabs of one space (mockup trash). */
 export default function TrashPage() {
   const { spaceId = '' } = useParams()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'archived' ? 'archived' : 'trash'
+  const tab: Tab = params.get('tab') === 'archived' ? 'archived' : 'trash'
   const qc = useQueryClient()
   const spaces = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces })
   const trash = useQuery({ queryKey: ['trash', spaceId], queryFn: () => getTrash(spaceId), retry: false })
   const archived = useQuery({ queryKey: ['archived', spaceId], queryFn: () => getArchived(spaceId), retry: false })
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
-  const spaceName = spaces.data?.find((s) => s.id === spaceId)?.name ?? 'this space'
+  const [filter, setFilter] = useState('')
+  const [shown, setShown] = useState(PAGE)
+  const space = spaces.data?.find((x) => x.id === spaceId)
+  const spaceName = space?.name ?? 'this space'
 
   const active = tab === 'trash' ? trash : archived
   const refresh = () =>
@@ -71,67 +85,117 @@ export default function TrashPage() {
     onError: (e) => setError(e.message),
   })
 
-  const canPurge = !!trash.data?.canPurge
-  const items = active.data?.items ?? []
-  const label = (t: 'trash' | 'archived', q: typeof trash) => `${t === 'trash' ? 'Trash' : 'Archived'}${q.data ? ` (${q.data.items.length})` : ''}`
+  const canPurge = tab === 'trash' && !!trash.data?.canPurge
+  const needle = filter.trim().toLowerCase()
+  const all = (active.data?.items ?? []).filter((b) => !needle || (b.title || 'Untitled').toLowerCase().includes(needle))
+  const items = all.slice(0, shown)
+  const now = Date.now()
+  const urgent = (b: Branch) => tab === 'trash' && !!b.purgeAt && daysUntil(b.purgeAt, now) <= URGENT_DAYS
+  const groups = tab === 'trash'
+    ? [{ key: 'soon', label: 'Gone for good this week', items: items.filter(urgent) }, { key: 'later', label: 'Later', items: items.filter((b) => !urgent(b)) }]
+    : [{ key: 'all', label: '', items }]
+  const switchTab = (t: Tab) => { setParams(t === 'trash' ? {} : { tab: t }); setShown(PAGE); setNotice(''); setError('') }
+
+  const row = (b: Branch) => {
+    const soon = urgent(b)
+    const where = [spaceName, ...b.path.map((p) => p.title || 'Untitled')].join(' / ')
+    return (
+      <li key={b.id} className={`${s.item} ${soon ? s.urgent : ''}`}>
+        <span className={`${s.tile} ${soon ? s.tileUrgent : ''}`} aria-hidden="true"><Icon name="doc-lines" /></span>
+        <span className={s.main}>
+          <span className={s.name}>
+            <span className={s.title}>{b.title || 'Untitled'}</span>
+            {b.descendantCount > 0 && <span className={s.subs}>+ {b.descendantCount} sub-page{b.descendantCount === 1 ? '' : 's'}</span>}
+          </span>
+          <span className={s.was}>Was in {where}</span>
+          {b.parentGone && <span className={s.warn}>Its parent is also deleted or archived, so it will come back at the top of {spaceName}.</span>}
+        </span>
+        <span className={s.by}>
+          <Avatar name={b.by?.name ?? '?'} />
+          <span><b>{b.by?.name ?? 'Unknown'}</b>{' '}{tab === 'trash' ? 'deleted' : 'archived'} {b.at ? timeAgo(b.at) : ''}</span>
+        </span>
+        {tab === 'trash' && b.purgeAt && (
+          <span className={`${s.left} ${soon ? s.leftSoon : ''}`} title="Deleted for good after 30 days in the trash">
+            {daysLeft(b.purgeAt, now)}{soon ? ' left' : ''}
+          </span>
+        )}
+        <span className={s.actions}>
+          {b.canRestore && (
+            <button type="button" className={s.restore} onClick={() => restore.mutate(b)} disabled={restore.isPending}>
+              <Icon name="restore" size={14} />{tab === 'trash' ? 'Restore' : 'Unarchive'}
+            </button>
+          )}
+          {canPurge && (
+            <button type="button" className={s.purge} aria-label="Delete forever" title="Delete forever" onClick={() => forever.mutate(b)} disabled={forever.isPending}>
+              <Icon name="trash" />
+            </button>
+          )}
+        </span>
+      </li>
+    )
+  }
 
   return (
-    <section className="trash-page">
-      <h1>{spaceName}: {tab === 'trash' ? 'Trash' : 'Archived'}</h1>
-      <div role="tablist" aria-label="Trash and archive" className="tabs">
-        {(['trash', 'archived'] as const).map((t) => (
-          <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setParams(t === 'trash' ? {} : { tab: t })}>
-            {label(t, t === 'trash' ? trash : archived)}
-          </button>
-        ))}
+    <div className={s.wrap} data-bleed>
+      <TopBar>
+        <nav className={s.crumbs} aria-label="Breadcrumb">
+          {space?.teamId && <><Link to={`/teams/${space.teamId}`}>{space.teamName}</Link><span aria-hidden="true">/</span></>}
+          {space && <><Link to={`/s/${space.id}`}>{space.name}</Link><span aria-hidden="true">/</span></>}
+          <span className={s.here} aria-current="page"><Icon name="trash" size={14} />Trash</span>
+        </nav>
+      </TopBar>
+
+      <div className={s.hero}>
+        <h1>{tab === 'trash' ? 'Trash' : 'Archived'}</h1>
+        <p className={s.lead}>
+          {tab === 'trash'
+            ? `Deleted pages from ${spaceName} stay here for 30 days, then they are gone for good.`
+            : `Archived pages from ${spaceName} are read-only and still show up in search. Unarchiving brings back the page and its sub-pages.`}
+        </p>
       </div>
-      <p className="page-note">
-        {tab === 'trash'
-          ? 'Pages in the trash are deleted for good 30 days after they were trashed. Restoring brings back the page and all its sub-pages.'
-          : 'Archived pages are read-only and still show up in search. Unarchiving brings back the page and its sub-pages.'}
-      </p>
-      {notice && <p role="status" className="banner">{notice}</p>}
-      {error && <p role="alert" className="banner">{error}</p>}
-      {active.isLoading && <p>Loading…</p>}
-      {active.isError && <p role="alert">{active.error.message}</p>}
-      {active.isSuccess && items.length === 0 && <p>{tab === 'trash' ? 'The trash is empty.' : 'Nothing is archived.'}</p>}
-      {items.length > 0 && (
-        <table className="trash-table">
-          <thead>
-            <tr>
-              <th scope="col">Page</th>
-              <th scope="col">Was in</th>
-              <th scope="col">{tab === 'trash' ? 'Deleted by' : 'Archived by'}</th>
-              {tab === 'trash' && <th scope="col">Deleted forever in</th>}
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((b) => (
-              <tr key={b.id}>
-                <th scope="row">
-                  {b.icon ? `${b.icon} ` : ''}{b.title || 'Untitled'}
-                  {b.descendantCount > 0 && <small> + {b.descendantCount} sub-page{b.descendantCount === 1 ? '' : 's'}</small>}
-                  {b.parentGone && <small className="trash-note"> Its parent is also deleted or archived: restores to the top of {spaceName}</small>}
-                </th>
-                <td>{[spaceName, ...b.path.map((p) => p.title || 'Untitled')].join(' / ')}</td>
-                <td>{b.by?.name ?? 'Unknown'}{b.at ? ` · ${timeAgo(b.at)}` : ''}</td>
-                {tab === 'trash' && <td>{daysLeft(b.purgeAt)}</td>}
-                <td className="trash-actions">
-                  {b.canRestore && (
-                    <button type="button" onClick={() => restore.mutate(b)} disabled={restore.isPending}>{tab === 'trash' ? 'Restore' : 'Unarchive'}</button>
-                  )}
-                  {tab === 'trash' && canPurge && (
-                    <button type="button" className="danger" onClick={() => forever.mutate(b)} disabled={forever.isPending}>Delete forever</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {tab === 'trash' && !canPurge && trash.isSuccess && items.length > 0 && <p className="page-note">Only team admins can delete forever.</p>}
-      <p><Link to="/">Back to home</Link></p>
-    </section>
+
+      <div className={s.toolbar}>
+        <Segmented<Tab> label="Trash and archive" idPrefix="trash" onPage value={tab} onChange={switchTab} options={[
+          { value: 'trash', label: 'Trash', count: trash.data?.items.length },
+          { value: 'archived', label: 'Archived', count: archived.data?.items.length },
+        ]} />
+        <label className={s.filter}>
+          <Icon name="search" size={14} />
+          <span className="sr-only">Filter by title</span>
+          <input type="search" placeholder="Filter by title" value={filter} maxLength={100} onChange={(e) => { setFilter(e.target.value); setShown(PAGE) }} />
+        </label>
+      </div>
+
+      <div id="trash-panel" role="tabpanel" aria-labelledby={`trash-tab-${tab}`} className={s.panel}>
+        <p role="status" className={s.notice}>{notice}</p>
+        {error && <p role="alert" className={s.error}>{error}</p>}
+        {active.isPending && <div className={s.group} aria-busy="true" aria-label="Loading">{[0, 1, 2].map((i) => <div key={i} className={s.skel} />)}</div>}
+        {active.isError && (
+          <p role="alert" className={s.error}>Could not load the {tab === 'trash' ? 'trash' : 'archived pages'}. {active.error.message} <button type="button" onClick={() => void active.refetch()}>Try again</button></p>
+        )}
+        {active.isSuccess && all.length === 0 && (
+          <p className={s.empty}>
+            {needle ? `No page title matches “${filter.trim()}”.`
+              : tab === 'trash' ? `The trash is empty. Pages you delete from ${spaceName} wait here for 30 days.`
+                : `Nothing is archived. Archive a page from its … menu to keep it read-only.`}
+          </p>
+        )}
+        {groups.filter((g) => g.items.length > 0).map((g) => (
+          <section key={g.key} className={s.group} aria-labelledby={g.label ? `tg-${g.key}` : undefined} aria-label={g.label ? undefined : 'Archived pages'}>
+            {g.label && (
+              <h2 id={`tg-${g.key}`} className={s.groupHead}>
+                <span className={g.key === 'soon' ? s.clockSoon : s.clock}><Icon name="clock" size={14} /></span>
+                {g.label}<span className={s.count}>{g.items.length}</span>
+              </h2>
+            )}
+            <ul className={s.list}>{g.items.map(row)}</ul>
+          </section>
+        ))}
+        {all.length > items.length && (
+          <button type="button" className={s.more} onClick={() => setShown((n) => n + PAGE)}>Load more</button>
+        )}
+        {tab === 'trash' && !canPurge && trash.isSuccess && all.length > 0 && <p className={s.note}>Only team admins can delete forever.</p>}
+      </div>
+    </div>
   )
 }
