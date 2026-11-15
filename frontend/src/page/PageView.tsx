@@ -62,12 +62,16 @@ export default function PageView() {
     setPanel('details')
     setViewing(null)
   }, [nodeId])
-  // A save that just finished: the server's "last edited" moved, and the page may differ from what was published.
+  // A save that just finished: "last edited" moves to me, now. Patched in the cache (GET /api/nodes/{id} also writes the
+  // user's recent list, so it must not run after every autosave).
   const was = useRef<SaveState>('saved')
   useEffect(() => {
-    if (was.current !== 'saved' && saveState === 'saved') void qc.invalidateQueries({ queryKey: ['node', nodeId] })
+    const done = was.current !== 'saved' && saveState === 'saved'
     was.current = saveState
-  }, [saveState, nodeId, qc])
+    if (!done || !me.data) return
+    const who = { id: me.data.id, name: me.data.fullName, avatarUrl: me.data.profilePicture ?? null }
+    qc.setQueryData<NodeDetail>(['node', nodeId], (n) => n && { ...n, contentUpdatedAt: new Date().toISOString(), updatedBy: who })
+  }, [saveState, nodeId, qc, me.data])
 
   const restore = useMutation({
     mutationFn: (id: string) => restoreVersion(id),

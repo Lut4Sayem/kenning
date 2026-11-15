@@ -67,8 +67,8 @@
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
 .state { max-width: var(--reading-max); margin: 0 auto; padding: 56px 32px; font-size: 14px; color: var(--ink-label); }
 
-/* BlockNote's block handles sit about 54px left of the text; the column keeps room for them when it is squeezed */
-@media (max-width: 1280px) { .column { padding-inline: 56px; } }
+/* BlockNote's block handles sit about 50px left of the text; when the main area is narrower than the column plus that room, the padding makes it */
+@container (max-width: 800px) { .column { padding-inline: 56px; } }
 @media (max-width: 640px) {
   .column { padding: 24px 16px 64px; }
   .banners { padding-inline: 16px; }
