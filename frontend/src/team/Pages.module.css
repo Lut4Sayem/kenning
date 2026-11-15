@@ -1,0 +1,60 @@
+/* Team pages list (DESIGN.md section 7, "Team pages list"). Native table semantics, laid out with grid. */
+.viewBar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); }
+.views { display: flex; flex-wrap: wrap; gap: 4px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+.pill:hover { background: var(--surface-card); }
+.pill.on { background: var(--surface-card-hover); color: var(--ink); }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 4px 0 10px; border-radius: var(--r-pill); background: var(--callout); color: var(--accent-ink); font-size: 13px; font-weight: 500; }
+.chip button { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; }
+.chip button:hover { background: var(--accent-soft); }
+.chip svg { width: 12px; height: 12px; }
+.tools { margin-left: auto; display: flex; gap: 4px; }
+.menu { display: flex; flex-direction: column; gap: 12px; padding: 8px; min-width: 220px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.field select { height: 34px; padding: 0 8px; border: 1px solid var(--input-border); border-radius: var(--r-row); background: var(--canvas); color: var(--ink); font-size: 13px; font-weight: 400; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 400; color: var(--ink); cursor: pointer; }
+.radios { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; }
+.radios legend { padding: 0; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+
+.table { display: block; width: 100%; border-collapse: collapse; }
+.table thead, .table tbody { display: block; }
+.cols, .row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 170px 90px 32px; align-items: center; padding: 0 22px 0 28px; }
+.cols { height: 34px; border-bottom: 1px solid var(--line-soft); }
+.cols th { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--ink-muted); text-align: left; }
+.cols svg { width: 13px; height: 13px; }
+.cols .cTime { justify-content: flex-end; }
+.row { height: 40px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+.row:hover { background: var(--surface-row-hover); }
+.row td { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cTitle { min-width: 0; }
+.titleLink { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; height: 40px; color: inherit; text-decoration: none; }
+.titleLink:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.dot { flex: none; width: 8px; height: 8px; border-radius: 3px; background: var(--page-gray); }
+.title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--ink); }
+.parent { flex: none; font-size: 12.5px; color: var(--ink-muted); white-space: nowrap; }
+.circle { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--page-gray); }
+.circle.pub { background: var(--page-green); border-color: var(--page-green); box-shadow: inset 0 0 0 1.5px var(--canvas); }
+.cStatus { color: var(--ink-label); }
+.ename { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-label); }
+.cTime { justify-content: flex-end; font-size: 12px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.group { display: block; height: 36px; background: var(--surface-card); border-bottom: 1px solid var(--line-soft); }
+.group td { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 22px 0 10px; }
+.chev, .gplus { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
+.chev:hover, .gplus:hover { background: var(--hover); color: var(--ink); }
+.chev svg { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
+.chevOpen { transform: rotate(90deg); }
+.gname { font-size: 13px; font-weight: 600; color: var(--ink); }
+.gcount { font-size: 13px; font-weight: 500; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.gplus { margin-left: auto; }
+.message { display: block; padding: 32px 28px; font-size: 14px; color: var(--ink-muted); }
+.message p { margin: 0; }
+.skelRow { display: block; width: 100%; height: 16px; }
+.foot { padding: 12px 28px 32px; }
+.summary { margin: 0; font-size: 12.5px; color: var(--ink-muted); }
+.paging { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--ink-muted); }
+
+@media (max-width: 760px) {
+  .cols, .row { grid-template-columns: minmax(0, 1fr) 100px 48px; padding: 0 14px; }
+  .cEditor, .cEnd { display: none !important; }
+  .parent { display: none; }
+}
