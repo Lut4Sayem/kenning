@@ -1,0 +1,10 @@
+.root { position: relative; }
+.btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
+.btn:hover, .btn[aria-expanded='true'] { background: var(--hover); color: var(--ink); }
+.list { position: absolute; right: 0; z-index: 30; top: calc(100% + 6px); min-width: 220px; padding: 6px; display: flex; flex-direction: column; gap: 2px; border-radius: var(--r-lg); background: var(--canvas); box-shadow: var(--shadow-3); }
+.list button { display: flex; flex-direction: column; align-items: flex-start; padding: 7px 10px; border: 0; border-radius: var(--r-row); background: none; font-size: 13.5px; color: var(--ink); text-align: left; cursor: pointer; }
+.list button:hover:not(:disabled), .list button:focus-visible { background: var(--hover); }
+.list button:disabled { color: var(--ink-muted); cursor: not-allowed; }
+.list small { font-size: 12px; color: var(--ink-muted); }
+.error { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 260px; margin: 0; padding: 8px 12px; border-radius: var(--r-lg); background: var(--error-soft); color: var(--error-ink); font-size: 13px; }
+.note { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 280px; margin: 0; padding: 8px 12px; border-radius: var(--r-lg); background: var(--canvas); box-shadow: var(--shadow-3); font-size: 13px; color: var(--ink-label); }

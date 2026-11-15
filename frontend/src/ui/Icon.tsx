@@ -24,14 +24,22 @@ const PATHS = {
   layers: 'M8 2L1.5 5.5 8 9l6.5-3.5L8 2zM1.5 8.5L8 12l6.5-3.5',
   check: 'M3 8.5l3.2 3L13 4.5',
   circle: 'M8 14a6 6 0 100-12 6 6 0 000 12z',
+  tag: 'M2.5 2.5h5l6 6-5 5-6-6v-5zM5.5 5.5h.01',
+  history: 'M2.5 8a5.5 5.5 0 105.5-5.5c-1.7 0-3.2.8-4.2 2M2.5 2.5v3h3M8 5v3l2 1.2',
+  send: 'M14 2L7 9M14 2l-4.5 12-2.5-5-5-2.5L14 2z',
+  download: 'M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10',
+  upload: 'M8 10V2M4.5 5L8 1.5 11.5 5M3 13.5h10',
+  trash: 'M3 4.5h10M6.5 4.5v-2h3v2M4.5 4.5l.5 9h6l.5-9M6.8 7v4M9.2 7v4',
+  link: 'M6.8 9.2a2.5 2.5 0 003.5 0l2-2a2.5 2.5 0 00-3.5-3.5l-.8.8M9.2 6.8a2.5 2.5 0 00-3.5 0l-2 2a2.5 2.5 0 003.5 3.5l.8-.8',
+  'doc-lines': 'M4 2h5l3 3v8.5a.5.5 0 01-.5.5h-7a.5.5 0 01-.5-.5v-11A.5.5 0 014 2zM9 2v3h3M6 8.5h4M6 11h4',
   'arrow-up-down': 'M5 13V3M2.5 5.5L5 3l2.5 2.5M11 3v10M8.5 10.5L11 13l2.5-2.5',
 } as const
 
 export type IconName = keyof typeof PATHS
 
-export default function Icon({ name, className }: { name: IconName; className?: string }) {
+export default function Icon({ name, className, size = 16 }: { name: IconName; className?: string; size?: number }) {
   return (
-    <svg className={className} width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+    <svg className={className} width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor"
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
       <path d={PATHS[name]} />
     </svg>

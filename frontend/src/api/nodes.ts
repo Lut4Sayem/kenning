@@ -27,6 +27,8 @@ export interface NodeDetail {
   /** A page editor even if the page is locked or archived: shows the lock/archive/trash menu. */
   canManage: boolean
   breadcrumbs: { id: string; title: string }[]
+  createdBy: { id: string; name: string; avatarUrl: string | null } | null
+  updatedBy: { id: string; name: string; avatarUrl: string | null } | null
   contentUpdatedAt: string
 }
 
