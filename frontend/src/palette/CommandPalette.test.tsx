@@ -133,4 +133,32 @@ describe('command palette', () => {
     expect(screen.queryByText('Older answer')).toBeNull()
     expect(screen.getByText('Newer answer')).toBeTruthy()
   })
+
+  it('tabSwitchesTheFilterAndKeepsFocusInTheBox', async () => {
+    api.searchAll.mockResolvedValue([{ ...hit('c1', 'Budget'), snippetHtml: 'the <mark>road</mark> ahead' }])
+    setup()
+    await userEvent.keyboard('{Control>}k{/Control}road')
+    await screen.findByText('in Budget')
+    const pressed = () => screen.getAllByRole('button', { pressed: true }).map((b) => b.textContent)
+    expect(pressed()[0]).toMatch(/^All/)
+    await userEvent.keyboard('{Tab}')
+    expect(pressed()[0]).toMatch(/^Pages/)
+    expect(document.activeElement).toBe(screen.getByRole('combobox'))
+    await userEvent.keyboard('{Tab}')
+    expect(pressed()[0]).toMatch(/^Content/)
+    expect(screen.getByText('in Budget')).toBeTruthy()
+    expect(screen.queryByRole('option', { name: /See all results/ })).toBeNull() // actions are filtered out
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}')
+    expect(pressed()[0]).toMatch(/^Pages/)
+  })
+
+  it('showsAtMostFivePerGroupInAll', async () => {
+    api.getRecent.mockResolvedValue(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => hit(x, `Page ${x}`)))
+    setup()
+    await userEvent.keyboard('{Control>}k{/Control}')
+    await screen.findByText('Page a')
+    expect(screen.queryByText('Page f')).toBeNull()
+    await userEvent.keyboard('{Tab}') // Pages filter: the whole list
+    expect(await screen.findByText('Page g')).toBeTruthy()
+  })
 })

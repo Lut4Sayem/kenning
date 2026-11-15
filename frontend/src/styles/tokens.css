@@ -121,3 +121,13 @@
 /* Neutral Draft pill used in lists (Home, Recent); the yellow --draft-pill is for the page's properties block. */
 :root { --pill-bg: #efeeea; --pill-ink: #4a4843; }
 :root { --surface-row-hover: #faf9f7; }
+
+/* Group C (palette, search, trash, profile): search marks, soft row hover, danger states */
+:root {
+  --mark: #ffe48a;
+  --row-hover: #f6f5f2;
+  --surface-muted: #efeeea;
+  --danger: #c0392b;
+  --danger-soft: #fff4f2;
+  --danger-tile: #fde4e4;
+}
