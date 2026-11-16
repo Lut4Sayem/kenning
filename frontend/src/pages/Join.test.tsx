@@ -86,6 +86,14 @@ describe('Join', () => {
     expect((await screen.findByRole('status')).textContent).toMatch(/already asked/)
   })
 
+  // QA-05: a reload must not bring "Ask to join" back after the request was sent.
+  it('aRequestSentEarlierIsShownAsWaitingOnOpen', async () => {
+    backend({ preview: { ...PREVIEW, hasPendingRequest: true } })
+    renderJoin()
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe("You've already asked to join. It's waiting for approval."))
+    expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
+  })
+
   it('alreadyAMemberRedirectsAfterTheMessage', async () => {
     backend({ join: new ApiError(409, 'You are already a member of this team') })
     renderJoin()

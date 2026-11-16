@@ -7,11 +7,12 @@ import { AuthLayout, FormError, SubmitButton } from './AuthLayout'
 import s from './Join.module.css'
 import { DEFAULT_NEXT } from './safeNext'
 
-type Preview = { teamName: string; memberCount: number; invitedByName: string | null }
+type Preview = { teamName: string; memberCount: number; invitedByName: string | null; hasPendingRequest?: boolean }
 type Me = { fullName?: string; email?: string }
 type Problem = { title: string; message: string; home?: boolean }
 
 const tint = (name: string) => ({ background: `var(--tint-${tintOf(name)}-bg)`, color: `var(--tint-${tintOf(name)}-fg)` })
+const WAITING = "You've already asked to join. It's waiting for approval."
 const NOT_FOUND: Problem = {
   title: 'This invite doesn’t work',
   message: 'We couldn’t find this invite. It may have been replaced; ask for a new link.',
@@ -63,7 +64,10 @@ export default function Join() {
       else if (m.status === 'rejected') setProblem({ title: 'Join a team', message: (m.reason as Error).message })
       else {
         setMe(m.value)
-        if (p.status === 'fulfilled') setPreview(p.value)
+        if (p.status === 'fulfilled') {
+          setPreview(p.value)
+          if (p.value.hasPendingRequest) setNotice(WAITING) // asked before: no second "Ask to join" (QA-05)
+        }
       }
       setLoading(false)
     })
@@ -82,7 +86,7 @@ export default function Join() {
       if (x.status === 409 && /already a member/i.test(x.message)) {
         setNotice("You're already a member. Taking you to your dashboard…")
         setTimeout(() => window.location.assign(DEFAULT_NEXT), 1500)
-      } else if (x.status === 409) setNotice("You've already asked to join. It's waiting for approval.")
+      } else if (x.status === 409) setNotice(WAITING)
       else if (x.status === 404) setProblem(NOT_FOUND)
       else setFormError(x.message)
     } finally {

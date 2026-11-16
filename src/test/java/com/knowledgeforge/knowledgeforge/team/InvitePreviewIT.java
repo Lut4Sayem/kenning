@@ -87,7 +87,33 @@ class InvitePreviewIT extends NodeIntegrationTest {
         assertFalse(body.contains("@"), body);
         assertFalse(body.contains(admin.getId()), body);
         assertFalse(body.contains(team.getId()), body);
-        assertEquals(3, ((java.util.Map<?, ?>) com.jayway.jsonpath.JsonPath.read(body, "$")).size(), body);
+        assertEquals(4, ((java.util.Map<?, ?>) com.jayway.jsonpath.JsonPath.read(body, "$")).size(), body);
+    }
+
+    @Autowired TeamJoinRequestRepository joinRequests;
+
+    private void request(User who, String status) {
+        TeamJoinRequest r = new TeamJoinRequest();
+        r.setTeamId(team.getId());
+        r.setUserId(who.getId());
+        r.setStatus(status);
+        r.setRequestedAt(new java.util.Date());
+        joinRequests.save(r);
+    }
+
+    /** QA-05: after a reload the join page must still know that I asked. */
+    @Test
+    void previewSaysWhetherIAlreadyAsked() throws Exception {
+        code = invite();
+        User asked = newUser(), declined = newUser(), fresh = newUser();
+        request(asked, "PENDING");
+        request(declined, "REJECTED");
+        mvc.perform(get("/api/team-invites/" + code).with(user(asked.getEmail())).with(from("10.8.0.9")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasPendingRequest").value(true));
+        mvc.perform(get("/api/team-invites/" + code).with(user(declined.getEmail())).with(from("10.8.0.10")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasPendingRequest").value(false));
+        mvc.perform(get("/api/team-invites/" + code).with(user(fresh.getEmail())).with(from("10.8.0.11")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasPendingRequest").value(false));
     }
 
     @Test

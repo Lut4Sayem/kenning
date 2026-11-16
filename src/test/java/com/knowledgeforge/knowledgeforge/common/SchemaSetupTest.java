@@ -35,6 +35,7 @@ class SchemaSetupTest extends IntegrationTest {
         assertEquals(Set.of("editSession_lastEditAt"), indexNames("node_contents"));
         assertEquals(Set.of("nodeId_createdAt", "nodeId_privateTo_createdAt"), indexNames("node_versions"));
         assertEquals(Set.of("expiresAt_ttl"), indexNames("edit_locks"));
+        assertEquals(Set.of("teamId_userId_status"), indexNames("team_join_requests"));
     }
 
     private Document ref(String name) {
