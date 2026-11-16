@@ -111,7 +111,7 @@ class AccessRulesTest {
         TeamJoinRequestService service = new TeamJoinRequestService(joinRequests, members, users,
                 mock(TeamInviteRepository.class), teams);
 
-        assertStatus(() -> service.acceptRequest(TEAM_ID, "r1"), HttpStatus.NOT_FOUND);
+        assertStatus(() -> service.acceptRequest(TEAM_ID, "r1", null), HttpStatus.NOT_FOUND);
         verify(members, never()).save(any());
     }
 
@@ -120,6 +120,6 @@ class AccessRulesTest {
         myRole(null);
         TeamJoinRequestService service = new TeamJoinRequestService(joinRequests, members, users,
                 mock(TeamInviteRepository.class), teams);
-        assertStatus(() -> service.acceptRequest(TEAM_ID, "r1"), HttpStatus.FORBIDDEN);
+        assertStatus(() -> service.acceptRequest(TEAM_ID, "r1", null), HttpStatus.FORBIDDEN);
     }
 }

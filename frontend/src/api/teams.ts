@@ -35,7 +35,9 @@ export const getInvite = (id: string) => api<InviteLink | null>(`/api/teams/${id
 export const createInvite = (id: string) => api<InviteLink>(`/api/teams/${id}/invite`, json('POST'))
 export const turnOffInvite = (id: string) => api(`/api/teams/${id}/invite`, json('DELETE'))
 export const getJoinRequests = (id: string) => api<JoinRequest[]>(`/api/teams/${id}/join-requests`)
-export const answerJoinRequest = (id: string, rid: string, accept: boolean) => api(`/api/teams/${id}/join-requests/${rid}/${accept ? 'accept' : 'reject'}`, json('POST'))
+/** reopen = undo a decline (QA-06). role on accept: VIEWER or EDITOR (QA-09). */
+export const answerJoinRequest = (id: string, rid: string, action: 'accept' | 'reject' | 'reopen', role?: 'VIEWER' | 'EDITOR') =>
+  api(`/api/teams/${id}/join-requests/${rid}/${action}`, json('POST', role && { role }))
 export const getTeamSummary = (id: string) => api<TeamSummary>(`/api/teams/${id}/summary`)
 export const getTeamPages = (id: string, q: TeamPagesQuery) => {
   const u = new URLSearchParams()

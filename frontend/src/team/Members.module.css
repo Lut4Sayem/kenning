@@ -45,6 +45,8 @@
 .accept:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); }
 .decline:active:not(:disabled), .accept:active:not(:disabled) { scale: 0.96; }
 .decline:disabled, .accept:disabled { opacity: 0.5; cursor: not-allowed; }
+.joinRole { height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--canvas); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.joinRole:disabled { opacity: 0.5; cursor: not-allowed; }
 .skelBar { display: block; height: 48px; border-radius: var(--r-lg); background: var(--tint-yellow-bg); animation: pulse 1.4s ease-in-out infinite; }
 
 .invite { padding: 18px 20px; border-radius: 16px; background: var(--surface-card); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }

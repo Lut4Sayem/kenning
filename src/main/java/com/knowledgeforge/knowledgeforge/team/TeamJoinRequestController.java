@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -42,8 +43,9 @@ public class TeamJoinRequestController {
     }
 
     @PostMapping("/api/teams/{teamId}/join-requests/{requestId}/accept")
-    public ResponseEntity<TeamJoinRequest> acceptRequest(@PathVariable String teamId, @PathVariable String requestId){
-        TeamJoinRequest teamJoinRequest = teamJoinRequestService.acceptRequest(teamId, requestId);
+    public ResponseEntity<TeamJoinRequest> acceptRequest(@PathVariable String teamId, @PathVariable String requestId,
+                                                         @RequestBody(required = false) AcceptRequest body){
+        TeamJoinRequest teamJoinRequest = teamJoinRequestService.acceptRequest(teamId, requestId, body == null ? null : body.role());
         return ResponseEntity.status(200).body(teamJoinRequest);
     }
 
@@ -53,4 +55,11 @@ public class TeamJoinRequestController {
         return ResponseEntity.status(200).body(teamJoinRequest);
     }
 
+    /** Undo of Decline (QA-06). */
+    @PostMapping("/api/teams/{teamId}/join-requests/{requestId}/reopen")
+    public TeamJoinRequest reopenRequest(@PathVariable String teamId, @PathVariable String requestId) {
+        return teamJoinRequestService.reopenRequest(teamId, requestId);
+    }
+
+    public record AcceptRequest(String role) {}
 }
