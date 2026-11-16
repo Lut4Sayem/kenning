@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Outlet, useLocation } from 'react-router-dom'
+import { getMe } from '../api/spaces'
+import { useSendPendingWhenOnline } from '../editor/sendWhenOnline'
 import CommandPalette from '../palette/CommandPalette'
 import Sidebar from '../tree/Sidebar'
 import Icon from '../ui/Icon'
@@ -25,6 +28,8 @@ function useMedia(query: string) {
 }
 
 export default function Shell() {
+  const me = useQuery({ queryKey: ['me'], queryFn: getMe })
+  useSendPendingWhenOnline(me.data?.id)
   const [open, setOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [topbar, setTopbar] = useState<HTMLElement | null>(null)

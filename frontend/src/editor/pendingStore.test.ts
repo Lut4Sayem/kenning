@@ -114,6 +114,7 @@ describe('slot ownership', () => {
         held.add(name)
         return Promise.resolve(run({ name })).finally(() => held.delete(name))
       },
+      query: async () => ({ held: [...held].map((name) => ({ name })) }),
     }
   }
 

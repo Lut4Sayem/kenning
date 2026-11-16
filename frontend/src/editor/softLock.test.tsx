@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
-import SoftLockBanner, { useEditLock } from './SoftLockBanner'
+import SoftLockBanner, { TakenOverBanner, useEditLock } from './SoftLockBanner'
 
 const contentApi = vi.hoisted(() => ({ acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
 vi.mock('../api/content', () => contentApi)
@@ -9,11 +9,13 @@ vi.mock('../api/content', () => contentApi)
 const mine = { mine: true, holder: { id: 'me', name: 'Me' }, expiresAt: '' }
 const rafi = { mine: false, holder: { id: 'u2', name: 'Rafi' }, expiresAt: '' }
 
-function Harness({ canEdit = true }: { canEdit?: boolean }) {
+const reload = vi.fn()
+function Harness({ canEdit = true, saved = true }: { canEdit?: boolean; saved?: boolean }) {
   const lock = useEditLock('n1', canEdit)
   return (
     <>
       {lock.mode === 'blocked' && <SoftLockBanner holder={lock.holder} onReadOnly={lock.openReadOnly} onEditAnyway={lock.editAnyway} />}
+      {lock.mode === 'taken' && <TakenOverBanner holder={lock.holder} saved={saved} onReload={reload} onTakeBack={lock.editAnyway} />}
       <p data-testid="mode">{lock.mode}</p>
       <p data-testid="reason">{lock.reason}</p>
     </>
@@ -91,14 +93,39 @@ describe('soft lock', () => {
     expect(contentApi.releaseEditLock).toHaveBeenCalledWith('n1', true)
   })
 
-  it('someoneTakingOverMakesMeReadOnlyWithTheBanner', async () => {
+  // QA-27: the person who was editing is told plainly that someone took over, and that their changes are kept.
+  it('someoneTakingOverMakesMeReadOnlyAndSaysSo', async () => {
     contentApi.acquireEditLock.mockResolvedValueOnce(mine).mockResolvedValue(rafi)
     render(<Harness />)
     await tick(0)
     expect(mode()).toBe('editing')
     await tick(20_000) // my heartbeat finds Rafi holding it
-    expect(mode()).toBe('blocked')
-    expect(screen.getByRole('status').textContent).toContain('Rafi is editing right now.')
+    expect(mode()).toBe('taken')
+    expect(screen.getByRole('status').textContent).toContain('Rafi started editing too. Your view is now read-only; your last changes were saved.')
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }))
+    expect(reload).toHaveBeenCalled()
+
+    await tick(60_000)
+    expect(contentApi.acquireEditLock).toHaveBeenCalledTimes(2) // no quiet grab back: the person decides
+    expect(mode()).toBe('taken')
+  })
+
+  it('theTakenOverBannerOnlyClaimsSavedOnceItIs', async () => {
+    contentApi.acquireEditLock.mockResolvedValueOnce(mine).mockResolvedValue(rafi)
+    render(<Harness saved={false} />)
+    await tick(20_000)
+    expect(screen.getByRole('status').textContent).toContain('Your view is now read-only; saving your last changes…')
+  })
+
+  it('takeBackForcesTheLockAgain', async () => {
+    contentApi.acquireEditLock.mockResolvedValueOnce(mine).mockResolvedValueOnce(rafi).mockResolvedValue(mine)
+    render(<Harness />)
+    await tick(20_000)
+    expect(mode()).toBe('taken')
+    fireEvent.click(screen.getByRole('button', { name: 'Take back' }))
+    await tick(0)
+    expect(contentApi.acquireEditLock).toHaveBeenLastCalledWith('n1', true)
+    expect(mode()).toBe('editing')
   })
 
   it('viewersNeverAskForTheLock', async () => {

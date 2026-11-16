@@ -8,9 +8,10 @@ import { fromBase64, toBase64 } from './base64'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import { clearPendingOf, pendingFor, pendingPages, type PendingStore } from './pendingStore'
 import { EMPTY_PAGE_STATE } from './schema'
+import { isHeld } from './slotLock'
 
 /** Sends one page's local copies. true = nothing of it is left unsent. */
-async function sendPage(nodeId: string, store: PendingStore): Promise<boolean> {
+async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean): Promise<boolean> {
   try {
     // A few rounds: someone else may save between our read and our write (409), then we merge again.
     for (let round = 0; round < 3; round++) {
@@ -19,6 +20,7 @@ async function sendPage(nodeId: string, store: PendingStore): Promise<boolean> {
       const doc = new Y.Doc()
       Y.applyUpdate(doc, fromBase64(server.state || EMPTY_PAGE_STATE))
       for (const [slot, copy] of Object.entries(await store.all())) {
+        if (skipLive && (await isHeld(`${store.key}.${slot}`))) continue // an open editor sends its own copy
         if (copy.state === server.state) {
           await store.clear(slot) // the server already has exactly this
         } else if (copy.epoch !== server.contentEpoch) {
@@ -47,11 +49,14 @@ async function sendPage(nodeId: string, store: PendingStore): Promise<boolean> {
   }
 }
 
-/** Tries to send every local copy of this user. Returns on how many pages something is still unsent. */
-export async function sendAllPending(userId: string): Promise<number> {
+/**
+ * Tries to send every local copy of this user. Returns on how many pages something is still unsent.
+ * `skipLive`: leave copies that an editor open in some tab still owns (it sends them itself).
+ */
+export async function sendAllPending(userId: string, { skipLive = false } = {}): Promise<number> {
   const { nodes, unreadable } = await pendingPages(userId)
   const unsent = new Set(unreadable) // quarantined copies cannot be sent at all
-  for (const nodeId of nodes) if (!(await sendPage(nodeId, pendingFor(userId, nodeId)))) unsent.add(nodeId)
+  for (const nodeId of nodes) if (!(await sendPage(nodeId, pendingFor(userId, nodeId), skipLive))) unsent.add(nodeId)
   return unsent.size
 }
 

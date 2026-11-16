@@ -19,11 +19,13 @@ export function holdSlot(name: string): Promise<() => void> {
   })
 }
 
+// query(), not request(ifAvailable): probing by taking the lock would make a second probe running at the
+// same moment see it as held (QA-40: two opens of one page, the copy was skipped by both).
 export async function isHeld(name: string): Promise<boolean> {
   const manager = locks()
   if (!manager) return false
   try {
-    return await manager.request(name, { ifAvailable: true }, async (lock) => lock === null)
+    return ((await manager.query()).held ?? []).some((lock) => lock.name === name)
   } catch {
     return false
   }

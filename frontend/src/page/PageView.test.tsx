@@ -1,13 +1,14 @@
 import 'fake-indexeddb/auto'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
 import { ApiError } from '../api/client'
 import type { NodeDetail } from '../api/nodes'
 import { toBase64 } from '../editor/base64'
-import { pendingFor } from '../editor/pendingStore'
+import { clearPendingOf, pendingFor } from '../editor/pendingStore'
+import { SlotsContext } from '../app/ShellSlots'
 import PageView from './PageView'
 
 // jsdom has no matchMedia; Mantine asks it for the colour scheme. Nor layout; BlockNote's side menu asks on mouse moves.
@@ -37,21 +38,25 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  document.querySelectorAll('body > header').forEach((h) => h.remove())
   vi.clearAllMocks()
 })
 
 function mount() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const topbar = document.body.appendChild(document.createElement('header'))
   const view = render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/p/n1']}>
-        <Routes>
-          <Route path="/p/:nodeId" element={<PageView />} />
-        </Routes>
-      </MemoryRouter>
+      <SlotsContext.Provider value={{ topbar, details: null, detailsOpen: false, setDetailsOpen: () => {} }}>
+        <MemoryRouter initialEntries={['/p/n1']}>
+          <Routes>
+            <Route path="/p/:nodeId" element={<PageView />} />
+          </Routes>
+        </MemoryRouter>
+      </SlotsContext.Provider>
     </QueryClientProvider>,
   )
-  return { qc, view }
+  return { qc, view, topbar }
 }
 const editorDom = (c: HTMLElement) => c.querySelector('[contenteditable="true"]')
 
@@ -88,4 +93,52 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('This page does not exist.')
     expect(editorDom(view.container)).toBeNull()
   })
+})
+
+// QA-11: the title is saved like the content, and nothing says "Saved" while it is not.
+describe('page title', () => {
+  const titleField = () => screen.getByLabelText('Page title') as HTMLInputElement
+  const leaving = () => {
+    const e = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(e)
+    return e.defaultPrevented
+  }
+  async function open() {
+    await clearPendingOf('u1')
+    contentApi.saveContent.mockResolvedValue({ revision: 1, savedAt: '' })
+    nodesApi.updateNode.mockImplementation(async (id: string, body: { title: string }) => ({ ...NODE, id, title: body.title }))
+    const m = mount()
+    await waitFor(() => expect(within(m.topbar).getByRole('status').textContent).toBe('Saved'), { timeout: 5000 })
+    return m
+  }
+
+  it('savesAfterTypingStopsWithoutLeavingTheFieldAndSaysSavingUntilThen', async () => {
+    const { topbar } = await open()
+    fireEvent.change(titleField(), { target: { value: 'Transformers' } })
+    expect(within(topbar).getByRole('status').textContent).toBe('Saving…')
+    expect(leaving()).toBe(true) // closing the tab now asks first
+    await waitFor(() => expect(nodesApi.updateNode).toHaveBeenCalledWith('n1', { title: 'Transformers' }), { timeout: 3000 })
+    await waitFor(() => expect(within(topbar).getByRole('status').textContent).toBe('Saved'))
+    expect(leaving()).toBe(false)
+    expect(nodesApi.updateNode).toHaveBeenCalledTimes(1)
+  }, 15_000)
+
+  it('leavingThePageSavesATitleThatWasStillWaiting', async () => {
+    const { view } = await open()
+    fireEvent.change(titleField(), { target: { value: 'Left quickly' } })
+    view.unmount()
+    await waitFor(() => expect(nodesApi.updateNode).toHaveBeenCalledWith('n1', { title: 'Left quickly' }))
+  }, 15_000)
+
+  it('typingWhileASaveIsOnTheWayIsKept', async () => {
+    await open()
+    let answer!: () => void
+    nodesApi.updateNode.mockImplementationOnce((id: string, body: { title: string }) => new Promise((r) => (answer = () => r({ ...NODE, id, title: body.title }))))
+    fireEvent.change(titleField(), { target: { value: 'Trans' } })
+    await waitFor(() => expect(nodesApi.updateNode).toHaveBeenCalledWith('n1', { title: 'Trans' }), { timeout: 3000 })
+    fireEvent.change(titleField(), { target: { value: 'Transformers' } })
+    await act(async () => answer())
+    expect(titleField().value).toBe('Transformers')
+    await waitFor(() => expect(nodesApi.updateNode).toHaveBeenLastCalledWith('n1', { title: 'Transformers' }), { timeout: 3000 })
+  }, 15_000)
 })

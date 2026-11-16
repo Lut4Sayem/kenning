@@ -1,6 +1,6 @@
 // The one editor schema. The browser editor and any Node code that builds content must both import it from here,
 // otherwise content built in Node would not open in the browser. Keep this file free of CSS imports.
-import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs } from '@blocknote/core'
+import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, type Extension } from '@blocknote/core'
 import { bookmarkBlock } from './BookmarkBlock'
 import { statusInline } from './StatusBlock'
 
@@ -16,8 +16,29 @@ export const FRAGMENT = 'document-store'
 export const EMPTY_PAGE_STATE =
   'AQcBAAcBDmRvY3VtZW50LXN0b3JlAwpibG9ja0dyb3VwBwABAAMOYmxvY2tDb250YWluZXIHAAEBAwlwYXJhZ3JhcGgoAAECD2JhY2tncm91bmRDb2xvcgF3B2RlZmF1bHQoAAECCXRleHRDb2xvcgF3B2RlZmF1bHQoAAECDXRleHRBbGlnbm1lbnQBdwRsZWZ0KAABAQJpZAF3C2ZpcnN0LWJsb2NrAA=='
 
+/**
+ * QA-20: BlockNote's own rule turns "```word " into a code block whose (invisible) language is "word", so the word
+ * vanishes. Here the text after ``` becomes the block's first line instead, with the cursor after it.
+ */
+const codeRule: NonNullable<Extension['inputRules']>[number] = {
+  find: /^```(.*?)\s$/,
+  replace: ({ match, editor }) => {
+    const text = match[0].slice(3).trimStart()
+    if (!text) return { type: 'codeBlock', props: {}, content: [] }
+    const id = editor.getTextCursorPosition().block.id
+    queueMicrotask(() => editor.setTextCursorPosition(id, 'end')) // BlockNote puts it at the start
+    return { type: 'codeBlock', props: {}, content: text }
+  },
+}
+const codeBlock = {
+  ...defaultBlockSpecs.codeBlock,
+  extensions: defaultBlockSpecs.codeBlock.extensions?.map((ext) =>
+    typeof ext === 'function' ? (ctx: Parameters<typeof ext>[0]) => ({ ...ext(ctx), inputRules: [codeRule] }) : { ...ext, inputRules: [codeRule] },
+  ),
+}
+
 export const kfSchema = BlockNoteSchema.create({
-  blockSpecs: { ...defaultBlockSpecs, bookmark: bookmarkBlock() },
+  blockSpecs: { ...defaultBlockSpecs, codeBlock, bookmark: bookmarkBlock() },
   inlineContentSpecs: { ...defaultInlineContentSpecs, status: statusInline },
 })
 

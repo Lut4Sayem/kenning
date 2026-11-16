@@ -27,7 +27,7 @@ public class TeamJoinRequestController {
     public InvitePreviewDTO preview(@PathVariable String inviteCode, Authentication auth, HttpServletRequest request) {
         rateLimiter.check("invite-preview-user", auth.getName(), 30);
         rateLimiter.check("invite-preview-ip", request.getRemoteAddr(), 30);
-        return teamJoinRequestService.preview(inviteCode);
+        return teamJoinRequestService.preview(inviteCode, auth.getName());
     }
 
     @PostMapping("/api/team-invites/{inviteCode}/join")

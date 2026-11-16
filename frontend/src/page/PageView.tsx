@@ -13,7 +13,7 @@ import Editor, { useKfEditor } from '../editor/Editor'
 import { extractText } from '../editor/extractText'
 import SaveIndicator, { ReadOnlyTag, SaveNotice } from '../editor/SaveIndicator'
 import { useEndSessionOnLeave } from '../editor/session'
-import SoftLockBanner, { useEditLock, type LockMode } from '../editor/SoftLockBanner'
+import SoftLockBanner, { TakenOverBanner, useEditLock, type LockMode } from '../editor/SoftLockBanner'
 import DiffView from '../history/DiffView'
 import HistoryPanel, { type Viewing } from '../history/HistoryPanel'
 import VersionBar from '../history/VersionBar'
@@ -83,9 +83,9 @@ export default function PageView() {
     },
   })
   const rename = useMutation({
-    mutationFn: (t: string) => updateNode(nodeId, { title: t }),
+    mutationFn: (v: { id: string; title: string }) => updateNode(v.id, { title: v.title }),
     onSuccess: async (updated) => {
-      qc.setQueryData(['node', nodeId], updated)
+      qc.setQueryData(['node', updated.id], updated) // by its own id: the user may be on another page by now
       await qc.invalidateQueries({ queryKey: ['tree', updated.spaceId] })
     },
   })
@@ -97,7 +97,40 @@ export default function PageView() {
     },
   })
 
-  useEffect(() => setTitle(node.data?.title ?? ''), [node.data?.title, nodeId])
+  // The field follows the server's title, but never drops what is being typed (a save answering mid-word).
+  const synced = useRef({ id: '', title: '' })
+  useEffect(() => {
+    const server = node.data?.title ?? ''
+    const prev = synced.current
+    setTitle((t) => (prev.id !== nodeId || t === prev.title ? server : t))
+    synced.current = { id: nodeId, title: server }
+  }, [node.data?.title, nodeId])
+
+  // QA-11: the title saves like the content: ~1 s after typing stops, at once on blur/Enter, and when the page is left.
+  const titleDirty = node.data?.access === 'EDIT' && title.trim() !== node.data.title
+  const titleSaving = titleDirty || rename.isPending
+  const saveTitle = rename.mutate
+  useEffect(() => {
+    if (!titleDirty) return
+    const timer = setTimeout(() => saveTitle({ id: nodeId, title }), 1000)
+    return () => clearTimeout(timer)
+  }, [title, titleDirty, nodeId, saveTitle])
+  const waitingTitle = useRef<{ id: string; title: string } | null>(null)
+  useEffect(() => {
+    waitingTitle.current = titleDirty ? { id: nodeId, title } : null
+  })
+  useEffect(() => () => {
+    if (waitingTitle.current) saveTitle(waitingTitle.current)
+  }, [nodeId, saveTitle])
+  useEffect(() => {
+    if (!titleSaving) return
+    const ask = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = '' // older browsers need this to show the "Leave page?" prompt
+    }
+    window.addEventListener('beforeunload', ask)
+    return () => window.removeEventListener('beforeunload', ask)
+  }, [titleSaving])
 
   const lastPublished = useMemo(
     () => (versions.data ?? []).filter((v) => v.kind === 'PUBLISHED').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0],
@@ -127,7 +160,7 @@ export default function PageView() {
   const canEdit = n.access === 'EDIT'
   const editing = canEdit && n.status === 'ACTIVE'
   const space = spaces.data?.find((x) => x.id === n.spaceId)
-  const readingOnly = lockMode === 'blocked' || lockMode === 'readonly' || lockMode === 'denied'
+  const readingOnly = lockMode === 'blocked' || lockMode === 'taken' || lockMode === 'readonly' || lockMode === 'denied'
   const published = n.publishState === 'PUBLISHED'
   // Draft, unsaved typing, or newer than the last published version. A published page with no version on record counts as clean.
   const changes = !published || (saveState !== 'saved' && saveState !== 'recovered') || (!!lastPublished && Date.parse(n.contentUpdatedAt) > Date.parse(lastPublished.createdAt))
@@ -211,7 +244,7 @@ export default function PageView() {
           value={title}
           readOnly={!canEdit}
           onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => title.trim() !== n.title && rename.mutate(title)}
+          onBlur={() => titleDirty && rename.mutate({ id: n.id, title })}
           onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
         />
         {rename.error && <p role="alert" className={s.error}>{rename.error.message}</p>}
@@ -227,7 +260,7 @@ export default function PageView() {
               <div hidden={!!viewing}>
                 <PageContent
                   key={`${n.id}:${contentKey}`} node={n} userId={me.data.id} slots={{ head, banners }}
-                  onSaveState={setSaveState} onLock={setLockMode} textRef={currentText}
+                  onSaveState={setSaveState} onLock={setLockMode} textRef={currentText} titleSaving={titleSaving}
                 />
               </div>
             ) : (
@@ -263,10 +296,11 @@ export default function PageView() {
 }
 
 /** Loads the content (server copy + this user's unconfirmed local copies), then shows the editor. */
-function PageContent({ node, userId, slots, onSaveState, onLock, textRef }: {
+function PageContent({ node, userId, slots, onSaveState, onLock, textRef, titleSaving }: {
   node: NodeDetail
   userId: string
   slots: Slots
+  titleSaving: boolean
   onSaveState: (s: SaveState) => void
   onLock: (m: LockMode) => void
   textRef: MutableRefObject<() => string>
@@ -308,6 +342,8 @@ function PageContent({ node, userId, slots, onSaveState, onLock, textRef }: {
           onSaveState={onSaveState}
           onLock={onLock}
           textRef={textRef}
+          titleSaving={titleSaving}
+          onReload={() => setReloads((r) => r + 1)}
           // The local copy is now a private version: say so and load what the server has.
           onRecovered={() => {
             setNotice(RECOVERED_NOTICE)
@@ -323,11 +359,14 @@ function PageContent({ node, userId, slots, onSaveState, onLock, textRef }: {
   )
 }
 
-function PageEditor({ node, opened, slots, onRecovered, onSaveState, onLock, textRef }: {
+function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, onLock, textRef, titleSaving }: {
   node: NodeDetail
   opened: Opened
   slots: Slots
+  titleSaving: boolean
   onRecovered: () => void
+  /** Opens the content again from the server. */
+  onReload: () => void
   onSaveState: (s: SaveState) => void
   onLock: (m: LockMode) => void
   textRef: MutableRefObject<() => string>
@@ -366,11 +405,15 @@ function PageEditor({ node, opened, slots, onRecovered, onSaveState, onLock, tex
 
   return (
     <>
-      {canEdit && lock.mode !== 'blocked' && lock.mode !== 'readonly' && slots.head && createPortal(<SaveIndicator state={save.state} local={save.local} />, slots.head)}
+      {canEdit && lock.mode !== 'blocked' && lock.mode !== 'readonly' && slots.head && createPortal(<SaveIndicator state={titleSaving && save.state === 'saved' ? 'saving' : save.state} local={save.local} />, slots.head)}
       {uploadError && slots.banners && createPortal(<SaveNotice onDismiss={() => setUploadError('')}>{uploadError}</SaveNotice>, slots.banners)}
       {problem && slots.banners && createPortal(<SaveNotice>{problem}</SaveNotice>, slots.banners)}
       {lock.mode === 'blocked' && slots.banners && createPortal(
         <SoftLockBanner holder={lock.holder} onReadOnly={lock.openReadOnly} onEditAnyway={lock.editAnyway} />,
+        slots.banners,
+      )}
+      {lock.mode === 'taken' && slots.banners && createPortal(
+        <TakenOverBanner holder={lock.holder} saved={save.state === 'saved' || save.state === 'recovered'} onReload={onReload} onTakeBack={lock.editAnyway} />,
         slots.banners,
       )}
       {!canEdit && <p className={s.note}>{node.status === 'ARCHIVED' ? 'This page is archived and read-only.' : node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}

@@ -170,4 +170,22 @@ describe('block editor', () => {
       'A site https://kf.example/a',
     ])
   })
+
+  // QA-20: what is typed after ``` must end up in the code block, never vanish into an invisible language.
+  it('wordsTypedAfterBackticksStayInTheCodeBlock', async () => {
+    const { editor } = await mountEditor()
+    editor.setTextCursorPosition(editor.document[0], 'start')
+    const view = editor.prosemirrorView!
+    const typeText = async (text: string) => {
+      for (const ch of text) {
+        const { from, to } = view.state.selection
+        if (!view.someProp('handleTextInput', (f) => f(view, from, to, ch, () => view.state.tr.insertText(ch, from, to)))) view.dispatch(view.state.tr.insertText(ch, from, to))
+        await Promise.resolve() // each key is its own event in a browser
+      }
+    }
+    await typeText('```def f(x):')
+    const block = editor.document[0]
+    expect(block.type).toBe('codeBlock')
+    expect(extractText([block])).toBe('def f(x):')
+  })
 })

@@ -37,6 +37,7 @@ public class SchemaSetup implements ApplicationRunner {
         setupVersions();
         setupLocks();
         setupSpaces();
+        setupJoinRequests();
     }
 
     // ---------- collections ----------
@@ -176,6 +177,12 @@ public class SchemaSetup implements ApplicationRunner {
         mongo.indexOps("spaces").createIndex(new Index().named("ownerUserId_unique")
                 .on("ownerUserId", Sort.Direction.ASC).unique()
                 .partial(PartialIndexFilter.of(Criteria.where("ownerType").is("USER"))));
+    }
+
+    /** "Have I already asked?" on the join page (QA-05) and the duplicate check on join. */
+    private void setupJoinRequests() {
+        mongo.indexOps("team_join_requests").createIndex(new Index().named("teamId_userId_status")
+                .on("teamId", Sort.Direction.ASC).on("userId", Sort.Direction.ASC).on("status", Sort.Direction.ASC));
     }
 
     // ---------- helpers ----------

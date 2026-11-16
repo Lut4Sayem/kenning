@@ -86,6 +86,23 @@ describe('Join', () => {
     expect((await screen.findByRole('status')).textContent).toMatch(/already asked/)
   })
 
+  // QA-05: a reload must not bring "Ask to join" back after the request was sent.
+  it('aRequestSentEarlierIsShownAsWaitingOnOpen', async () => {
+    backend({ preview: { ...PREVIEW, hasPendingRequest: true } })
+    renderJoin()
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe("You've already asked to join. It's waiting for approval."))
+    expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
+  })
+
+  // QA-41: a member who opens the team's link is not asked to join it.
+  it('aMemberIsToldSoAndCanOpenTheTeam', async () => {
+    backend({ preview: { ...PREVIEW, hasPendingRequest: false, isMember: true, teamId: 't1' } })
+    renderJoin()
+    await h1Is('You’re already in this team')
+    expect(screen.getByRole('link', { name: 'Open team' }).getAttribute('href')).toBe('/teams/t1')
+    expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
+  })
+
   it('alreadyAMemberRedirectsAfterTheMessage', async () => {
     backend({ join: new ApiError(409, 'You are already a member of this team') })
     renderJoin()
