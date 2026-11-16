@@ -61,8 +61,8 @@ export default function TeamLayout() {
           {summary.data ? <><TeamTile name={summary.data.name} /><span className={s.crumbName}>{summary.data.name}</span></> : <span className={`${s.skel} ${s.skelName}`} />}
         </span>
         <span className={s.actions}>
-          {tab === 'overview' && admin && <button type="button" className={s.ghostBtn} onClick={inviteTo}><Icon name="user-plus" />Invite</button>}
-          {(tab === 'members' || tab === 'requests') && admin && <button type="button" className={s.primaryBtn} onClick={inviteTo}><Icon name="user-plus" />Invite people</button>}
+          {/* QA-07: ghost everywhere, so Members keeps one primary ("Create link") */}
+          {(tab === 'overview' || tab === 'members' || tab === 'requests') && admin && <button type="button" className={s.ghostBtn} onClick={inviteTo}><Icon name="user-plus" />Invite people</button>}
           {(tab === 'overview' || tab === 'pages') && canEdit && first && (
             <button type="button" className={s.primaryBtn} onClick={() => void create(null)}><Icon name="plus" />New page</button>
           )}

@@ -162,11 +162,20 @@ describe('team overview', () => {
     expect(await screen.findByText('page opened')).toBeTruthy()
   })
 
+  // QA-07: one primary action per view; the invite button has one label and is never the primary.
+  it('inviteIsAGhostButtonCalledInvitePeopleOnOverviewAndMembers', async () => {
+    setup()
+    expect((await screen.findByRole('button', { name: 'Invite people' })).className).toMatch(/ghostBtn/)
+    cleanup()
+    setup('/teams/t1/members')
+    expect((await screen.findByRole('button', { name: 'Invite people' })).className).toMatch(/ghostBtn/)
+  })
+
   it('viewersSeeNoAdminOrEditControlsAndDoNotCallJoinRequests', async () => {
     teams.getTeamSummary.mockResolvedValue(summary({ myRole: 'VIEWER' }))
     setup()
     await screen.findByRole('heading', { level: 1, name: 'Thesis Group' })
-    expect(screen.queryByRole('button', { name: 'Invite' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Invite/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New page' })).toBeNull()
     expect(screen.queryByRole('button', { name: /New space/ })).toBeNull()
     expect(screen.queryByRole('link', { name: /Requests/ })).toBeNull()
