@@ -98,6 +98,17 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect(Object.values(await pendingFor('u1', 'n1').all()).length).toBeGreaterThan(0)
   }, 20_000)
 
+  // QA-53: no manual Try again needed once the connection is back.
+  it('contentThatFailedOfflineLoadsByItselfWhenBackOnline', async () => {
+    await clearPendingOf('u1')
+    contentApi.getContent.mockRejectedValue(new TypeError('Failed to fetch'))
+    const { view } = mount()
+    expect((await screen.findByRole('alert')).textContent).toContain("Could not load this page's content")
+    contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
+    act(() => void window.dispatchEvent(new Event('online')))
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+  })
+
   it('aPageThatNeverLoadedShowsOnlyTheError', async () => {
     nodesApi.getNode.mockRejectedValue(new ApiError(404, 'Page not found'))
     nodesApi.getTrashed.mockRejectedValue(new ApiError(404, 'Page not found'))

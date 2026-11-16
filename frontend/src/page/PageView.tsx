@@ -430,6 +430,13 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
       live = false
     }
   }, [node.id, canEdit, userId, reloads])
+  // QA-53: a load that failed offline tries again by itself once the connection is back.
+  useEffect(() => {
+    if (!failed) return
+    const retry = () => setReloads((r) => r + 1)
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [failed])
 
   if (failed) {
     return (
