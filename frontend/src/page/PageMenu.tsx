@@ -149,15 +149,18 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
             </button>
           ))}
           {node.status === 'ACTIVE' && (
-            <div role="group" aria-label="Page colour" className={m.colours}>
-              {PAGE_COLOURS.map((c) => {
-                const name = c[0].toUpperCase() + c.slice(1)
-                return (
-                  <button key={c} type="button" role="menuitemradio" aria-checked={(node.color ?? 'gray') === c} aria-label={name}
-                    title={lockedNote ?? name} disabled={!!lockedNote} className={m.swatch} style={{ background: dotColour(c) }}
-                    onClick={() => void choose({ label: name, run: async () => (await updateNode(node.id, { color: c }), await refresh()) })} />
-                )
-              })}
+            <div className={m.colours}>
+              <span aria-hidden="true" className={m.colourLabel}>Colour</span>
+              <div role="group" aria-label="Page colour" className={m.swatches}>
+                {PAGE_COLOURS.map((c) => {
+                  const name = c[0].toUpperCase() + c.slice(1)
+                  return (
+                    <button key={c} type="button" role="menuitemradio" aria-checked={(node.color ?? 'gray') === c} aria-label={name}
+                      title={lockedNote ?? name} disabled={!!lockedNote} className={m.swatch} style={{ background: dotColour(c) }}
+                      onClick={() => void choose({ label: name, run: async () => (await updateNode(node.id, { color: c }), await refresh()) })} />
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
