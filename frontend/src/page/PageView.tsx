@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
 import { useParams } from 'react-router-dom'
@@ -137,17 +137,26 @@ export default function PageView() {
 
   // The field follows the server's title, but never drops what is being typed (a save answering mid-word).
   const synced = useRef({ id: '', title: '' })
+  // QA-65: a title is only sent for a page whose server title reached the field in this mount, and "" only when the user
+  // emptied the field in this mount (a remount mid-edit, e.g. a dev hot reload, once saved "" over a real title).
+  const loaded = useRef(new Set<string>())
+  const cleared = useRef(new Set<string>())
   useEffect(() => {
     const server = node.data?.title ?? ''
     const prev = synced.current
     setTitle((t) => (prev.id !== nodeId || t === prev.title ? server : t))
     synced.current = { id: nodeId, title: server }
-  }, [node.data?.title, nodeId])
+    if (node.data?.id === nodeId) loaded.current.add(nodeId)
+  }, [node.data?.title, node.data?.id, nodeId])
 
   // QA-11: the title saves like the content: ~1 s after typing stops, at once on blur/Enter, and when the page is left.
   const titleDirty = typedIn === nodeId && node.data?.access === 'EDIT' && title.trim() !== node.data.title
   const titleSaving = titleDirty || rename.isPending
-  const saveTitle = rename.mutate
+  const mutateTitle = rename.mutate
+  const saveTitle = useCallback((v: { id: string; title: string }) => {
+    if (!loaded.current.has(v.id) || (!v.title.trim() && !cleared.current.has(v.id))) return
+    mutateTitle(v)
+  }, [mutateTitle])
   useEffect(() => {
     if (!titleDirty) return
     const timer = setTimeout(() => saveTitle({ id: nodeId, title }), 1000)
@@ -289,8 +298,14 @@ export default function PageView() {
           maxLength={200}
           value={title}
           readOnly={!canEdit}
-          onChange={(e) => { setTypedIn(n.id); setTitle(e.target.value.replace(/\s*\n\s*/g, ' ')) }}
-          onBlur={() => titleDirty && rename.mutate({ id: n.id, title })}
+          onChange={(e) => {
+            const v = e.target.value.replace(/\s*\n\s*/g, ' ')
+            if (v.trim()) cleared.current.delete(n.id)
+            else cleared.current.add(n.id)
+            setTypedIn(n.id)
+            setTitle(v)
+          }}
+          onBlur={() => titleDirty && saveTitle({ id: n.id, title })}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
         />
         {rename.error && <p role="alert" className={s.error}>{rename.error.message}</p>}

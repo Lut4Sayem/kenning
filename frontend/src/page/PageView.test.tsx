@@ -216,6 +216,32 @@ describe('title autosave', () => {
     expect(nodesApi.updateNode).not.toHaveBeenCalled()
   })
 
+  // QA-65: a remount mid-edit (a dev hot reload) once saved "" over the real title.
+  it('remountingAfterATitleEditOnlyEverSendsTheTypedTitle', async () => {
+    nodesApi.updateNode.mockImplementation(async (id: string, body: { title: string }) => ({ ...NODE, id, title: body.title }))
+    let answer!: (n: NodeDetail) => void
+    const first = mount()
+    const field = () => screen.getByLabelText('Page title') as HTMLTextAreaElement
+    await waitFor(() => expect(field().value).toBe('Plan'))
+    fireEvent.change(field(), { target: { value: 'Transformers' } })
+    nodesApi.getNode.mockImplementation(() => new Promise((r) => (answer = r))) // the next mount waits for the server
+    first.view.unmount()
+    mount()
+    await act(() => new Promise((r) => setTimeout(r, 1500)))
+    await act(async () => answer({ ...NODE, title: 'Transformers' }))
+    await act(() => new Promise((r) => setTimeout(r, 1500)))
+    expect(nodesApi.updateNode.mock.calls).toEqual([['n1', { title: 'Transformers' }]])
+  }, 15_000)
+
+  it('aTitleTheUserEmptiedIsSaved', async () => {
+    nodesApi.updateNode.mockImplementation(async (id: string, body: { title: string }) => ({ ...NODE, id, title: body.title }))
+    mount()
+    const field = () => screen.getByLabelText('Page title') as HTMLTextAreaElement
+    await waitFor(() => expect(field().value).toBe('Plan'))
+    fireEvent.change(field(), { target: { value: '' } })
+    await waitFor(() => expect(nodesApi.updateNode).toHaveBeenCalledWith('n1', { title: '' }), { timeout: 3000 })
+  })
+
   it('aPageOpenedFromTheCacheDoesNotSaveItsTitle', async () => {
     nodesApi.updateNode.mockResolvedValue(NODE)
     mount()
