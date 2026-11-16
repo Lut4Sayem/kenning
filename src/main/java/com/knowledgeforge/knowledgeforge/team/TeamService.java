@@ -1,5 +1,7 @@
 package com.knowledgeforge.knowledgeforge.team;
 
+import com.knowledgeforge.knowledgeforge.activity.ActivityLogService;
+
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import com.knowledgeforge.knowledgeforge.user.User;
@@ -18,10 +20,13 @@ public class TeamService {
     final TeamRepository teamRepository;
     final UserRepository userRepository;
     final TeamMemberRepository teamMemberRepository;
-    public TeamService(TeamRepository teamRepository, UserRepository userRepository, TeamMemberRepository teamMemberRepository) {
+    final ActivityLogService activity;
+    public TeamService(TeamRepository teamRepository, UserRepository userRepository, TeamMemberRepository teamMemberRepository,
+                       ActivityLogService activity) {
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.teamMemberRepository = teamMemberRepository;
+        this.activity = activity;
     }
 
     public Team createTeam(String name, String description) {
@@ -53,6 +58,37 @@ public class TeamService {
         return team;
 
 
+    }
+
+    static final int MAX_NAME = 60, MAX_DESCRIPTION = 280;
+
+    /** QA-63: admins only; a non-member gets 404 so team ids reveal nothing. A new name is logged in the team activity. */
+    public Team updateTeam(String teamId, UpdateTeamRequest req) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        TeamMember membership = teamMemberRepository.findByTeamIdAndUserId(teamId, currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team Not Found"));
+        if (!"ADMIN".equals(membership.getRole())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only a team admin can rename the team");
+        }
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team Not Found"));
+        String name = req.teamName() == null ? null : req.teamName().trim();
+        if (name != null && (name.isEmpty() || name.codePointCount(0, name.length()) > MAX_NAME)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The team name must be 1 to " + MAX_NAME + " characters");
+        }
+        String description = req.teamDescription() == null ? null : req.teamDescription().trim();
+        if (description != null && description.codePointCount(0, description.length()) > MAX_DESCRIPTION) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The description can be at most " + MAX_DESCRIPTION + " characters");
+        }
+        boolean renamed = name != null && !name.equals(team.getName());
+        if (name != null) team.setName(name);
+        if (description != null) team.setDescription(description);
+        team.setUpdatedAt(new Date());
+        teamRepository.save(team);
+        if (renamed) activity.log(teamId, currentUser.getId(), "RENAME_TEAM", "TEAM", teamId, name);
+        return team;
     }
 
     public TeamDetailsResponseDTO getTeamDetails(String teamId) {

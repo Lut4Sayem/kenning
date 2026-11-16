@@ -11,6 +11,7 @@ import RolePill from '../ui/RolePill'
 import { timeAgo } from '../ui/timeAgo'
 import { readPref, savePref } from './detailsPref'
 import TeamDetails from './TeamDetails'
+import TeamTitle from './TeamTitle'
 import type { TeamContext } from './TeamLayout'
 import s from './Overview.module.css'
 import t from './Team.module.css'
@@ -20,7 +21,7 @@ export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' :
 
 /** Team overview: facts, spaces and the 8 newest pages. Members and activity live in the details panel. */
 export default function TeamOverview() {
-  const { teamId, summary, spaces, spacesLoaded, canEdit } = useOutletContext<TeamContext>()
+  const { teamId, summary, spaces, spacesLoaded, canEdit, admin } = useOutletContext<TeamContext>()
   const { detailsOpen, setDetailsOpen } = useShellSlots()
   const qc = useQueryClient()
   const [newSpace, setNewSpace] = useState(false)
@@ -41,7 +42,7 @@ export default function TeamOverview() {
   return (
     <div className={t.column}>
       <header className={s.head}>
-        <h1 className={s.name}>{summary.name}</h1>
+        <TeamTitle teamId={teamId} name={summary.name} admin={admin} />
         {summary.description && <p className={s.desc}>{summary.description}</p>}
         <p className={s.facts}>
           <span className={s.fact}>

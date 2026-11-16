@@ -5,10 +5,11 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TeamLayout from './TeamLayout'
 import TeamOverview from './TeamOverview'
+import { ToastHost } from '../ui/Toast'
 
 const teams = vi.hoisted(() => ({
   getTeamSummary: vi.fn(), getTeamSpaces: vi.fn(), getJoinRequests: vi.fn(), getTeamPages: vi.fn(), getTeamActivity: vi.fn(),
-  getTeam: vi.fn(), createTeamSpace: vi.fn(),
+  getTeam: vi.fn(), createTeamSpace: vi.fn(), updateTeam: vi.fn(),
 }))
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn() }))
 const nodes = vi.hoisted(() => ({ createNode: vi.fn() }))
@@ -38,6 +39,7 @@ function setup(path = '/teams/t1') {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={[path]}>
+        <ToastHost />
         <Routes>
           <Route path="/teams/:teamId" element={<TeamLayout />}>
             <Route index element={<TeamOverview />} />
@@ -69,6 +71,56 @@ beforeEach(() => {
   nodes.createNode.mockResolvedValue({ id: 'new1' })
 })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
+
+// QA-63: admins rename the team by editing its title in place.
+describe('team title', () => {
+  it('anAdminEditsItInPlaceEnterSavesAndAToastSaysSo', async () => {
+    teams.updateTeam.mockResolvedValue({ id: 't1', name: 'Thesis Lab' })
+    setup()
+    await userEvent.click(await screen.findByRole('button', { name: 'Rename team: Thesis Group' }))
+    const field = screen.getByRole('textbox', { name: 'Team name' }) as HTMLInputElement
+    expect(field.value).toBe('Thesis Group')
+    await userEvent.clear(field)
+    await userEvent.type(field, '  Thesis Lab {Enter}')
+    expect(teams.updateTeam).toHaveBeenCalledWith('t1', { teamName: 'Thesis Lab' })
+    expect(await screen.findByText('Renamed to Thesis Lab')).toBeTruthy()
+  })
+
+  it('escapeCancelsWithoutSaving', async () => {
+    setup()
+    await userEvent.click(await screen.findByRole('button', { name: 'Rename team: Thesis Group' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Team name' }), ' X{Escape}')
+    expect(screen.queryByRole('textbox', { name: 'Team name' })).toBeNull()
+    expect(screen.getByRole('heading', { level: 1, name: /Thesis Group/ })).toBeTruthy()
+    expect(teams.updateTeam).not.toHaveBeenCalled()
+  })
+
+  it('aServerRefusalKeepsTheFieldOpenWithTheMessage', async () => {
+    teams.updateTeam.mockRejectedValue(new Error('The team name must be 1 to 60 characters'))
+    setup()
+    await userEvent.click(await screen.findByRole('button', { name: 'Rename team: Thesis Group' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Team name' }), '!{Enter}')
+    expect((await screen.findByRole('alert')).textContent).toBe('The team name must be 1 to 60 characters')
+    expect(screen.getByRole('textbox', { name: 'Team name' })).toBeTruthy()
+  })
+
+  it('theActivitySaysWhoRenamedTheTeam', async () => {
+    teams.getTeamActivity.mockResolvedValue([
+      { actorName: 'Ayesha Rahman', action: 'RENAME_TEAM', targetTitle: 'Thesis Lab', targetId: 't1', createdAt: new Date().toISOString() },
+    ])
+    setup()
+    const panel = await screen.findByRole('complementary', { name: 'Details' })
+    expect((await within(panel).findByText('Thesis Lab')).closest('p')!.textContent).toBe('Ayesha Rahman renamed the team to Thesis Lab')
+    expect(within(panel).queryByRole('link', { name: 'Thesis Lab' })).toBeNull()
+  })
+
+  it('nonAdminsSeePlainText', async () => {
+    teams.getTeamSummary.mockResolvedValue(summary({ myRole: 'EDITOR' }))
+    setup()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Thesis Group' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Rename team/ })).toBeNull()
+  })
+})
 
 describe('team overview', () => {
   it('showsTheFactsSpacesRecentPagesAndTheRequestsCount', async () => {

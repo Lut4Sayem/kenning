@@ -27,6 +27,11 @@ public class TeamController {
     }
 
 
+    @PatchMapping("/{teamId}")
+    public Team updateTeam(@PathVariable String teamId, @RequestBody UpdateTeamRequest request) {
+        return teamService.updateTeam(teamId, request);
+    }
+
     @DeleteMapping("/{teamId}/members/{userId}")
     public ResponseEntity<Void> removeMember(@PathVariable String teamId, @PathVariable String userId) {
         teamService.removeMember(teamId, userId);

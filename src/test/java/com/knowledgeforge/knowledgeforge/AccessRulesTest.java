@@ -97,7 +97,7 @@ class AccessRulesTest {
     void nonMemberCannotSeeTeamDetails() {
         myRole(null);
         when(teams.findById(TEAM_ID)).thenReturn(Optional.of(new Team()));
-        TeamService teamService = new TeamService(teams, users, members);
+        TeamService teamService = new TeamService(teams, users, members, null);
         assertStatus(() -> teamService.getTeamDetails(TEAM_ID), HttpStatus.FORBIDDEN);
     }
 

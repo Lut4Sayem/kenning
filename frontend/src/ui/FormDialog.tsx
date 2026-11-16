@@ -6,17 +6,19 @@ export interface FormDialogProps {
   label: string
   submitLabel: string
   maxLength?: number
+  /** Starting text (e.g. the current name when renaming); it is selected when the dialog opens. */
+  initial?: string
   /** Resolves when done (the caller closes the dialog); a rejection shows its message under the field. */
   onSubmit: (value: string) => Promise<unknown>
   onClose: () => void
 }
 
 /** A one-field modal (white, radius 20, max 480; DESIGN.md section 6): "New team", "New space". */
-export default function FormDialog({ title, label, submitLabel, maxLength = 100, onSubmit, onClose }: FormDialogProps) {
+export default function FormDialog({ title, label, submitLabel, maxLength = 100, initial = '', onSubmit, onClose }: FormDialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const id = useId()
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState(initial)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -25,7 +27,7 @@ export default function FormDialog({ title, label, submitLabel, maxLength = 100,
     const trigger = document.activeElement as HTMLElement | null
     if (typeof dialog.showModal === 'function') dialog.showModal() // jsdom has none
     else dialog.setAttribute('open', '')
-    input.current?.focus()
+    input.current?.select()
     return () => {
       if (typeof dialog.close === 'function') dialog.close()
       if (trigger?.isConnected) trigger.focus()

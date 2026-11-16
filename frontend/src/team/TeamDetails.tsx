@@ -10,7 +10,7 @@ import s from './Details.module.css'
 const MEMBERS = 5
 const VERB: Record<string, string> = {
   CREATE_NODE: 'created', PUBLISH_NODE: 'published', TRASH_NODE: 'moved to trash', ARCHIVE_NODE: 'archived',
-  RESTORE_NODE: 'restored', UNARCHIVE_NODE: 'unarchived',
+  RESTORE_NODE: 'restored', UNARCHIVE_NODE: 'unarchived', RENAME_TEAM: 'renamed the team to',
 }
 const verbOf = (a: TeamActivity) => VERB[a.action] ?? a.action.replace(/_NODE$/, '').toLowerCase().replace(/_/g, ' ')
 
@@ -59,7 +59,7 @@ export default function TeamDetails({ teamId, onClose }: { teamId: string; onClo
                   <div>
                     <p className={s.text}>
                       <span className={s.actor}>{a.actorName ?? 'Someone'}</span> {verbOf(a)}{' '}
-                      {a.action === 'TRASH_NODE' ? <span className={s.target}>{a.targetTitle || 'Untitled'}</span>
+                      {a.action === 'TRASH_NODE' || a.action === 'RENAME_TEAM' ? <span className={s.target}>{a.targetTitle || 'Untitled'}</span>
                         : <Link to={`/p/${a.targetId}`} className={s.target}>{a.targetTitle || 'Untitled'}</Link>}
                     </p>
                     <p className={s.time}>{timeAgo(a.createdAt)}</p>
