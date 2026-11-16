@@ -12,12 +12,9 @@ test('register, create team, create space, create page, comment', async ({ page 
   await page.getByLabel('Confirm password').fill('password123')
   await page.getByRole('button', { name: 'Create account' }).click()
 
-  // Register sends them to the login page; logging in lands on the React dashboard.
-  await expect(page).toHaveURL(/\/app\/login/)
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password', { exact: true }).fill('password123')
-  await page.getByRole('button', { name: 'Log in' }).click()
+  // Register signs them in and lands on Home with a welcome (QA-01).
   await expect(page).toHaveURL(/\/app\/?$/)
+  await expect(page.getByText('Welcome to KnowledgeForge, Portal')).toBeVisible()
   await page.getByRole('button', { name: 'New team' }).click() // the + beside "Your teams" in the sidebar
   await page.getByLabel('Team name').fill('Portal Team')
   await page.getByRole('button', { name: 'Create team' }).click()
