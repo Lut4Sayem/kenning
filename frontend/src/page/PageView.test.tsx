@@ -9,13 +9,14 @@ import type { NodeDetail } from '../api/nodes'
 import { toBase64 } from '../editor/base64'
 import { clearPendingOf, pendingFor } from '../editor/pendingStore'
 import { SlotsContext } from '../app/ShellSlots'
+import { ToastHost } from '../ui/Toast'
 import PageView from './PageView'
 
 // jsdom has no matchMedia; Mantine asks it for the colour scheme. Nor layout; BlockNote's side menu asks on mouse moves.
 window.matchMedia ??= ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
 document.elementsFromPoint ??= () => []
 
-const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn() }))
+const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), unpublishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn() }))
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
@@ -49,6 +50,7 @@ function mount() {
     <QueryClientProvider client={qc}>
       <SlotsContext.Provider value={{ topbar, details: null, detailsOpen: false, setDetailsOpen: () => {} }}>
         <MemoryRouter initialEntries={['/p/n1']}>
+          <ToastHost />
           <Routes>
             <Route path="/p/:nodeId" element={<PageView />} />
           </Routes>
@@ -167,4 +169,21 @@ describe('page title', () => {
     expect(titleField().value).toBe('Transformers')
     await waitFor(() => expect(nodesApi.updateNode).toHaveBeenLastCalledWith('n1', { title: 'Transformers' }), { timeout: 3000 })
   }, 15_000)
+})
+
+// QA-26: Publish says what happened, with Undo.
+describe('publish', () => {
+  it('showsAToastNamingTheTeamWithUndo', async () => {
+    const draft = { ...NODE, publishState: 'DRAFT' as const }
+    nodesApi.getNode.mockResolvedValue(draft)
+    nodesApi.publishNode.mockResolvedValue(NODE)
+    nodesApi.unpublishNode.mockResolvedValue(draft)
+    spacesApi.getMySpaces.mockResolvedValue([{ id: 's1', name: 'Experiments', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis Group', myRole: 'EDITOR' }])
+    mount()
+    fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    expect(await screen.findByText('Published to Thesis Group')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(nodesApi.unpublishNode).toHaveBeenCalledWith('n1'))
+    expect(await screen.findByRole('button', { name: 'Publish' })).toBeTruthy() // a draft again
+  })
 })

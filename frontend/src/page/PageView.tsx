@@ -4,9 +4,9 @@ import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
 import { useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { getNode, getTrashed, publishNode, restoreBranch, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
+import { getNode, getTrashed, publishNode, restoreBranch, unpublishNode, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
 import { getVersion, listVersions, restoreVersion } from '../api/versions'
-import { getMe, getMySpaces } from '../api/spaces'
+import { getMe, getMySpaces, type MySpace } from '../api/spaces'
 import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
 import { toBase64 } from '../editor/base64'
@@ -114,6 +114,19 @@ export default function PageView() {
     mutationFn: () => publishNode(nodeId),
     onSuccess: async (updated) => {
       qc.setQueryData(['node', nodeId], updated)
+      // QA-26: say who can now read it, and offer the way back.
+      const team = qc.getQueryData<MySpace[]>(['spaces'])?.find((x) => x.id === updated.spaceId)?.teamName
+      toast(team ? `Published to ${team}` : 'Published', 'info', {
+        action: {
+          label: 'Undo',
+          run: () => void unpublishNode(updated.id)
+            .then((back) => {
+              qc.setQueryData(['node', back.id], back)
+              return qc.invalidateQueries({ queryKey: ['tree', back.spaceId] })
+            })
+            .catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not undo the publish.', 'error')),
+        },
+      })
       await Promise.all([qc.invalidateQueries({ queryKey: ['tree', updated.spaceId] }), qc.invalidateQueries({ queryKey: ['versions', nodeId] })])
     },
   })
