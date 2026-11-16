@@ -41,6 +41,7 @@ export default function Login() {
         setFormError(err instanceof ApiError ? "Couldn't log you in: " + err.message : "Can't reach the server. Check your connection and try again.")
       }
       setBusy(false)
+      document.getElementById('password')?.focus() // QA-43: the disabled button dropped focus to <body>
     }
   }
 

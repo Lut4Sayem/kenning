@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client'
 import { AuthLayout, Field, FormError, PasswordField, SubmitButton } from './AuthLayout'
@@ -7,7 +7,7 @@ import { toast } from '../ui/Toast'
 import { TeamBlock } from './Join'
 import { useInviteFor } from './useInviteFor'
 
-type Errors = Partial<Record<'fullName' | 'email' | 'password' | 'confirm', string>>
+type Errors = Partial<Record<'fullName' | 'password' | 'confirm', string>> & { email?: ReactNode }
 
 export default function Register() {
   const [params] = useSearchParams()
@@ -33,6 +33,7 @@ export default function Register() {
     const errs: Errors = {}
     if (!fullName.trim()) errs.fullName = 'Enter your full name.'
     if (!email.trim()) errs.email = 'Enter your email.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = 'Enter an email like name@example.com.'
     if (!password) errs.password = 'Choose a password.'
     else if (password.length < 8) errs.password = 'Use at least 8 characters.'
     if (!confirm) errs.confirm = 'Type your password again.'
@@ -53,7 +54,7 @@ export default function Register() {
       else window.location.assign(next)
       toast(`Welcome to KnowledgeForge, ${fullName.trim().split(/\s+/)[0]}`)
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) setErrors({ email: 'That email already has an account.' })
+      if (err instanceof ApiError && err.status === 409) setErrors({ email: <>That email already has an account. <Link to={loginUrl}>Log in instead</Link></> })
       else setFormError(err instanceof ApiError ? "Couldn't create your account: " + err.message : "Can't reach the server. Check your connection and try again.")
       setBusy(false)
     }
