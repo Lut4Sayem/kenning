@@ -9,6 +9,8 @@ const api = vi.hoisted(() => ({ getMe: vi.fn(), getMyTeams: vi.fn(), getMySpaces
 vi.mock('../api/spaces', async (orig) => ({ ...(await orig<typeof import('../api/spaces')>()), ...api }))
 const nodes = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodes)
+const teamsApi = vi.hoisted(() => ({ updateTeam: vi.fn() }))
+vi.mock('../api/teams', async (orig) => ({ ...(await orig<typeof import('../api/teams')>()), ...teamsApi }))
 
 const space = (id: string, name: string, teamId: string | null) => ({
   id, name, icon: null, ownerType: teamId ? 'TEAM' : 'USER', teamId, teamName: null, myRole: 'ADMIN',
@@ -89,6 +91,22 @@ describe('Sidebar', () => {
     expect(screen.queryByRole('link', { name: 'Archived' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Trash' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New page' })).toBeNull()
+  })
+
+  // QA-63: admins rename a team from its row's menu; other members get no such menu.
+  it('adminsCanRenameATeamFromItsRow', async () => {
+    teamsApi.updateTeam.mockResolvedValue({ id: 't1', name: 'Thesis Lab' })
+    renderSidebar()
+    await screen.findByRole('link', { name: 'Requirements' })
+    expect(screen.queryByRole('button', { name: 'More actions for Robotics Club' })).toBeNull() // EDITOR there
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Thesis Group' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Rename team' }))
+    const field = await screen.findByLabelText('Team name') as HTMLInputElement
+    expect(field.value).toBe('Thesis Group')
+    await userEvent.clear(field)
+    await userEvent.type(field, 'Thesis Lab')
+    await userEvent.click(screen.getByRole('button', { name: 'Rename' }))
+    await waitFor(() => expect(teamsApi.updateTeam).toHaveBeenCalledWith('t1', { teamName: 'Thesis Lab' }))
   })
 
   // QA-47: Trash at the bottom of the sidebar: a team's trash or the private one.

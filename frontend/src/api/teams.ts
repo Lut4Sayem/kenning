@@ -25,6 +25,9 @@ const json = (method: string, body?: unknown): RequestInit => ({ method, body: b
 
 export const getDashboard = () => api<Dashboard>('/api/dashboard')
 export const createTeam = (teamName: string, teamDescription: string) => api<{ id: string }>('/api/teams', json('POST', { teamName, teamDescription }))
+/** QA-63: admins only. A field left out stays as it is. */
+export const updateTeam = (id: string, body: { teamName?: string; teamDescription?: string }) =>
+  api<{ id: string; name: string; description: string | null }>(`/api/teams/${id}`, json('PATCH', body))
 export const getTeam = (id: string) => api<TeamDetail>(`/api/teams/${id}`)
 export const getTeamSpaces = (id: string) => api<TeamSpace[]>(`/api/teams/${id}/spaces`)
 export const createTeamSpace = (id: string, name: string, description: string) => api<TeamSpace>(`/api/teams/${id}/spaces`, json('POST', { name, description }))

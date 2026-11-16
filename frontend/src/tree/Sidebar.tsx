@@ -10,6 +10,8 @@ import PageTree from './PageTree'
 import TreeDnd, { useSpaceDrop } from './TreeDnd'
 import s from './Sidebar.module.css'
 import NewTeamDialog from '../team/NewTeamDialog'
+import { useRenameTeam } from '../team/useRenameTeam'
+import FormDialog from '../ui/FormDialog'
 import { useRemembered } from '../ui/useRemembered'
 import { useCreatePage } from './useCreatePage'
 
@@ -179,6 +181,7 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
         </button>
         <span className={s.tile} aria-hidden="true" style={{ background: `var(--tint-${tint}-bg)`, color: `var(--tint-${tint}-fg)` }}>{initialOf(label)}</span>
         <Link to={`/teams/${team.teamId}`} className={s.groupLink}>{label}</Link>
+        {team.role === 'ADMIN' && <TeamActions team={team} label={label} />}
       </div>
       {open && (
         <div className={s.nested}>
@@ -188,6 +191,40 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
         </div>
       )}
     </section>
+  )
+}
+
+/** "..." on a team row, admins only: Rename team (QA-63). */
+function TeamActions({ team, label }: { team: MyTeam; label: string }) {
+  const [open, setOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const rename = useRenameTeam(team.teamId)
+  const btn = useRef<HTMLButtonElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  return (
+    <div ref={box} className={cx(s.actions, open && s.pinned)}
+      onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); btn.current?.focus() } }}>
+      <button ref={btn} type="button" className={s.rowBtn} aria-label={`More actions for ${label}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="more" />
+      </button>
+      {open && (
+        <div className={s.menu} role="menu" aria-label={`${label} actions`}>
+          <button type="button" role="menuitem" className={s.menuItem} onClick={() => { setOpen(false); setRenaming(true) }}>Rename team</button>
+        </div>
+      )}
+      {renaming && (
+        <FormDialog title="Rename team" label="Team name" submitLabel="Rename" maxLength={60} initial={team.teamName}
+          onClose={() => setRenaming(false)} onSubmit={async (name) => { await rename(name); setRenaming(false) }} />
+      )}
+    </div>
   )
 }
 

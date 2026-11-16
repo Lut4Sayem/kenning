@@ -37,6 +37,7 @@ public class TeamOverviewService {
     private final SpaceRepository spaces;
     private final NodeRepository nodes;
     private final UserRepository users;
+    private static final String TEAM = "TEAM";
     private final ActivityLogRepository activity;
 
     public TeamOverviewService(NodeAccessService access, TeamRepository teams, TeamMemberRepository members,
@@ -157,11 +158,14 @@ public class TeamOverviewService {
             acc.putAll(access.resolveAll(me, s, pool.values().stream().filter(n -> s.getId().equals(n.getSpaceId())).toList(), true));
         }
         List<ActivityLog> shown = logs.stream()
-                .filter(l -> targets.containsKey(l.getTargetId()) && acc.getOrDefault(l.getTargetId(), Access.NONE).compareTo(Access.VIEW) >= 0)
+                .filter(l -> TEAM.equals(l.getTargetType())
+                        || targets.containsKey(l.getTargetId()) && acc.getOrDefault(l.getTargetId(), Access.NONE).compareTo(Access.VIEW) >= 0)
                 .limit(limit).toList();
         Map<String, String> names = users.findAllById(shown.stream().map(ActivityLog::getUserId).filter(Objects::nonNull).collect(Collectors.toSet()))
                 .stream().collect(Collectors.toMap(User::getId, User::getFullName));
-        return shown.stream().map(l -> new ActivityItem(names.get(l.getUserId()), l.getAction(), targets.get(l.getTargetId()).getTitle(),
+        // Team events (a rename) are for every member and keep the title they were logged with; page events show today's title.
+        return shown.stream().map(l -> new ActivityItem(names.get(l.getUserId()), l.getAction(),
+                TEAM.equals(l.getTargetType()) ? l.getTargetTitle() : targets.get(l.getTargetId()).getTitle(),
                 l.getTargetId(), l.getCreatedAt())).toList();
     }
 }

@@ -1,12 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   archiveNode,
-  getSubtreeCount,
   lockNode,
-  restoreBranch,
-  trashNode,
   unarchiveNode,
   unlockNode,
   unpublishNode,
@@ -14,11 +10,10 @@ import {
   type NodeDetail,
 } from '../api/nodes'
 import MoveToTeamDialog from '../move/MoveToTeamDialog'
-import { confirmTrash } from '../trash/ConfirmTrashDialog'
 import Icon from '../ui/Icon'
 import { dotColour, PAGE_COLOURS } from '../ui/pageColour'
-import { toast } from '../ui/Toast'
 import m from './PageMenu.module.css'
+import { useTrashPage } from './useTrashPage'
 
 interface Props {
   node: NodeDetail
@@ -39,7 +34,7 @@ interface Item {
 /** The "..." menu of a page (wireframe Main). Only for page editors, even when the page is locked or archived. */
 export default function PageMenu({ node, unsaved, personal }: Props) {
   const qc = useQueryClient()
-  const navigate = useNavigate()
+  const trash = useTrashPage(node)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -95,24 +90,7 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
     items.push({
       label: 'Move to trash',
       blocked: lockedNote ?? savingNote,
-      run: async () => {
-        const { count } = await getSubtreeCount(node.id)
-        if (!(await confirmTrash(node.title, count))) return
-        await trashNode(node.id)
-        await qc.invalidateQueries({ queryKey: ['tree', node.spaceId] })
-        navigate('/')
-        toast(`Moved “${node.title || 'Untitled'}” to trash`, 'info', {
-          action: {
-            label: 'Undo',
-            run: () => void restoreBranch(node.id)
-              .then(async () => {
-                await refresh()
-                navigate(`/p/${node.id}`)
-              })
-              .catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not restore the page.', 'error')),
-          },
-        })
-      },
+      run: trash,
     })
   }
 
