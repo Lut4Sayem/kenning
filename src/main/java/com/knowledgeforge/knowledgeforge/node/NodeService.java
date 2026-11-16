@@ -91,14 +91,14 @@ public class NodeService {
         User user = access.currentUser();
         Node parent = null;
         if (req.parentId() == null) {
-            if (!access.canEditSpace(user.getId(), space)) throw forbidden("You can't add pages to this space");
+            if (!access.canEditSpace(user.getId(), space)) throw forbidden("You can’t add pages to this space");
         } else {
             parent = access.requireEdit(req.parentId());
             if (!spaceId.equals(parent.getSpaceId())) throw bad("That page is in another space");
         }
         String title = title(req.title() == null ? "" : req.title());
         List<String> ancestors = ancestorsUnder(parent);
-        if (ancestors.size() > MAX_DEPTH) throw bad("Pages can't be nested deeper than " + MAX_DEPTH + " levels");
+        if (ancestors.size() > MAX_DEPTH) throw bad("Pages can’t be nested deeper than " + MAX_DEPTH + " levels");
 
         List<Node> siblings = nodes.findBySpaceIdAndStatusAndParentIdOrderByRankAsc(
                 spaceId, NodeStatus.ACTIVE, parent == null ? null : parent.getId());
@@ -179,18 +179,18 @@ public class NodeService {
         }
         Node parent = null;
         if (req.parentId() == null) {
-            if (!access.canEditSpace(user.getId(), dest)) throw forbidden("You can't edit this space");
+            if (!access.canEditSpace(user.getId(), dest)) throw forbidden("You can’t edit this space");
         } else {
-            if (req.parentId().equals(id)) throw bad("Can't move a page inside itself");
+            if (req.parentId().equals(id)) throw bad("Can’t move a page inside itself");
             parent = access.requireEdit(req.parentId());
             if (!spaceId.equals(parent.getSpaceId())) throw bad("That page is in another space");
-            if (parent.getAncestors().contains(id)) throw bad("Can't move a page inside itself");
+            if (parent.getAncestors().contains(id)) throw bad("Can’t move a page inside itself");
         }
         List<String> newAncestors = ancestorsUnder(parent);
         int oldDepth = node.getAncestors().size();
         List<Node> descendants = nodes.findByAncestors(id);
         int deepest = descendants.stream().mapToInt(d -> d.getAncestors().size() - oldDepth).max().orElse(0);
-        if (newAncestors.size() + deepest > MAX_DEPTH) throw bad("Pages can't be nested deeper than " + MAX_DEPTH + " levels");
+        if (newAncestors.size() + deepest > MAX_DEPTH) throw bad("Pages can’t be nested deeper than " + MAX_DEPTH + " levels");
 
         String parentId = parent == null ? null : parent.getId();
         List<Node> siblings = nodes.findBySpaceIdAndStatusAndParentIdOrderByRankAsc(spaceId, NodeStatus.ACTIVE, parentId)

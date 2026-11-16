@@ -7,7 +7,7 @@ const TEXT: Record<SaveState, string> = {
   saved: 'Saved',
   saving: 'Saving…',
   offline: 'Offline: changes kept on this device',
-  retrying: "Couldn't save, retrying",
+  retrying: "Couldn’t save, retrying",
   failed: 'Not saved',
   recovered: 'Saved',
 }

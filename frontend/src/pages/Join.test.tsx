@@ -90,7 +90,7 @@ describe('Join', () => {
   it('aRequestSentEarlierIsShownAsWaitingOnOpen', async () => {
     backend({ preview: { ...PREVIEW, hasPendingRequest: true } })
     renderJoin()
-    await waitFor(() => expect(screen.getByRole('status').textContent).toBe("You've already asked to join. It's waiting for approval."))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe("You’ve already asked to join. It’s waiting for approval."))
     expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
   })
 

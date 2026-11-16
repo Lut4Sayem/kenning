@@ -108,7 +108,7 @@ describe('page top bar and properties', () => {
     mount()
     await screen.findByRole('banner')
     expect(screen.getByText('Draft')).toBeTruthy() // pill and sentence of the properties block
-    expect(screen.getByText("Still a draft. Publish it when it's final.")).toBeTruthy()
+    expect(screen.getByText("Still a draft. Publish it when it’s final.")).toBeTruthy()
     await userEvent.click(bar().getByRole('button', { name: 'Publish' }))
     await waitFor(() => expect(nodesApi.publishNode).toHaveBeenCalledWith('n1'))
     await waitFor(() => expect(screen.queryByText('Draft')).toBeNull()) // the page is published now

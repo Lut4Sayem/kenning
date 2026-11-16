@@ -37,7 +37,7 @@ export default function Register() {
     if (!password) errs.password = 'Choose a password.'
     else if (password.length < 8) errs.password = 'Use at least 8 characters.'
     if (!confirm) errs.confirm = 'Type your password again.'
-    else if (confirm !== password) errs.confirm = "Passwords don't match."
+    else if (confirm !== password) errs.confirm = "Passwords don’t match."
     setErrors(errs)
     if (Object.keys(errs).length) return
 
@@ -55,7 +55,7 @@ export default function Register() {
       toast(`Welcome to KnowledgeForge, ${fullName.trim().split(/\s+/)[0]}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) setErrors({ email: <>That email already has an account. <Link to={loginUrl}>Log in instead</Link></> })
-      else setFormError(err instanceof ApiError ? "Couldn't create your account: " + err.message : "Can't reach the server. Check your connection and try again.")
+      else setFormError(err instanceof ApiError ? "Couldn’t create your account: " + err.message : "Can’t reach the server. Check your connection and try again.")
       setBusy(false)
     }
   }

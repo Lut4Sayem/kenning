@@ -90,7 +90,7 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
       </div>
       <div className={s.body}>
         {spaces.isSuccess && projects.length === 0 ? (
-          <p role="status" className={s.none}>{within ? "You can't edit any space of this team." : "You can't edit any team space yet. Ask a team admin to make you an editor first."}</p>
+          <p role="status" className={s.none}>{within ? "You can’t edit any space of this team." : "You can’t edit any team space yet. Ask a team admin to make you an editor first."}</p>
         ) : (
           <>
             <div className={s.pickers}>
@@ -128,7 +128,7 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
                   <label key={n.id} className={s.opt} style={{ paddingLeft: 10 + 24 * depth }}>
                     <input type="radio" name={`${id}-p`} checked={parentId === n.id} disabled={n.titleOnly} onChange={() => setParentId(n.id)} />
                     <span className={s.radio} aria-hidden="true" /><span className={s.dot} style={{ background: dotColour(n.color) }} aria-hidden="true" />
-                    <span className={s.optText}>{n.title || 'Untitled'}{n.titleOnly && " (you can't edit here)"}</span>
+                    <span className={s.optText}>{n.title || 'Untitled'}{n.titleOnly && " (you can’t edit here)"}</span>
                   </label>
                 ))}
               </div>
@@ -144,8 +144,8 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
                 <>
                   <p className={s.w}><Icon name="check" size={14} />Content, files, tags and comments come along.</p>
                   <p className={s.w}><Icon name="check" size={14} />Everyone who can see “{parentTitle}” can see it.</p>
-                  <p className={s.w}><Icon name="check" size={14} />Your earlier versions stay private. The team's history starts at “Published to team”.</p>
-                  <p className={`${s.w} ${s.no}`}><Icon name="info" size={14} />It can't be moved back to your private space later.</p>
+                  <p className={s.w}><Icon name="check" size={14} />Your earlier versions stay private. The team’s history starts at “Published to team”.</p>
+                  <p className={`${s.w} ${s.no}`}><Icon name="info" size={14} />It can’t be moved back to your private space later.</p>
                 </>
               )}
             </section>

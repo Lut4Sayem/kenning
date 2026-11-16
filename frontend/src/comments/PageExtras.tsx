@@ -30,7 +30,7 @@ export function Comments({ nodeId }: { nodeId: string }) {
   })
 
   async function remove(id: string) {
-    if (!(await confirmDialog({ title: 'Delete your comment?', body: "This can't be undone.", confirmLabel: 'Delete comment', danger: true }))) return
+    if (!(await confirmDialog({ title: 'Delete your comment?', body: "This can’t be undone.", confirmLabel: 'Delete comment', danger: true }))) return
     try { await deleteComment(id); setError(''); await refresh() } catch (e) { setError((e as Error).message) }
   }
 

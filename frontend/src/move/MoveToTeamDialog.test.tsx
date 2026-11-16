@@ -40,7 +40,7 @@ describe('MoveToTeamDialog', () => {
   it('listsOnlyEditableParents', async () => {
     mount()
     expect((await screen.findByRole('radio', { name: 'Overview' })).hasAttribute('disabled')).toBe(false)
-    expect(screen.getByRole('radio', { name: "Budget (you can't edit here)" }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('radio', { name: "Budget (you can’t edit here)" }).hasAttribute('disabled')).toBe(true)
     // projects I can only view, and my private space, are not offered
     expect(screen.queryByRole('option', { name: 'Read only' })).toBeNull()
     expect(screen.queryByRole('option', { name: 'Private' })).toBeNull()
@@ -50,7 +50,7 @@ describe('MoveToTeamDialog', () => {
   // QA-13: there is no copy or duplicate yet, so the dialog must not offer one.
   it('doesNotPromiseACopy', async () => {
     mount()
-    expect(await screen.findByText(/can't be moved back to your private space/)).toBeTruthy()
+    expect(await screen.findByText(/can’t be moved back to your private space/)).toBeTruthy()
     expect(screen.queryByText(/copy it/i)).toBeNull()
   })
 

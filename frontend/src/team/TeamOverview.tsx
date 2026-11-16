@@ -85,7 +85,7 @@ export default function TeamOverview() {
         <div className={s.sectionHead}><h2 id="recent-h" className={s.sectionTitle}>Recently updated</h2></div>
         {pages.isPending ? <SkeletonRows n={4} />
           : pages.isError ? <p className={s.error} role="alert">Could not load the pages. <button type="button" className={t.linkBtn} onClick={() => void pages.refetch()}>Try again</button></p>
-          : pages.data.items.length === 0 ? <p className={s.empty}>No pages yet. Pages created in this team's spaces show up here.</p>
+          : pages.data.items.length === 0 ? <p className={s.empty}>No pages yet. Pages created in this team’s spaces show up here.</p>
           : (
             <>
               <ul className={s.list}>

@@ -103,7 +103,7 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     await clearPendingOf('u1')
     contentApi.getContent.mockRejectedValue(new TypeError('Failed to fetch'))
     const { view } = mount()
-    expect((await screen.findByRole('alert')).textContent).toContain("Could not load this page's content")
+    expect((await screen.findByRole('alert')).textContent).toContain("Could not load this page’s content")
     contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
     act(() => void window.dispatchEvent(new Event('online')))
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })

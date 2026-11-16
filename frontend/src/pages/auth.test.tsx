@@ -33,7 +33,7 @@ describe('Login', () => {
     await userEvent.type(screen.getByLabelText('Email'), 'a@b.co')
     await userEvent.type(screen.getByLabelText('Password'), 'wrongpass')
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }))
-    expect((await screen.findAllByRole('alert'))[0].textContent).toMatch(/don't match/)
+    expect((await screen.findAllByRole('alert'))[0].textContent).toMatch(/don’t match/)
     expect(assign).not.toHaveBeenCalled()
     expect(document.activeElement).toBe(screen.getByLabelText('Password')) // QA-43: focus lands where the fix is typed
   })

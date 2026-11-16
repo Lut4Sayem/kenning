@@ -207,7 +207,7 @@ export default function PageView() {
     const code = node.error instanceof ApiError ? node.error.status : 0
     return (
       <div className={s.state}>
-        <p role="alert">{code === 404 ? 'This page does not exist.' : code === 403 ? "You don't have access to this page." : 'Could not load this page.'}</p>
+        <p role="alert">{code === 404 ? 'This page does not exist.' : code === 403 ? "You don’t have access to this page." : 'Could not load this page.'}</p>
         {code !== 404 && code !== 403 && <p><button type="button" className={s.link} onClick={() => void node.refetch()}>Try again</button></p>}
       </div>
     )
@@ -319,7 +319,7 @@ export default function PageView() {
         {rename.error && <p role="alert" className={s.error}>{rename.error.message}</p>}
         {n.status === 'ARCHIVED' && <ArchivedNote node={n} />}
         {n.access === 'TITLE_ONLY' ? (
-          <p className={s.note}>You can see this page's title but not its content.</p>
+          <p className={s.note}>You can see this page’s title but not its content.</p>
         ) : (
           <>
             {/* QA-22: the properties are the current page's, not the version's */}
@@ -473,7 +473,7 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
   if (failed) {
     return (
       <p role="alert" className={s.error}>
-        Could not load this page's content. <button type="button" className={s.link} onClick={() => setReloads((r) => r + 1)}>Try again</button>
+        Could not load this page’s content. <button type="button" className={s.link} onClick={() => setReloads((r) => r + 1)}>Try again</button>
       </p>
     )
   }

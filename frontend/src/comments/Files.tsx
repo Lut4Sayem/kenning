@@ -26,7 +26,7 @@ export function Files({ nodeId, canEdit }: { nodeId: string; canEdit: boolean })
   })
 
   async function remove(f: PageFile) {
-    if (!(await confirmDialog({ title: `Delete "${f.originalName}"?`, body: "If a block in the page uses this file, it stops working. This can't be undone.", confirmLabel: 'Delete file', danger: true }))) return
+    if (!(await confirmDialog({ title: `Delete "${f.originalName}"?`, body: "If a block in the page uses this file, it stops working. This can’t be undone.", confirmLabel: 'Delete file', danger: true }))) return
     try { await deleteAttachment(f.id); setError(''); await refresh() } catch (e) { setError((e as Error).message) }
   }
 

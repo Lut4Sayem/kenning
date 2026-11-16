@@ -20,7 +20,7 @@ export default function Properties({ node, canEdit, changes, canCompare, onCompa
       <div className={s.k}><Icon name="circle" size={14} />Status</div>
       <div className={s.v}>
         <span className={`${s.pill} ${draft ? s.draft : s.published}`}>{draft ? 'Draft' : 'Published'}</span>
-        {draft && <span className={s.hint}>{canEdit ? "Still a draft. Publish it when it's final." : 'Still a draft.'}</span>}
+        {draft && <span className={s.hint}>{canEdit ? "Still a draft. Publish it when it’s final." : 'Still a draft.'}</span>}
         {!draft && changes && canEdit && <span className={s.hint}>Edited since it was last published.</span>}
         {changes && canCompare && <button type="button" className={s.link} onClick={onCompare}>Compare</button>}
       </div>

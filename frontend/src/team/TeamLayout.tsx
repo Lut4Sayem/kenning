@@ -45,7 +45,7 @@ export default function TeamLayout() {
   if (summary.isError) {
     return (
       <div className={s.state}>
-        <p role="alert">Couldn't open this team: {summary.error.message}</p>
+        <p role="alert">Couldn’t open this team: {summary.error.message}</p>
         <p><button type="button" className={s.linkBtn} onClick={() => void summary.refetch()}>Try again</button> · <Link to="/" className={s.link}>Go to Home</Link></p>
       </div>
     )
