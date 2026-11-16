@@ -1,11 +1,12 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
 import Login from './Login'
 import Register from './Register'
 import { safeNext } from './safeNext'
+import { ToastHost } from '../ui/Toast'
 
 const apiMock = vi.hoisted(() => vi.fn())
 vi.mock('../api/client', async (orig) => ({ ...(await orig<typeof import('../api/client')>()), api: apiMock }))
@@ -60,5 +61,24 @@ describe('Register', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByText('Use at least 8 characters.')).toBeTruthy()
     expect(apiMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything())
+  })
+
+  it('registerSignsYouInAndGoesOnToTheSafeNextWithAWelcome', async () => { // QA-01: the invite survives sign-up
+    render(
+      <MemoryRouter initialEntries={['/register?next=' + encodeURIComponent('/app/join/abc')]}>
+        <ToastHost />
+        <Routes>
+          <Route path="/register" element={<Register />} />
+          <Route path="/join/:code" element={<p>join page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await userEvent.type(screen.getByLabelText('Full name'), 'Tanvir Ahmed')
+    await userEvent.type(screen.getByLabelText('Email'), 't@b.co')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.type(screen.getByLabelText('Confirm password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+    expect(await screen.findByText('join page')).toBeTruthy()
+    expect(screen.getByText('Welcome to KnowledgeForge, Tanvir')).toBeTruthy()
   })
 })

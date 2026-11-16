@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client'
 import { AuthLayout, Field, FormError, PasswordField, SubmitButton } from './AuthLayout'
 import { DEFAULT_NEXT, safeNext } from './safeNext'
+import { toast } from '../ui/Toast'
 
 type Errors = Partial<Record<'fullName' | 'email' | 'password' | 'confirm', string>>
 
@@ -43,7 +44,11 @@ export default function Register() {
         body: JSON.stringify({ fullName: fullName.trim(), email: email.trim(), password }),
         redirectOn401: false,
       })
-      navigate(loginUrl)
+      // The server signs the new account in (QA-01): go on to the invite or Home inside the app, so the welcome stays on screen.
+      const next = safeNext(rawNext)
+      if (/^\/app(\/|$)/.test(next)) navigate(next.slice(4) || '/')
+      else window.location.assign(next)
+      toast(`Welcome to KnowledgeForge, ${fullName.trim().split(/\s+/)[0]}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) setErrors({ email: 'That email already has an account.' })
       else setFormError(err instanceof ApiError ? "Couldn't create your account: " + err.message : "Can't reach the server. Check your connection and try again.")
