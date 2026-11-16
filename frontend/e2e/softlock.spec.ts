@@ -60,9 +60,11 @@ test('second editor sees who is editing, can read, or take over', async ({ brows
   await second.keyboard.type(' and Mina')
   await expect(second.locator('header [role="status"]')).toHaveText('Saved')
 
-  // Rafi's next heartbeat (every 20 s) finds the lock taken and puts him behind the banner.
-  await expect(first.getByRole('status').filter({ hasText: 'Mina Second is editing right now.' })).toBeVisible({ timeout: 30_000 })
+  // Rafi's next heartbeat (every 20 s) finds the lock taken: he is told so, read-only, his changes kept (QA-27).
+  await expect(first.getByRole('status').filter({ hasText: 'Mina Second started editing too. Your view is now read-only; your last changes were saved.' })).toBeVisible({ timeout: 30_000 })
   await expect(first.locator('.bn-editor[contenteditable="true"]')).toHaveCount(0)
+  await first.getByRole('button', { name: 'Reload' }).click() // loads the latest content, Mina's included
+  for (const text of ['Written by Rafi', 'and Mina']) await expect(first.locator('.bn-editor')).toContainText(text)
 
   await rafi.close()
   await mina.close()
