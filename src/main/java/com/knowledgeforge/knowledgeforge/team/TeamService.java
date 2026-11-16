@@ -1,6 +1,10 @@
 package com.knowledgeforge.knowledgeforge.team;
 
+import com.knowledgeforge.knowledgeforge.activity.ActivityLogRepository;
 import com.knowledgeforge.knowledgeforge.activity.ActivityLogService;
+import com.knowledgeforge.knowledgeforge.node.TrashService;
+import com.knowledgeforge.knowledgeforge.space.Space;
+import com.knowledgeforge.knowledgeforge.space.SpaceRepository;
 
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -21,12 +25,24 @@ public class TeamService {
     final UserRepository userRepository;
     final TeamMemberRepository teamMemberRepository;
     final ActivityLogService activity;
+    final SpaceRepository spaceRepository;
+    final TrashService trash;
+    final TeamInviteRepository inviteRepository;
+    final TeamJoinRequestRepository joinRequestRepository;
+    final ActivityLogRepository activityLogRepository;
     public TeamService(TeamRepository teamRepository, UserRepository userRepository, TeamMemberRepository teamMemberRepository,
-                       ActivityLogService activity) {
+                       ActivityLogService activity, SpaceRepository spaceRepository, TrashService trash,
+                       TeamInviteRepository inviteRepository, TeamJoinRequestRepository joinRequestRepository,
+                       ActivityLogRepository activityLogRepository) {
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.activity = activity;
+        this.spaceRepository = spaceRepository;
+        this.trash = trash;
+        this.inviteRepository = inviteRepository;
+        this.joinRequestRepository = joinRequestRepository;
+        this.activityLogRepository = activityLogRepository;
     }
 
     public Team createTeam(String name, String description) {
@@ -89,6 +105,50 @@ public class TeamService {
         teamRepository.save(team);
         if (renamed) activity.log(teamId, currentUser.getId(), "RENAME_TEAM", "TEAM", teamId, name);
         return team;
+    }
+
+    /**
+     * QA-67: admins only (non-members get 404), and only with the exact team name. Removes every space with all its
+     * pages (any state), then the team-level rows. The admin's membership and the team record go last, so a delete
+     * that fails halfway leaves the team visible to its admin, who can run it again to finish.
+     */
+    public void deleteTeam(String teamId, String confirmName) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        TeamMember membership = teamMemberRepository.findByTeamIdAndUserId(teamId, currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team Not Found"));
+        if (!"ADMIN".equals(membership.getRole())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only a team admin can delete the team");
+        }
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team Not Found"));
+        if (confirmName == null || !confirmName.equals(team.getName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Type the team name exactly to confirm");
+        }
+        for (Space space : spaceRepository.findByTeamId(teamId)) {
+            trash.purgeSpace(space.getId());
+            spaceRepository.delete(space);
+        }
+        inviteRepository.deleteByTeamId(teamId);
+        joinRequestRepository.deleteByTeamId(teamId);
+        activityLogRepository.deleteByTeamId(teamId);
+        teamMemberRepository.deleteByTeamId(teamId);
+        teamRepository.deleteById(teamId);
+    }
+
+    /** QA-68: any member leaves (404 for non-members); the last admin must hand over or delete the team. Pages stay. */
+    public void leaveTeam(String teamId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        TeamMember membership = teamMemberRepository.findByTeamIdAndUserId(teamId, currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team Not Found"));
+        if ("ADMIN".equals(membership.getRole())
+                && teamMemberRepository.findByTeamId(teamId).stream().filter(m -> "ADMIN".equals(m.getRole())).count() == 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Make someone else an admin or delete the team first.");
+        }
+        teamMemberRepository.delete(membership);
     }
 
     public TeamDetailsResponseDTO getTeamDetails(String teamId) {

@@ -39,6 +39,7 @@ public class SchemaSetup implements ApplicationRunner {
         setupSpaces();
         setupJoinRequests();
         setupInvites();
+        setupUsers();
     }
 
     // ---------- collections ----------
@@ -204,6 +205,11 @@ public class SchemaSetup implements ApplicationRunner {
             LoggerFactory.getLogger(SchemaSetup.class).info("Revoked {} extra invite links", revoked.size());
         }
         mongo.indexOps("teamInvites").createIndex(new Index().named("teamId_unique").on("teamId", Sort.Direction.ASC).unique());
+    }
+
+    /** Purging pages pulls them from every user's recent list (QA-67). */
+    private void setupUsers() {
+        mongo.indexOps("users").createIndex(new Index().named("recentNodes_nodeId").on("recentNodes.nodeId", Sort.Direction.ASC));
     }
 
     // ---------- helpers ----------

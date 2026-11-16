@@ -9,4 +9,5 @@ import java.util.List;
 public interface TeamJoinRequestRepository extends MongoRepository<TeamJoinRequest,String> {
     boolean existsByTeamIdAndUserIdAndStatus(String teamId, String userId, String status);
     List<TeamJoinRequest> findByTeamIdAndStatus(String teamId, String status);
+    void deleteByTeamId(String teamId);
 }
