@@ -126,6 +126,20 @@ public class TrashService {
         return branches(spaceId, NodeStatus.ARCHIVED);
     }
 
+    /** Where a trashed page went (QA-33). 404 unless it is trashed and the user could see it otherwise. */
+    public TrashedDTO trashed(String id) {
+        Node node = nodes.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Page not found"));
+        User user = access.currentUser();
+        if (node.getStatus() != NodeStatus.TRASHED || access.resolveForTrash(user.getId(), node).compareTo(Access.VIEW) < 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Page not found");
+        }
+        Node root = node.getTrashRootId() == null ? node : nodes.findById(node.getTrashRootId()).orElse(node);
+        User who = root.getTrashedBy() == null ? null : users.findById(root.getTrashedBy()).orElse(null);
+        return new TrashedDTO(root.getId(), root.getTitle(), root.getSpaceId(),
+                who == null ? null : new UserRef(who.getId(), who.getDisplayName(), who.getProfilePicture()), root.getTrashedAt(),
+                access.resolveForTrash(user.getId(), root).compareTo(Access.EDIT) >= 0);
+    }
+
     private BranchListDTO branches(String spaceId, NodeStatus status) {
         Space space = space(spaceId);
         User user = access.currentUser();

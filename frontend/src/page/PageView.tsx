@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
 import { useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { getNode, publishNode, updateNode, type NodeDetail } from '../api/nodes'
+import { getNode, getTrashed, publishNode, restoreBranch, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
 import { getVersion, listVersions, restoreVersion } from '../api/versions'
 import { getMe, getMySpaces } from '../api/spaces'
 import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
@@ -21,6 +21,9 @@ import HistoryPanel, { type Viewing } from '../history/HistoryPanel'
 import VersionBar from '../history/VersionBar'
 import { readPref, savePref } from '../team/detailsPref'
 import Icon from '../ui/Icon'
+import { ActionButton, ActionLink, ScreenMessage } from '../ui/States'
+import { timeAgo } from '../ui/timeAgo'
+import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
 import PageMenu from './PageMenu'
@@ -38,6 +41,9 @@ export default function PageView() {
   const qc = useQueryClient()
   const { detailsOpen, setDetailsOpen } = useShellSlots()
   const node = useQuery({ queryKey: ['node', nodeId], queryFn: () => getNode(nodeId), retry: false })
+  // QA-33: a 404 may be a trashed page; ask where it went (404 again for pages that really don't exist or aren't mine to see).
+  const gone = !node.data && node.error instanceof ApiError && node.error.status === 404
+  const trashed = useQuery({ queryKey: ['trashed', nodeId], queryFn: () => getTrashed(nodeId), enabled: gone, retry: false })
   const spaces = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces })
   const me = useQuery({ queryKey: ['me'], queryFn: getMe })
   const canEditNode = node.data?.access === 'EDIT'
@@ -163,6 +169,8 @@ export default function PageView() {
         </div>
       )
     }
+    if (gone && trashed.isPending) return <div className={s.column} aria-busy="true" aria-label="Loading page" />
+    if (gone && trashed.data) return <TrashedPage nodeId={nodeId} t={trashed.data} />
     const code = node.error instanceof ApiError ? node.error.status : 0
     return (
       <div className={s.state}>
@@ -309,6 +317,41 @@ export default function PageView() {
         </DetailsPanel>
       )}
     </div>
+  )
+}
+
+/** QA-33: what a trashed page (or a sub-page of a trashed page) shows instead of "does not exist". */
+function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
+  const qc = useQueryClient()
+  const restore = useMutation({
+    mutationFn: () => restoreBranch(t.rootId),
+    onSuccess: async ({ movedToTop }) => {
+      if (movedToTop) toast('It was restored to the top level of its space, because its parent is gone.')
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['tree', t.spaceId] }),
+        qc.invalidateQueries({ queryKey: ['trash', t.spaceId] }),
+        qc.invalidateQueries({ queryKey: ['node', nodeId] }),
+      ])
+      qc.removeQueries({ queryKey: ['trashed', nodeId] })
+    },
+  })
+  const what = t.rootId === nodeId ? 'It was' : `“${t.rootTitle || 'Untitled'}” and its sub-pages were`
+  const when = timeAgo(t.at)
+  return (
+    <ScreenMessage
+      title="This page is in the trash"
+      action={<>
+        {t.canRestore && (
+          <ActionButton onClick={() => restore.mutate()}>
+            {restore.isPending ? 'Restoring…' : t.rootId === nodeId ? 'Restore' : `Restore “${t.rootTitle || 'Untitled'}”`}
+          </ActionButton>
+        )}
+        <ActionLink to={`/s/${t.spaceId}/trash`}>Open the trash</ActionLink>
+        {restore.error && <p role="alert">{restore.error.message}</p>}
+      </>}
+    >
+      {what} moved to the trash{t.by ? ` by ${t.by.name}` : ''}{when ? ` ${when}` : ''}. {t.canRestore ? 'Restore it to read and edit it again.' : 'Ask an editor to restore it.'}
+    </ScreenMessage>
   )
 }
 

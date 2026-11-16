@@ -97,6 +97,16 @@ export const getSubtreeCount = (id: string) => api<{ count: number }>(`/api/node
 export const trashNode = (id: string) => post<{ count: number }>(`/api/nodes/${id}/trash`)
 export const archiveNode = (id: string) => post<{ count: number }>(`/api/nodes/${id}/archive`)
 export const unarchiveNode = (id: string) => post<{ movedToTop: boolean }>(`/api/nodes/${id}/unarchive`)
+/** Where a trashed page went (QA-33); 404 unless it is trashed and I could see it otherwise. */
+export interface Trashed {
+  rootId: string
+  rootTitle: string
+  spaceId: string
+  by: { id: string; name: string } | null
+  at: string | null
+  canRestore: boolean
+}
+export const getTrashed = (id: string) => api<Trashed>(`/api/nodes/${id}/trashed`)
 export const getTrash = (spaceId: string) => api<BranchList>(`/api/spaces/${spaceId}/trash`)
 export const getArchived = (spaceId: string) => api<BranchList>(`/api/spaces/${spaceId}/archived`)
 export const restoreBranch = (rootId: string) => post<{ movedToTop: boolean }>(`/api/trash/${rootId}/restore`)

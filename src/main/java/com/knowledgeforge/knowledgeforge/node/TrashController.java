@@ -41,6 +41,11 @@ public class TrashController {
         return trash.archivedList(spaceId);
     }
 
+    @GetMapping("/api/nodes/{id}/trashed")
+    public TrashedDTO trashed(@PathVariable String id) {
+        return trash.trashed(id);
+    }
+
     @PostMapping("/api/trash/{trashRootId}/restore")
     public RestoreDTO restore(@PathVariable String trashRootId) {
         return trash.restore(trashRootId);

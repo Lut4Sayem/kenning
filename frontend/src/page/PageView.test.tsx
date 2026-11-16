@@ -15,7 +15,7 @@ import PageView from './PageView'
 window.matchMedia ??= ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
 document.elementsFromPoint ??= () => []
 
-const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn() }))
+const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn() }))
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
@@ -88,10 +88,36 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
   }, 20_000)
 
   it('aPageThatNeverLoadedShowsOnlyTheError', async () => {
-    nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
+    nodesApi.getNode.mockRejectedValue(new ApiError(404, 'Page not found'))
+    nodesApi.getTrashed.mockRejectedValue(new ApiError(404, 'Page not found'))
     const { view } = mount()
     expect((await screen.findByRole('alert')).textContent).toBe('This page does not exist.')
     expect(editorDom(view.container)).toBeNull()
+  })
+
+  // QA-33: a trashed page (or a sub-page of a trashed page) says so and offers Restore, not "does not exist".
+  it('aTrashedPageSaysSoAndRestoresItsBranch', async () => {
+    nodesApi.getNode.mockRejectedValueOnce(new ApiError(404, TRASHED)).mockResolvedValue(NODE)
+    nodesApi.getTrashed.mockResolvedValue({
+      rootId: 'r1', rootTitle: 'Reading list', spaceId: 's1', by: { id: 'u2', name: 'Rafi' }, at: new Date().toISOString(), canRestore: true,
+    })
+    nodesApi.restoreBranch.mockResolvedValue({ movedToTop: false })
+    const { view } = mount()
+    expect((await screen.findByRole('heading', { name: 'This page is in the trash' }))).toBeTruthy()
+    expect(view.container.textContent).toContain('“Reading list” and its sub-pages were moved to the trash by Rafi')
+    expect(screen.queryByText('This page does not exist.')).toBeNull()
+    expect(screen.getByRole('link', { name: 'Open the trash' }).getAttribute('href')).toBe('/s/s1/trash')
+    fireEvent.click(screen.getByRole('button', { name: 'Restore “Reading list”' }))
+    await waitFor(() => expect(nodesApi.restoreBranch).toHaveBeenCalledWith('r1'))
+    expect(await screen.findByLabelText('Page title')).toBeTruthy() // the page opens again
+  })
+
+  it('aViewerSeesNoRestoreButton', async () => {
+    nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
+    nodesApi.getTrashed.mockResolvedValue({ rootId: 'n1', rootTitle: 'Plan', spaceId: 's1', by: null, at: null, canRestore: false })
+    mount()
+    expect((await screen.findByRole('heading', { name: 'This page is in the trash' }))).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Restore/ })).toBeNull()
   })
 })
 

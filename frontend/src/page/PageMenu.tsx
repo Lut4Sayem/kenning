@@ -5,6 +5,7 @@ import {
   archiveNode,
   getSubtreeCount,
   lockNode,
+  restoreBranch,
   trashNode,
   unarchiveNode,
   unlockNode,
@@ -14,6 +15,7 @@ import {
 import MoveToTeamDialog from '../move/MoveToTeamDialog'
 import { confirmTrash } from '../trash/ConfirmTrashDialog'
 import Icon from '../ui/Icon'
+import { toast } from '../ui/Toast'
 import m from './PageMenu.module.css'
 
 interface Props {
@@ -95,6 +97,17 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
         await trashNode(node.id)
         await qc.invalidateQueries({ queryKey: ['tree', node.spaceId] })
         navigate('/')
+        toast(`Moved “${node.title || 'Untitled'}” to trash`, 'info', {
+          action: {
+            label: 'Undo',
+            run: () => void restoreBranch(node.id)
+              .then(async () => {
+                await refresh()
+                navigate(`/p/${node.id}`)
+              })
+              .catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not restore the page.', 'error')),
+          },
+        })
       },
     })
   }

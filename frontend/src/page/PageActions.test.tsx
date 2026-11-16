@@ -5,11 +5,12 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NodeDetail } from '../api/nodes'
 import { ConfirmHost } from '../ui/ConfirmDialog'
+import { ToastHost } from '../ui/Toast'
 import PageMenu from './PageMenu'
 
 const api = vi.hoisted(() => ({
   getSubtreeCount: vi.fn(), trashNode: vi.fn(), archiveNode: vi.fn(), unarchiveNode: vi.fn(),
-  lockNode: vi.fn(), unlockNode: vi.fn(), unpublishNode: vi.fn(), updateNode: vi.fn(),
+  lockNode: vi.fn(), unlockNode: vi.fn(), unpublishNode: vi.fn(), updateNode: vi.fn(), restoreBranch: vi.fn(),
 }))
 vi.mock('../api/nodes', () => api)
 
@@ -32,6 +33,7 @@ function mount(node: NodeDetail, unsaved = false) {
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter initialEntries={['/p/n1']}>
         <ConfirmHost />
+        <ToastHost />
         <Routes>
           <Route path="/p/:id" element={<PageMenu node={node} unsaved={unsaved} />} />
           <Route path="/" element={<p>Home</p>} />
@@ -54,6 +56,19 @@ describe('page menu', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Move to trash' }))
     await waitFor(() => expect(api.trashNode).toHaveBeenCalledWith('n1'))
     expect(await screen.findByText('Home')).toBeTruthy() // the page is gone, so we leave it
+  })
+
+  // QA-33: trashing says what happened and can be undone.
+  it('trashShowsAToastWithUndo', async () => {
+    api.restoreBranch.mockResolvedValue({ movedToTop: false })
+    mount(NODE)
+    await openMenu()
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Move to trash' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Move to trash' }))
+    expect(await screen.findByText('Moved “Methodology” to trash')).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(api.restoreBranch).toHaveBeenCalledWith('n1'))
+    expect(await screen.findByRole('button', { name: 'Page actions' })).toBeTruthy() // back on the page
   })
 
   it('cancellingTheConfirmKeepsThePage', async () => {
@@ -109,7 +124,7 @@ describe('page menu', () => {
     mount({ ...NODE, status: 'ARCHIVED', access: 'VIEW' })
     await openMenu()
     await userEvent.click(screen.getByRole('menuitem', { name: 'Unarchive' }))
-    expect((await screen.findByRole('status')).textContent).toBe('This page was moved to the top level of its space, because its parent was deleted or is in the trash.')
+    expect((await screen.findByText(/^This page was moved/)).textContent).toBe('This page was moved to the top level of its space, because its parent was deleted or is in the trash.')
   })
 
   it('plainUnarchiveShowsNoNotice', async () => {
@@ -118,7 +133,7 @@ describe('page menu', () => {
     await openMenu()
     await userEvent.click(screen.getByRole('menuitem', { name: 'Unarchive' }))
     await waitFor(() => expect(api.unarchiveNode).toHaveBeenCalledWith('n1'))
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByText(/^This page was moved/)).toBeNull()
   })
 
   it('aRefusedActionShowsTheServersMessage', async () => {

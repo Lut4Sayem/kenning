@@ -9,5 +9,6 @@
 .message h1 { font-size: 26px; line-height: 1.25; letter-spacing: -0.01em; }
 .message p { margin: 8px 0 0; font-size: 14px; color: var(--ink-muted); text-wrap: pretty; }
 .action { display: inline-flex; align-items: center; height: 40px; margin-top: 20px; padding: 0 18px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; text-decoration: none; cursor: pointer; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
+.action + .action { margin-left: 8px; }
 .action:hover { background: var(--hover); }
 .action:active { scale: 0.96; }

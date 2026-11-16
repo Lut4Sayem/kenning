@@ -393,6 +393,35 @@ class TrashIT extends NodeIntegrationTest {
         assertTrue(e.getReason().contains("locked"), e.getReason());
     }
 
+    // ---------- QA-33: a trashed page says where it went ----------
+
+    @Test
+    void trashedSubPageNamesItsBranchForRestore() {
+        NodeDTO a = createPage("Reading list");
+        NodeDTO b = child(a, "Attention notes");
+        trash.trash(a.id());
+
+        TrashedDTO t = trash.trashed(b.id());
+        assertEquals(a.id(), t.rootId());
+        assertEquals("Reading list", t.rootTitle());
+        assertEquals(space.getId(), t.spaceId());
+        assertEquals(admin.getId(), t.by().getUserId());
+        assertNotNull(t.at());
+        assertTrue(t.canRestore());
+
+        loginAs(newMember("VIEWER"));
+        assertFalse(trash.trashed(b.id()).canRestore());
+    }
+
+    @Test
+    void trashedInfoOnlyForTrashedPagesTheUserCouldSee() {
+        NodeDTO a = createPage("A");
+        assertEquals(404, failure(() -> trash.trashed(a.id())).getStatusCode().value()); // not in the trash
+        trash.trash(a.id());
+        loginAs(newUser());
+        assertEquals(404, failure(() -> trash.trashed(a.id())).getStatusCode().value()); // outsider learns nothing
+    }
+
     // ---------- seeding ----------
 
     /** One of everything a page can own; returns the GridFS file id. */
