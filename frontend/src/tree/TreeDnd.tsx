@@ -1,5 +1,6 @@
 import {
-  DndContext, KeyboardSensor, PointerSensor, closestCenter, useDroppable, useSensor, useSensors, type Announcements, type DragEndEvent,
+  DndContext, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors, type Announcements,
+  type CollisionDetection, type DragEndEvent,
 } from '@dnd-kit/core'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, useContext, useRef, useState, type ReactNode } from 'react'
@@ -17,6 +18,13 @@ interface Scope {
   onExpand: Map<string, (ids: string[]) => void>
 }
 const ScopeContext = createContext<Scope | null>(null)
+
+// The mouse drops where the pointer is (the grip sits at the row's right edge, so the row's centre is far from it);
+// the keyboard has no pointer and moves between the nearest drop zones.
+const collision: CollisionDetection = (args) => {
+  const hits = pointerWithin(args)
+  return hits.length ? hits : closestCenter(args)
+}
 export const useTreeDnd = () => useContext(ScopeContext)
 
 export default function TreeDnd({ children }: { children: ReactNode }) {
@@ -95,7 +103,7 @@ export default function TreeDnd({ children }: { children: ReactNode }) {
 
   return (
     <ScopeContext.Provider value={scope}>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={{ announcements, screenReaderInstructions }}>
+      <DndContext sensors={sensors} collisionDetection={collision} onDragEnd={onDragEnd} accessibility={{ announcements, screenReaderInstructions }}>
         {message && <p className={s.note} role="alert">{message}</p>}
         {children}
       </DndContext>
