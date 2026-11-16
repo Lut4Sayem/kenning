@@ -15,6 +15,15 @@ describe('toast', () => {
     expect(region.textContent).toBe('')
   })
 
+  it('runsItsActionOnceAndCloses', () => { // Undo after Decline (QA-06)
+    render(<ToastHost />)
+    let undone = 0
+    act(() => toast('Declined Farhan', 'info', { action: { label: 'Undo', run: () => { undone++ } }, ms: 8000 }))
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(undone).toBe(1)
+    expect(screen.queryByText('Declined Farhan')).toBeNull()
+  })
+
   it('doesNothingWithoutAHost', () => {
     expect(() => toast('nobody listens')).not.toThrow()
   })

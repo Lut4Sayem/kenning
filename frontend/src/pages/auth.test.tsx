@@ -1,11 +1,12 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
 import Login from './Login'
 import Register from './Register'
 import { safeNext } from './safeNext'
+import { ToastHost } from '../ui/Toast'
 
 const apiMock = vi.hoisted(() => vi.fn())
 vi.mock('../api/client', async (orig) => ({ ...(await orig<typeof import('../api/client')>()), api: apiMock }))
@@ -50,6 +51,33 @@ describe('Login', () => {
   })
 })
 
+describe('invite links while logged out (QA-04)', () => {
+  const next = '?next=' + encodeURIComponent('/app/join/abc')
+  beforeEach(() => {
+    apiMock.mockImplementation((path: string) => path === '/api/me' ? Promise.reject(new ApiError(401, 'Unauthorized'))
+      : path === '/api/team-invites/abc' ? Promise.resolve({ teamName: 'CSE391 Thesis Group', memberCount: 4, invitedByName: 'Ayesha Rahman', hasPendingRequest: false, isMember: false, teamId: null })
+      : Promise.resolve(null))
+  })
+
+  it('loginNamesTheTeamAndKeepsTheInviteThroughCreateAccount', async () => {
+    render(<MemoryRouter initialEntries={['/login' + next]}><Login /></MemoryRouter>)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Log in to join CSE391 Thesis Group' })).toBeTruthy()
+    expect(screen.getByText('4 members · invited by Ayesha Rahman')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Create an account' }).getAttribute('href')).toBe('/register' + next)
+  })
+
+  it('registerNamesTheTeamToo', async () => {
+    render(<MemoryRouter initialEntries={['/register' + next]}><Register /></MemoryRouter>)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Create an account to join CSE391 Thesis Group' })).toBeTruthy()
+  })
+
+  it('aBrokenInviteLeavesThePlainLogin', async () => {
+    apiMock.mockImplementation(() => Promise.reject(new ApiError(404, 'Invite code not found')))
+    render(<MemoryRouter initialEntries={['/login' + next]}><Login /></MemoryRouter>)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Welcome back' })).toBeTruthy()
+  })
+})
+
 describe('Register', () => {
   it('registerValidatesPasswordLength8', async () => {
     render(<MemoryRouter><Register /></MemoryRouter>)
@@ -60,5 +88,24 @@ describe('Register', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByText('Use at least 8 characters.')).toBeTruthy()
     expect(apiMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything())
+  })
+
+  it('registerSignsYouInAndGoesOnToTheSafeNextWithAWelcome', async () => { // QA-01: the invite survives sign-up
+    render(
+      <MemoryRouter initialEntries={['/register?next=' + encodeURIComponent('/app/join/abc')]}>
+        <ToastHost />
+        <Routes>
+          <Route path="/register" element={<Register />} />
+          <Route path="/join/:code" element={<p>join page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await userEvent.type(screen.getByLabelText('Full name'), 'Tanvir Ahmed')
+    await userEvent.type(screen.getByLabelText('Email'), 't@b.co')
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123')
+    await userEvent.type(screen.getByLabelText('Confirm password'), 'secret123')
+    await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+    expect(await screen.findByText('join page')).toBeTruthy()
+    expect(screen.getByText('Welcome to KnowledgeForge, Tanvir')).toBeTruthy()
   })
 })

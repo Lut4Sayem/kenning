@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Sidebar from './Sidebar'
 
 const api = vi.hoisted(() => ({ getMe: vi.fn(), getMyTeams: vi.fn(), getMySpaces: vi.fn() }))
-vi.mock('../api/spaces', () => api)
+vi.mock('../api/spaces', async (orig) => ({ ...(await orig<typeof import('../api/spaces')>()), ...api }))
 const nodes = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodes)
 
@@ -112,6 +112,21 @@ describe('Sidebar', () => {
 
     expect(nodes.createNode).toHaveBeenCalledWith('s1', { parentId: null })
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/p/new1'))
+  })
+
+  it('viewersGetNoNewPageSubPageOrMoveControls', async () => { // QA-37: the server would answer 403
+    api.getMySpaces.mockResolvedValue([{ ...space('s1', 'Requirements', 't1'), myRole: 'VIEWER' }, space('s2', 'Hardware', 't2'), space('p1', 'My drafts', null)])
+    nodes.getTree.mockImplementation((id: string) => Promise.resolve([{ id: `${id}-a`, parentId: null, title: `Page in ${id}`, rank: 'a', type: 'PAGE', publishState: 'PUBLISHED' }]))
+    renderSidebar()
+    expect(await screen.findByText('Page in s1')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'New page in Requirements' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New sub-page under Page in s1' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Move Page in s1' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'More actions for Requirements' })).toBeTruthy() // Archived and Trash stay readable
+    // editors and the owner of the private space keep them
+    await screen.findByText('Page in s2')
+    expect(screen.getByRole('button', { name: 'New page in Hardware' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Move Page in p1' })).toBeTruthy()
   })
 
   it('spaceMenuHasArchivedAndTrashAndEscReturnsFocus', async () => {

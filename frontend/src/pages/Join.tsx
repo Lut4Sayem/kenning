@@ -7,7 +7,7 @@ import { AuthLayout, FormError, SubmitButton } from './AuthLayout'
 import s from './Join.module.css'
 import { DEFAULT_NEXT } from './safeNext'
 
-type Preview = { teamName: string; memberCount: number; invitedByName: string | null; hasPendingRequest?: boolean; isMember?: boolean; teamId?: string | null }
+export type Preview = { teamName: string; memberCount: number; invitedByName: string | null; hasPendingRequest?: boolean; isMember?: boolean; teamId?: string | null }
 type Me = { fullName?: string; email?: string }
 type Problem = { title: string; message: string; home?: boolean }
 
@@ -15,11 +15,11 @@ const tint = (name: string) => ({ background: `var(--tint-${tintOf(name)}-bg)`, 
 const WAITING = "You've already asked to join. It's waiting for approval."
 const NOT_FOUND: Problem = {
   title: 'This invite doesn’t work',
-  message: 'We couldn’t find this invite. It may have been replaced; ask for a new link.',
+  message: 'We couldn’t find this invite. It may have been replaced or turned off. Ask the team for a new link.',
   home: true,
 }
 
-function TeamBlock({ preview }: { preview: Preview }) {
+export function TeamBlock({ preview }: { preview: Preview }) {
   const n = preview.memberCount
   return (
     <div className={s.team}>

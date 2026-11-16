@@ -24,7 +24,7 @@ export default function Dashboard() {
   const { create, message } = useCreatePage(priv?.id ?? '')
 
   const now = new Date()
-  const first = me.data?.fullName.trim().split(/\s+/)[0]
+  const first = me.data?.fullName?.trim().split(/\s+/)[0]
   const greeting = greetingFor(now.getHours())
   const cards = (recent.data ?? []).slice(0, CARDS)
 

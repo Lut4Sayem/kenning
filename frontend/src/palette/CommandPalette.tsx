@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { useMatch, useNavigate } from 'react-router-dom'
 import { createNode, type NodeSummary } from '../api/nodes'
 import { getRecent, searchAll, type SearchHit } from '../api/search'
-import { getMySpaces } from '../api/spaces'
+import { canEditSpace, getMySpaces } from '../api/spaces'
 import Icon, { type IconName } from '../ui/Icon'
 import s from './CommandPalette.module.css'
 import { toast } from '../ui/Toast'
@@ -103,13 +103,17 @@ function Palette({ onClose }: { onClose: () => void }) {
   // "Current project" = the space whose tree holds the open page, else the private space, else the first one.
   const currentId = trees.find(([, nodes]) => nodes?.some((n) => n.id === activeId))?.[0][1]
   const current = all.find((x) => x.id === currentId) ?? all.find((x) => x.ownerType === 'USER') ?? all[0]
+  // A viewer can't add pages to the current space (QA-37): offer the private space instead.
+  const target = current && canEditSpace(current) ? current : all.find((x) => x.ownerType === 'USER')
   const actions: { id: string; label: string; icon: IconName; run: () => unknown }[] = [
-    ...(!current ? [] : [
-      { id: 'new-page', label: `New page in ${current.name}`, icon: 'plus' as const, run: async () => {
-        const page = await createNode(current.id, {})
-        await qc.invalidateQueries({ queryKey: ['tree', current.id] })
+    ...(!target ? [] : [
+      { id: 'new-page', label: `New page in ${target.name}`, icon: 'plus' as const, run: async () => {
+        const page = await createNode(target.id, {})
+        await qc.invalidateQueries({ queryKey: ['tree', target.id] })
         nav(`/p/${page.id}`)
       } },
+    ]),
+    ...(!current ? [] : [
       { id: 'open-trash', label: 'Open trash', icon: 'trash' as const, run: () => nav(`/s/${current.id}/trash`) },
     ]),
   ].filter((a) => !term || a.label.toLowerCase().includes(lower))

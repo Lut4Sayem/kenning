@@ -18,10 +18,13 @@ export interface MyTeam {
 
 export interface Me {
   id: string
-  fullName: string
+  fullName: string | null // accounts made before names were required can have none (QA-50)
   email: string
   profilePicture?: string | null
 }
+
+/** Viewers can read a team space but not add, move or edit pages in it; the private space is always the owner's (QA-37). */
+export const canEditSpace = (s: MySpace) => s.ownerType === 'USER' || s.myRole === 'ADMIN' || s.myRole === 'EDITOR'
 
 export const getMySpaces = () => api<MySpace[]>('/api/me/spaces')
 export const getMyTeams = () => api<MyTeam[]>('/api/me/teams')

@@ -8,7 +8,8 @@ import Shell from '../app/Shell'
 
 const api = vi.hoisted(() => ({ searchAll: vi.fn(), getRecent: vi.fn() }))
 vi.mock('../api/search', () => api)
-vi.mock('../api/spaces', () => ({
+vi.mock('../api/spaces', async (orig) => ({
+  ...(await orig<typeof import('../api/spaces')>()),
   getMe: async () => ({ id: 'u1', fullName: 'Ann', email: 'a@x.test' }),
   getMyTeams: async () => [],
   getMySpaces: async () => [],

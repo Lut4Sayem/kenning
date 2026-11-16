@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class TeamJoinRequestService {
@@ -28,7 +27,7 @@ public class TeamJoinRequestService {
         this.teamRepository = teamRepository;
     }
 
-    /** `email`: the caller, whose own request state the join page shows. */
+    /** `email`: the caller, whose own request state the join page shows; null when logged out. */
     public InvitePreviewDTO preview(String inviteCode, String email) {
         TeamInvite invite = teamInviteRepository.findByInviteCode(inviteCode)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite code not found"));
@@ -36,7 +35,7 @@ public class TeamJoinRequestService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite code not found"));
         String by = invite.getCreatedBy() == null ? null
                 : userRepository.findById(invite.getCreatedBy()).map(User::getFullName).orElse(null);
-        String userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
+        String userId = email == null ? null : userRepository.findByEmail(email).map(User::getId).orElse(null);
         boolean pending = userId != null && teamJoinRequestRepository.existsByTeamIdAndUserIdAndStatus(team.getId(), userId, "PENDING");
         boolean member = userId != null && teamMemberRepository.existsByTeamIdAndUserId(team.getId(), userId);
         return new InvitePreviewDTO(team.getName(), teamMemberRepository.countByTeamId(team.getId()), by, pending,
@@ -106,56 +105,56 @@ public class TeamJoinRequestService {
     }
 
 
-    public TeamJoinRequest acceptRequest(String teamId, String requestId) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Optional<User> user = userRepository.findByEmail(email);
-        if(user.isEmpty()){throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");}
-        Optional<TeamMember> teamMember= teamMemberRepository.findByTeamIdAndUserId(teamId,user.get().getId());
-        String role= teamMember.map(TeamMember::getRole).orElse("");
-        if(!role.equals("ADMIN")){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to accept this team");
+    /** role: VIEWER (default) or EDITOR, chosen by the admin on Accept (QA-09). Admins are made on the Members tab. */
+    public TeamJoinRequest acceptRequest(String teamId, String requestId, String role) {
+        String newRole = role == null ? "VIEWER" : role;
+        if (!newRole.equals("VIEWER") && !newRole.equals("EDITOR")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose Viewer or Editor");
         }
-        TeamJoinRequest teamJoinRequest = teamJoinRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
-        if (!teamId.equals(teamJoinRequest.getTeamId())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
-        }
-        String status= teamJoinRequest.getStatus();
-        if(!status.equals("PENDING")){
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "The request is not pending anymore");
-        }
+        TeamJoinRequest teamJoinRequest = adminFind(teamId, requestId, "PENDING");
         teamJoinRequest.setStatus("ACCEPTED");
         TeamMember teamMember1 = new TeamMember();
         teamMember1.setTeamId(teamId);
         teamMember1.setUserId(teamJoinRequest.getUserId());
-        teamMember1.setRole("VIEWER");
+        teamMember1.setRole(newRole);
         teamMember1.setJoinedAt(new Date());
         teamMemberRepository.save(teamMember1);
         return  teamJoinRequestRepository.save(teamJoinRequest);
-
-
     }
 
     public TeamJoinRequest rejectRequest(String teamId, String requestId) {
+        TeamJoinRequest teamJoinRequest = adminFind(teamId, requestId, "PENDING");
+        teamJoinRequest.setStatus("REJECTED");
+        return teamJoinRequestRepository.save(teamJoinRequest);
+    }
+
+    /** Undo of Decline (QA-06): the declined request is pending again, unless the person asked anew or got in meanwhile. */
+    public TeamJoinRequest reopenRequest(String teamId, String requestId) {
+        TeamJoinRequest r = adminFind(teamId, requestId, "REJECTED");
+        if (teamJoinRequestRepository.existsByTeamIdAndUserIdAndStatus(teamId, r.getUserId(), "PENDING")
+                || teamMemberRepository.existsByTeamIdAndUserId(teamId, r.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "They asked again or joined in the meantime");
+        }
+        r.setStatus("PENDING");
+        return teamJoinRequestRepository.save(r);
+    }
+
+    /** The team's request with that id, for an admin of the team, in the given status (else 409). */
+    private TeamJoinRequest adminFind(String teamId, String requestId, String status) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Optional<User> user = userRepository.findByEmail(email);
-        if(user.isEmpty()){throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");}
-        Optional<TeamMember> teamMember= teamMemberRepository.findByTeamIdAndUserId(teamId,user.get().getId());
-        String role= teamMember.map(TeamMember::getRole).orElse("");
-        if(!role.equals("ADMIN")){
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to accept this team");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        String role = teamMemberRepository.findByTeamIdAndUserId(teamId, user.getId()).map(TeamMember::getRole).orElse("");
+        if (!role.equals("ADMIN")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can answer join requests");
         }
         TeamJoinRequest teamJoinRequest = teamJoinRequestRepository.findById(requestId)
+                .filter(r -> teamId.equals(r.getTeamId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
-        if (!teamId.equals(teamJoinRequest.getTeamId())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
+        if (!status.equals(teamJoinRequest.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    status.equals("PENDING") ? "The request is not pending anymore" : "Only a declined request can be undone");
         }
-        String status= teamJoinRequest.getStatus();
-        if(!status.equals("PENDING")){
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "The request is not pending anymore");
-        }
-        teamJoinRequest.setStatus("REJECTED");
-
-        return teamJoinRequestRepository.save(teamJoinRequest);
+        return teamJoinRequest;
     }
 }

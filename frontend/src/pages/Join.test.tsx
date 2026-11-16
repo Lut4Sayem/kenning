@@ -67,7 +67,7 @@ describe('Join', () => {
     backend({ preview: new ApiError(404, 'Invite code not found') })
     renderJoin()
     await h1Is('This invite doesn’t work')
-    expect(screen.getByRole('alert').textContent).toMatch(/ask for a new link/)
+    expect(screen.getByRole('alert').textContent).toMatch(/turned off. Ask the team for a new link/)
     expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
     expect(screen.getByRole('link', { name: 'Go to Home' }).getAttribute('href')).toBe('/')
   })

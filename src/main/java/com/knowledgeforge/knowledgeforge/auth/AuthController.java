@@ -17,10 +17,14 @@ public class AuthController {
     private AuthRateLimiter rateLimiter;
 
     @PostMapping("/register")
-    public UserResponse register(@RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+    public UserResponse register(@RequestBody RegisterRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         rateLimiter.check("register", httpRequest.getRemoteAddr());
-        return authService.register(request);
-
+        authService.register(request);
+        // Signed in straight away (QA-01), through the same path as a normal login.
+        AuthService.LoginRequest login = new AuthService.LoginRequest();
+        login.setEmail(request.getEmail());
+        login.setPassword(request.getPassword());
+        return authService.login(login, httpRequest, httpResponse);
     }
 
     @PostMapping("/login")

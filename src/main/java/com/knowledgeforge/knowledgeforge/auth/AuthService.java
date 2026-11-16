@@ -41,6 +41,14 @@ public class AuthService {
 
     public AuthController.UserResponse register(AuthController.RegisterRequest request) {
 
+        if (request.getFullName() == null || request.getFullName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter your full name");
+        }
+        if (request.getEmail() == null || request.getEmail().isBlank() || request.getPassword() == null || request.getPassword().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter an email and a password");
+        }
+        request.setFullName(request.getFullName().trim());
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,

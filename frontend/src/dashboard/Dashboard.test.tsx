@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -54,6 +54,15 @@ describe('home', () => {
     expect(screen.getByText('Sunday, 15 November')).toBeTruthy()
     expect(screen.queryByText(/activity/i)).toBeNull()
     expect(screen.queryByText(/My teams/i)).toBeNull()
+  })
+
+  it('greetsWithoutANameWhenTheAccountHasNone', async () => { // QA-50: older accounts were saved without a name
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 15, 9, 0))
+    api.getMe.mockResolvedValue({ id: 'u1', fullName: null, email: 'l@example.test' })
+    setup()
+    const h1 = await screen.findByRole('heading', { level: 1 })
+    await waitFor(() => expect(h1.textContent).toBe('Good morning')) // the loading skeleton has no text
   })
 
   it('showsAtMostSixCardsWithLocationAndTime', async () => {

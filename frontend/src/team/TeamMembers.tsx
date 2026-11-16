@@ -1,12 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useOutletContext } from 'react-router-dom'
-import { createInvite, getTeam, removeMember, setRole, type Member } from '../api/teams'
+import { createInvite, getInvite, getTeam, removeMember, setRole, turnOffInvite, type Member } from '../api/teams'
 import Avatar from '../ui/Avatar'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import Icon from '../ui/Icon'
 import Popover from '../ui/Popover'
 import RolePill, { roleLabel } from '../ui/RolePill'
+import { timeAgo } from '../ui/timeAgo'
 import JoinRequests from './JoinRequests'
 import type { TeamContext } from './TeamLayout'
 import s from './Members.module.css'
@@ -104,7 +105,10 @@ export function TeamRequests() {
 
 function InviteBox() {
   const { teamId } = useOutletContext<TeamContext>()
-  const [link, setLink] = useState('')
+  const qc = useQueryClient()
+  // The link lives on the server (QA-03): one per team, so a reload shows the same one.
+  const invite = useQuery({ queryKey: ['invite', teamId], queryFn: () => getInvite(teamId) })
+  const link = invite.data ? `${location.origin}/app/join/${invite.data.inviteCode}` : ''
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -118,15 +122,20 @@ function InviteBox() {
     box.current.querySelector<HTMLElement>('button, input')?.focus()
   }, [hash])
 
-  async function create() {
+  async function change(fn: () => Promise<unknown>, failed: string) {
     setBusy(true)
     setError('')
     try {
-      setLink(`${location.origin}/app/join/${(await createInvite(teamId)).inviteCode}`)
+      await fn()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not create the link')
+      setError(e instanceof Error ? e.message : failed)
     }
     setBusy(false)
+  }
+  const create = () => change(async () => qc.setQueryData(['invite', teamId], await createInvite(teamId)), 'Could not create the link')
+  async function turnOff() {
+    if (!(await confirmDialog({ title: 'Turn off the invite link?', body: 'People who have it can no longer ask to join. You can create a new link later.', confirmLabel: 'Turn off', danger: true }))) return
+    await change(async () => { await turnOffInvite(teamId); qc.setQueryData(['invite', teamId], null) }, 'Could not turn off the link')
   }
   async function copy() {
     try {
@@ -149,9 +158,17 @@ function InviteBox() {
             <button type="button" className={s.copy} onClick={() => void copy()}><Icon name={copied ? 'check' : 'copy'} />{copied ? 'Copied' : 'Copy'}</button>
           </div>
           <p className={s.live} aria-live="polite">{copied ? 'Link copied' : ''}</p>
-          <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void create()}>Create a new link</button>
+          {invite.data?.createdAt && (
+            <p className={s.note}>Created{invite.data.createdByName ? ` by ${invite.data.createdByName}` : ''} {timeAgo(invite.data.createdAt)}</p>
+          )}
+          <p className={s.note}>A new link replaces this one. The old link stops working.</p>
+          <div className={s.linkActions}>
+            <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void create()}>Create a new link</button>
+            <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void turnOff()}>Turn off link</button>
+          </div>
         </>
-      ) : <button type="button" className={s.create} disabled={busy} onClick={() => void create()}>Create link</button>}
+      ) : invite.isPending ? <span className={`${t.skel} ${s.skelRow}`} aria-hidden="true" />
+        : <button type="button" className={s.create} disabled={busy} onClick={() => void create()}>Create link</button>}
       {error && <p className={s.error} role="alert">{error}</p>}
     </section>
   )

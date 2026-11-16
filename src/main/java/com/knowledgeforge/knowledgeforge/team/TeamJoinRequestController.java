@@ -3,10 +3,12 @@ package com.knowledgeforge.knowledgeforge.team;
 import com.knowledgeforge.knowledgeforge.auth.AuthRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -22,12 +24,16 @@ public class TeamJoinRequestController {
         this.rateLimiter = rateLimiter;
     }
 
-    /** Preview for the join page. 30 per minute per user and per IP, so codes can't be guessed. */
+    /**
+     * Preview for the join and login pages. 30 per minute per user and per IP, so codes can't be guessed.
+     * Logged out (QA-04): the same public part, no personal state, limited per IP only.
+     */
     @GetMapping("/api/team-invites/{inviteCode}")
     public InvitePreviewDTO preview(@PathVariable String inviteCode, Authentication auth, HttpServletRequest request) {
-        rateLimiter.check("invite-preview-user", auth.getName(), 30);
+        String email = auth == null || auth instanceof AnonymousAuthenticationToken ? null : auth.getName();
+        if (email != null) rateLimiter.check("invite-preview-user", email, 30);
         rateLimiter.check("invite-preview-ip", request.getRemoteAddr(), 30);
-        return teamJoinRequestService.preview(inviteCode, auth.getName());
+        return teamJoinRequestService.preview(inviteCode, email);
     }
 
     @PostMapping("/api/team-invites/{inviteCode}/join")
@@ -42,8 +48,9 @@ public class TeamJoinRequestController {
     }
 
     @PostMapping("/api/teams/{teamId}/join-requests/{requestId}/accept")
-    public ResponseEntity<TeamJoinRequest> acceptRequest(@PathVariable String teamId, @PathVariable String requestId){
-        TeamJoinRequest teamJoinRequest = teamJoinRequestService.acceptRequest(teamId, requestId);
+    public ResponseEntity<TeamJoinRequest> acceptRequest(@PathVariable String teamId, @PathVariable String requestId,
+                                                         @RequestBody(required = false) AcceptRequest body){
+        TeamJoinRequest teamJoinRequest = teamJoinRequestService.acceptRequest(teamId, requestId, body == null ? null : body.role());
         return ResponseEntity.status(200).body(teamJoinRequest);
     }
 
@@ -53,4 +60,11 @@ public class TeamJoinRequestController {
         return ResponseEntity.status(200).body(teamJoinRequest);
     }
 
+    /** Undo of Decline (QA-06). */
+    @PostMapping("/api/teams/{teamId}/join-requests/{requestId}/reopen")
+    public TeamJoinRequest reopenRequest(@PathVariable String teamId, @PathVariable String requestId) {
+        return teamJoinRequestService.reopenRequest(teamId, requestId);
+    }
+
+    public record AcceptRequest(String role) {}
 }

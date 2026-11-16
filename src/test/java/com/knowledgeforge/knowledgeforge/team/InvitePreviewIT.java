@@ -12,7 +12,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /** GET /api/team-invites/{code}: what the join page shows before someone asks to join. */
@@ -71,12 +73,32 @@ class InvitePreviewIT extends NodeIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Invite code not found"));
     }
 
+    /** QA-04: the login page shows which team the link is for; logged out there is no personal state, and joining needs a login. */
     @Test
-    void requiresLogin() throws Exception {
+    void loggedOutSeesTheTeamButCannotJoin() throws Exception {
         code = invite();
         org.springframework.security.core.context.SecurityContextHolder.clearContext(); // the base class logs the admin in on this thread
         mvc.perform(get("/api/team-invites/" + code).with(from("10.8.0.4")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamName").value(team.getName()))
+                .andExpect(jsonPath("$.hasPendingRequest").value(false))
+                .andExpect(jsonPath("$.isMember").value(false))
+                .andExpect(jsonPath("$.teamId").doesNotExist());
+        mvc.perform(post("/api/team-invites/" + code + "/join").with(csrf()).with(from("10.8.0.4")))
                 .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/teams/" + team.getId() + "/invite").with(from("10.8.0.4")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loggedOutCallsShareThePerIpLimitOnly() throws Exception {
+        code = invite();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        for (int i = 0; i < 30; i++) {
+            mvc.perform(get("/api/team-invites/" + code).with(from("10.8.0.20"))).andExpect(status().isOk());
+        }
+        mvc.perform(get("/api/team-invites/" + code).with(from("10.8.0.20"))).andExpect(status().isTooManyRequests());
+        mvc.perform(get("/api/team-invites/" + code).with(from("10.8.0.21"))).andExpect(status().isOk()); // not one shared "anonymous" user
     }
 
     @Test

@@ -29,9 +29,15 @@ export const getTeamSpaces = (id: string) => api<TeamSpace[]>(`/api/teams/${id}/
 export const createTeamSpace = (id: string, name: string, description: string) => api<TeamSpace>(`/api/teams/${id}/spaces`, json('POST', { name, description }))
 export const setRole = (id: string, userId: string, role: string) => api(`/api/teams/${id}/members/${userId}/role`, json('PUT', { role }))
 export const removeMember = (id: string, userId: string) => api(`/api/teams/${id}/members/${userId}`, json('DELETE'))
-export const createInvite = (id: string) => api<{ inviteCode: string }>(`/api/teams/${id}/invite`, json('POST'))
+export interface InviteLink { inviteCode: string; createdAt: string | null; createdByName: string | null }
+/** The team's one invite link (admins); null when it has none (204). */
+export const getInvite = (id: string) => api<InviteLink | null>(`/api/teams/${id}/invite`)
+export const createInvite = (id: string) => api<InviteLink>(`/api/teams/${id}/invite`, json('POST'))
+export const turnOffInvite = (id: string) => api(`/api/teams/${id}/invite`, json('DELETE'))
 export const getJoinRequests = (id: string) => api<JoinRequest[]>(`/api/teams/${id}/join-requests`)
-export const answerJoinRequest = (id: string, rid: string, accept: boolean) => api(`/api/teams/${id}/join-requests/${rid}/${accept ? 'accept' : 'reject'}`, json('POST'))
+/** reopen = undo a decline (QA-06). role on accept: VIEWER or EDITOR (QA-09). */
+export const answerJoinRequest = (id: string, rid: string, action: 'accept' | 'reject' | 'reopen', role?: 'VIEWER' | 'EDITOR') =>
+  api(`/api/teams/${id}/join-requests/${rid}/${action}`, json('POST', role && { role }))
 export const getTeamSummary = (id: string) => api<TeamSummary>(`/api/teams/${id}/summary`)
 export const getTeamPages = (id: string, q: TeamPagesQuery) => {
   const u = new URLSearchParams()

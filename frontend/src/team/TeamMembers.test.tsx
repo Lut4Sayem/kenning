@@ -4,11 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConfirmHost } from '../ui/ConfirmDialog'
+import { ToastHost } from '../ui/Toast'
 import type { TeamContext } from './TeamLayout'
 import TeamMembers, { TeamRequests } from './TeamMembers'
 
 const teams = vi.hoisted(() => ({
   getTeam: vi.fn(), setRole: vi.fn(), removeMember: vi.fn(), answerJoinRequest: vi.fn(), createInvite: vi.fn(),
+  getInvite: vi.fn(), turnOffInvite: vi.fn(),
 }))
 vi.mock('../api/teams', () => teams)
 
@@ -32,6 +34,7 @@ function setup(meId: string, role = 'ADMIN', path = '/teams/t1/members', request
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <ConfirmHost />
+      <ToastHost />
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route element={<Outlet context={ctx(meId, role, requests)} />}>
@@ -48,7 +51,9 @@ beforeEach(() => {
   teams.setRole.mockResolvedValue({})
   teams.removeMember.mockResolvedValue(null)
   teams.answerJoinRequest.mockResolvedValue({})
-  teams.createInvite.mockResolvedValue({ inviteCode: 'abc' })
+  teams.createInvite.mockResolvedValue({ inviteCode: 'abc', createdAt: new Date().toISOString(), createdByName: 'Ada' })
+  teams.getInvite.mockResolvedValue(null)
+  teams.turnOffInvite.mockResolvedValue(null)
 })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
@@ -100,7 +105,7 @@ describe('team members', () => {
     teams.answerJoinRequest.mockReturnValue(new Promise<void>((r) => { finish = r }))
     await userEvent.dblClick(await screen.findByRole('button', { name: 'Accept Cy' }))
     expect(teams.answerJoinRequest).toHaveBeenCalledTimes(1)
-    expect(teams.answerJoinRequest).toHaveBeenCalledWith('t1', 'r1', true)
+    expect(teams.answerJoinRequest).toHaveBeenCalledWith('t1', 'r1', 'accept', 'VIEWER')
     expect((screen.getByRole('button', { name: 'Decline Cy' }) as HTMLButtonElement).disabled).toBe(true)
     finish()
     expect(await screen.findByText('asked 3 hours ago')).toBeTruthy()
@@ -116,6 +121,36 @@ describe('team members', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Copy' }))
     expect(write).toHaveBeenCalledWith(`${location.origin}/app/join/abc`)
     expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy()
+  })
+
+  it('inviteShowsTheTeamsLinkAfterAReloadWithWhoAndWhen_andAnAdminCanTurnItOff', async () => { // QA-03
+    teams.getInvite.mockResolvedValue({ inviteCode: 'old', createdAt: new Date(Date.now() - 2 * 3600_000).toISOString(), createdByName: 'Ada' })
+    setup('u1')
+    expect(((await screen.findByRole('textbox', { name: 'Invite link address' })) as HTMLInputElement).value).toBe(`${location.origin}/app/join/old`)
+    expect(screen.getByText('Created by Ada 2 hours ago')).toBeTruthy()
+    expect(screen.getByText(/The old link stops working/)).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Turn off link' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Turn off' }))
+    expect(teams.turnOffInvite).toHaveBeenCalledWith('t1')
+    expect(await screen.findByRole('button', { name: 'Create link' })).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: 'Invite link address' })).toBeNull()
+  })
+
+  it('declineHappensAtOnceAndCanBeUndoneFromTheToast', async () => { // QA-06
+    setup('u1')
+    await userEvent.click(await screen.findByRole('button', { name: 'Decline Cy' }))
+    expect(teams.answerJoinRequest).toHaveBeenCalledWith('t1', 'r1', 'reject')
+    expect(await screen.findByText('Declined Cy')).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(teams.answerJoinRequest).toHaveBeenLastCalledWith('t1', 'r1', 'reopen')
+    expect(refetchRequests).toHaveBeenCalledTimes(2)
+  })
+
+  it('acceptAddsThemWithTheRoleTheAdminPicked', async () => { // QA-09
+    setup('u1')
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Role for Cy' }), 'EDITOR')
+    await userEvent.click(screen.getByRole('button', { name: 'Accept Cy' }))
+    expect(teams.answerJoinRequest).toHaveBeenCalledWith('t1', 'r1', 'accept', 'EDITOR')
   })
 
   it('viewersSeeTheListOnly', async () => {
