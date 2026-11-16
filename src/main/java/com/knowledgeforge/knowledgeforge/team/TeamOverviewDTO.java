@@ -19,7 +19,7 @@ public final class TeamOverviewDTO {
     }
 
     public record PageItem(String id, String title, String spaceId, String spaceName, PublishState publishState,
-                           String lastEditorName, String lastEditorId, Date updatedAt, String parentTitle) {
+                           String lastEditorName, String lastEditorId, Date updatedAt, String parentTitle, String color) {
     }
 
     public record Pages(List<PageItem> items, int total) {

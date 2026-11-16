@@ -5,15 +5,19 @@ import {
   archiveNode,
   getSubtreeCount,
   lockNode,
+  restoreBranch,
   trashNode,
   unarchiveNode,
   unlockNode,
   unpublishNode,
+  updateNode,
   type NodeDetail,
 } from '../api/nodes'
 import MoveToTeamDialog from '../move/MoveToTeamDialog'
 import { confirmTrash } from '../trash/ConfirmTrashDialog'
 import Icon from '../ui/Icon'
+import { dotColour, PAGE_COLOURS } from '../ui/pageColour'
+import { toast } from '../ui/Toast'
 import m from './PageMenu.module.css'
 
 interface Props {
@@ -39,13 +43,13 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [moving, setMoving] = useState(false)
+  const [moving, setMoving] = useState<'team' | 'space' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
-    const first = root.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')
+    const first = root.current?.querySelector<HTMLElement>('[role^="menuitem"]:not(:disabled)')
     first?.focus()
     const away = (e: MouseEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
     document.addEventListener('mousedown', away)
@@ -84,7 +88,9 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
     )
     items.push({ label: 'Archive', blocked: lockedNote ?? savingNote, run: async () => (await archiveNode(node.id), await refresh()) })
     if (personal) {
-      items.push({ label: 'Move to team', blocked: lockedNote ?? savingNote, run: async () => setMoving(true) })
+      items.push({ label: 'Move to team', blocked: lockedNote ?? savingNote, run: async () => setMoving('team') })
+    } else {
+      items.push({ label: 'Move to…', blocked: lockedNote ?? savingNote, run: async () => setMoving('space') })
     }
     items.push({
       label: 'Move to trash',
@@ -95,6 +101,17 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
         await trashNode(node.id)
         await qc.invalidateQueries({ queryKey: ['tree', node.spaceId] })
         navigate('/')
+        toast(`Moved “${node.title || 'Untitled'}” to trash`, 'info', {
+          action: {
+            label: 'Undo',
+            run: () => void restoreBranch(node.id)
+              .then(async () => {
+                await refresh()
+                navigate(`/p/${node.id}`)
+              })
+              .catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not restore the page.', 'error')),
+          },
+        })
       },
     })
   }
@@ -118,7 +135,7 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
       button.current?.focus()
     } else if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       e.preventDefault()
-      const all = [...(root.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? [])]
+      const all = [...(root.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)') ?? [])]
       const i = all.indexOf(document.activeElement as HTMLElement)
       all[(i + (e.key === 'ArrowDown' ? 1 : -1) + all.length) % all.length]?.focus()
     }
@@ -137,9 +154,21 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
               {item.blocked && <small>{item.blocked}</small>}
             </button>
           ))}
+          {node.status === 'ACTIVE' && (
+            <div role="group" aria-label="Page colour" className={m.colours}>
+              {PAGE_COLOURS.map((c) => {
+                const name = c[0].toUpperCase() + c.slice(1)
+                return (
+                  <button key={c} type="button" role="menuitemradio" aria-checked={(node.color ?? 'gray') === c} aria-label={name}
+                    title={lockedNote ?? name} disabled={!!lockedNote} className={m.swatch} style={{ background: dotColour(c) }}
+                    onClick={() => void choose({ label: name, run: async () => (await updateNode(node.id, { color: c }), await refresh()) })} />
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
-      {moving && <MoveToTeamDialog node={node} onClose={() => { setMoving(false); button.current?.focus() }} />}
+      {moving && <MoveToTeamDialog node={node} mode={moving} onClose={() => { setMoving(null); button.current?.focus() }} />}
       {error && <p role="alert" className={m.error}>{error}</p>}
       {notice && <p role="status" className={m.note}>{notice}</p>}
     </div>

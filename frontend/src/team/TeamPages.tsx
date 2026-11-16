@@ -5,6 +5,7 @@ import { getTeam, getTeamPages, type TeamPageItem, type TeamSpace } from '../api
 import { useCreatePage } from '../tree/useCreatePage'
 import Avatar from '../ui/Avatar'
 import Icon from '../ui/Icon'
+import { dotColour } from '../ui/pageColour'
 import Popover from '../ui/Popover'
 import { timeCompact } from '../ui/timeAgo'
 import { useRemembered } from '../ui/useRemembered'
@@ -173,7 +174,7 @@ function PageRowT({ p }: { p: TeamPageItem }) {
     <tr className={s.row}>
       <td className={s.cTitle}>
         <Link to={`/p/${p.id}`} className={s.titleLink}>
-          <span className={s.dot} aria-hidden="true" />
+          <span className={s.dot} style={{ background: dotColour(p.color) }} aria-hidden="true" />
           <span className={s.title} title={p.title || 'Untitled'}>{p.title || 'Untitled'}</span>
           {p.parentTitle && <span className={s.parent}>in {p.parentTitle}</span>}
         </Link>

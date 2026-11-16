@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import MoveToTeamDialog from './MoveToTeamDialog'
 
-const api = vi.hoisted(() => ({ getSubtreeCount: vi.fn(), getTree: vi.fn(), moveToTeam: vi.fn() }))
+const api = vi.hoisted(() => ({ getSubtreeCount: vi.fn(), getTree: vi.fn(), moveToTeam: vi.fn(), moveNode: vi.fn() }))
 const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn() }))
 vi.mock('../api/nodes', () => api)
 vi.mock('../api/spaces', () => spaces)
@@ -61,5 +61,58 @@ describe('MoveToTeamDialog', () => {
     await userEvent.click(await screen.findByRole('radio', { name: 'Overview' }))
     await userEvent.click(screen.getByRole('button', { name: 'Move to team' }))
     expect((await screen.findByRole('alert')).textContent).toContain("You can't edit this space")
+  })
+})
+
+// QA-12: "Move to…" moves a team page to another space of the same team, with its sub-pages.
+describe('Move to… (within the team)', () => {
+  function mountWithin() {
+    api.getSubtreeCount.mockResolvedValue({ count: 1 })
+    api.getTree.mockImplementation(async (sid: string) => sid === 's1'
+      ? [row('n1', 'Methodology', null), row('c1', 'Sampling', 'n1'), row('x', 'Related work', null)]
+      : [row('e1', 'Pilot', null)])
+    api.moveNode.mockResolvedValue({})
+    spaces.getMySpaces.mockResolvedValue([
+      space('s1', 'Literature Review', 'EDITOR'),
+      space('s2', 'Experiments', 'EDITOR'),
+      space('o1', 'Other team space', 'ADMIN', 't2'),
+    ])
+    const onClose = vi.fn()
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MoveToTeamDialog mode="space" node={{ id: 'n1', spaceId: 's1', title: 'Methodology' }} onClose={onClose} />
+      </QueryClientProvider>,
+    )
+    return onClose
+  }
+
+  it('offersOnlyThisTeamsSpacesStartingOnAnotherOne', async () => {
+    mountWithin()
+    expect(await screen.findByRole('dialog', { name: 'Move “Methodology” to…' })).toBeTruthy()
+    const select = await screen.findByRole('combobox', { name: 'Space' }) as HTMLSelectElement
+    await waitFor(() => expect(select.value).toBe('s2'))
+    expect(screen.queryByRole('option', { name: 'Other team space' })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Team' })).toBeNull()
+    expect(await screen.findByRole('radio', { name: 'Pilot' })).toBeTruthy()
+  })
+
+  it('movesToTheChosenSpaceAndParent', async () => {
+    const onClose = mountWithin()
+    await userEvent.click(await screen.findByRole('radio', { name: 'Pilot' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Move' }))
+    await waitFor(() => expect(api.moveNode).toHaveBeenCalledWith('n1', { parentId: 'e1', spaceId: 's2' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+  })
+
+  it('inItsOwnSpaceThePageAndItsSubPagesAreNotParents', async () => {
+    mountWithin()
+    await screen.findByRole('option', { name: 'Literature Review' })
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Space' }), 's1')
+    expect(await screen.findByRole('radio', { name: 'Related work' })).toBeTruthy()
+    expect(screen.queryByRole('radio', { name: 'Methodology' })).toBeNull()
+    expect(screen.queryByRole('radio', { name: 'Sampling' })).toBeNull()
+    await userEvent.click(screen.getByRole('radio', { name: 'Related work' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Move' }))
+    await waitFor(() => expect(api.moveNode).toHaveBeenCalledWith('n1', { parentId: 'x' })) // same space: no spaceId
   })
 })

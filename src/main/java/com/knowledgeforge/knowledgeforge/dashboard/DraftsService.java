@@ -85,7 +85,7 @@ public class DraftsService {
         List<DraftsDTO.Draft> items = shown.stream().map(n -> {
             Space s = spaceById.get(n.getSpaceId());
             return new DraftsDTO.Draft(n.getId(), n.getTitle(), s.getId(), s.getName(),
-                    s.getTeamId() == null ? null : teamNames.get(s.getTeamId()), n.getUpdatedAt());
+                    s.getTeamId() == null ? null : teamNames.get(s.getTeamId()), n.getUpdatedAt(), n.getColor());
         }).toList();
         return new DraftsDTO(items, mine.size());
     }

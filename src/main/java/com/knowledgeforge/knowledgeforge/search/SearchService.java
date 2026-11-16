@@ -79,13 +79,13 @@ public class SearchService {
             String needle = query.toLowerCase();
             for (Team t : myTeams) {
                 if (t.getName() != null && t.getName().toLowerCase().contains(needle)) {
-                    out.add(new SearchResultDTO("TEAM", null, t.getId(), null, null, t.getName(), "", "", List.of(), null, false, null, null, null, null));
+                    out.add(new SearchResultDTO("TEAM", null, t.getId(), null, null, t.getName(), "", "", List.of(), null, false, null, null, null, null, null));
                 }
             }
             for (Space s : mySpaces) {
                 if (s.getName() != null && s.getName().toLowerCase().contains(needle)) {
                     out.add(new SearchResultDTO("SPACE", null, s.getTeamId(), s.getId(), s.getName(), s.getName(), "", "", List.of(), null, false,
-                            teamName.get(s.getTeamId()), null, null, null));
+                            teamName.get(s.getTeamId()), null, null, null, null));
                 }
             }
         }
@@ -199,7 +199,7 @@ public class SearchService {
         return new SearchResultDTO("PAGE", n.getId(), null, n.getSpaceId(), l.spaceNames().get(n.getSpaceId()),
                 n.getTitle(), path, snippet, tags, n.getPublishState(), n.getStatus() == NodeStatus.ARCHIVED,
                 l.teamNames().get(n.getSpaceId()), openedAt,
-                n.getUpdatedAt(), n.getUpdatedBy() == null ? null : n.getUpdatedBy().getName());
+                n.getUpdatedAt(), n.getUpdatedBy() == null ? null : n.getUpdatedBy().getName(), n.getColor());
     }
 
     /** First text highlight with hits wrapped in mark, else the plain start of the text. Everything is HTML-escaped. */

@@ -8,3 +8,7 @@
 .list small { font-size: 12px; color: var(--ink-muted); }
 .error { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 260px; margin: 0; padding: 8px 12px; border-radius: var(--r-lg); background: var(--error-soft); color: var(--error-ink); font-size: 13px; }
 .note { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 280px; margin: 0; padding: 8px 12px; border-radius: var(--r-lg); background: var(--canvas); box-shadow: var(--shadow-3); font-size: 13px; color: var(--ink-label); }
+.colours { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; padding: 8px 10px 4px; border-top: 1px solid var(--line-soft); }
+.list .swatch { width: 18px; height: 18px; padding: 0; border-radius: 5px; }
+.list .swatch:hover:not(:disabled), .list .swatch:focus-visible { background: inherit; outline: 2px solid var(--line); outline-offset: 2px; }
+.list .swatch[aria-checked='true'] { outline: 2px solid var(--ink); outline-offset: 2px; }

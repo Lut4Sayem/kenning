@@ -9,13 +9,19 @@ import type { NodeDetail } from '../api/nodes'
 import { toBase64 } from '../editor/base64'
 import { clearPendingOf, pendingFor } from '../editor/pendingStore'
 import { SlotsContext } from '../app/ShellSlots'
+import { ToastHost } from '../ui/Toast'
+import { ConfirmHost } from '../ui/ConfirmDialog'
+import { StrictMode } from 'react'
 import PageView from './PageView'
 
 // jsdom has no matchMedia; Mantine asks it for the colour scheme. Nor layout; BlockNote's side menu asks on mouse moves.
 window.matchMedia ??= ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
 document.elementsFromPoint ??= () => []
 
-const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn() }))
+const nodesApi = vi.hoisted(() => ({
+  getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), unpublishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn(),
+  getSubtreeCount: vi.fn(), trashNode: vi.fn(),
+}))
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
@@ -46,15 +52,20 @@ function mount() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const topbar = document.body.appendChild(document.createElement('header'))
   const view = render(
+    <StrictMode>{/* like main.tsx: effects run, clean up and run again on mount */}
     <QueryClientProvider client={qc}>
       <SlotsContext.Provider value={{ topbar, details: null, detailsOpen: false, setDetailsOpen: () => {} }}>
         <MemoryRouter initialEntries={['/p/n1']}>
+          <ToastHost />
+          <ConfirmHost />
           <Routes>
             <Route path="/p/:nodeId" element={<PageView />} />
+            <Route path="/" element={<p>Home</p>} />
           </Routes>
         </MemoryRouter>
       </SlotsContext.Provider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+    </StrictMode>,
   )
   return { qc, view, topbar }
 }
@@ -88,10 +99,36 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
   }, 20_000)
 
   it('aPageThatNeverLoadedShowsOnlyTheError', async () => {
-    nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
+    nodesApi.getNode.mockRejectedValue(new ApiError(404, 'Page not found'))
+    nodesApi.getTrashed.mockRejectedValue(new ApiError(404, 'Page not found'))
     const { view } = mount()
     expect((await screen.findByRole('alert')).textContent).toBe('This page does not exist.')
     expect(editorDom(view.container)).toBeNull()
+  })
+
+  // QA-33: a trashed page (or a sub-page of a trashed page) says so and offers Restore, not "does not exist".
+  it('aTrashedPageSaysSoAndRestoresItsBranch', async () => {
+    nodesApi.getNode.mockRejectedValueOnce(new ApiError(404, TRASHED)).mockResolvedValue(NODE)
+    nodesApi.getTrashed.mockResolvedValue({
+      rootId: 'r1', rootTitle: 'Reading list', spaceId: 's1', by: { id: 'u2', name: 'Rafi' }, at: new Date().toISOString(), canRestore: true,
+    })
+    nodesApi.restoreBranch.mockResolvedValue({ movedToTop: false })
+    const { view } = mount()
+    expect((await screen.findByRole('heading', { name: 'This page is in the trash' }))).toBeTruthy()
+    expect(view.container.textContent).toContain('“Reading list” and its sub-pages were moved to the trash by Rafi')
+    expect(screen.queryByText('This page does not exist.')).toBeNull()
+    expect(screen.getByRole('link', { name: 'Open the trash' }).getAttribute('href')).toBe('/s/s1/trash')
+    fireEvent.click(screen.getByRole('button', { name: 'Restore “Reading list”' }))
+    await waitFor(() => expect(nodesApi.restoreBranch).toHaveBeenCalledWith('r1'))
+    expect(await screen.findByLabelText('Page title')).toBeTruthy() // the page opens again
+  })
+
+  it('aViewerSeesNoRestoreButton', async () => {
+    nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
+    nodesApi.getTrashed.mockResolvedValue({ rootId: 'n1', rootTitle: 'Plan', spaceId: 's1', by: null, at: null, canRestore: false })
+    mount()
+    expect((await screen.findByRole('heading', { name: 'This page is in the trash' }))).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Restore/ })).toBeNull()
   })
 })
 
@@ -141,4 +178,49 @@ describe('page title', () => {
     expect(titleField().value).toBe('Transformers')
     await waitFor(() => expect(nodesApi.updateNode).toHaveBeenLastCalledWith('n1', { title: 'Transformers' }), { timeout: 3000 })
   }, 15_000)
+})
+
+// QA-26: Publish says what happened, with Undo.
+describe('publish', () => {
+  it('showsAToastNamingTheTeamWithUndo', async () => {
+    const draft = { ...NODE, publishState: 'DRAFT' as const }
+    nodesApi.getNode.mockResolvedValue(draft)
+    nodesApi.publishNode.mockResolvedValue(NODE)
+    nodesApi.unpublishNode.mockResolvedValue(draft)
+    spacesApi.getMySpaces.mockResolvedValue([{ id: 's1', name: 'Experiments', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis Group', myRole: 'EDITOR' }])
+    mount()
+    fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    expect(await screen.findByText('Published to Thesis Group')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(nodesApi.unpublishNode).toHaveBeenCalledWith('n1'))
+    expect(await screen.findByRole('button', { name: 'Publish' })).toBeTruthy() // a draft again
+  })
+})
+
+// QA-58: Undo after Move to trash reopened the page from the cache and saved an empty title over the real one.
+describe('title autosave', () => {
+  it('trashThenUndoNeverSendsATitleTheUserDidNotType', async () => {
+    nodesApi.getSubtreeCount.mockResolvedValue({ count: 0 })
+    nodesApi.trashNode.mockResolvedValue({ count: 0 })
+    nodesApi.restoreBranch.mockResolvedValue({ movedToTop: false })
+    nodesApi.updateNode.mockResolvedValue(NODE)
+    mount()
+    fireEvent.click(await screen.findByRole('button', { name: 'Page actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move to trash' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Move to trash' }))
+    expect(await screen.findByText('Home')).toBeTruthy()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect((screen.getByLabelText('Page title') as HTMLTextAreaElement).value).toBe('Plan'))
+    await act(() => new Promise((r) => setTimeout(r, 1500))) // past the 1 s title debounce
+    expect(nodesApi.updateNode).not.toHaveBeenCalled()
+  })
+
+  it('aPageOpenedFromTheCacheDoesNotSaveItsTitle', async () => {
+    nodesApi.updateNode.mockResolvedValue(NODE)
+    mount()
+    await waitFor(() => expect((screen.getByLabelText('Page title') as HTMLTextAreaElement).value).toBe('Plan'))
+    await act(() => new Promise((r) => setTimeout(r, 1500)))
+    expect(nodesApi.updateNode).not.toHaveBeenCalled()
+  })
 })

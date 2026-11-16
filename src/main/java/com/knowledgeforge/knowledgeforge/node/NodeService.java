@@ -1,6 +1,7 @@
 package com.knowledgeforge.knowledgeforge.node;
 
 import com.knowledgeforge.knowledgeforge.access.Access;
+import com.knowledgeforge.knowledgeforge.ai.AiAnswerRepository;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
 import com.knowledgeforge.knowledgeforge.common.UserRef;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
@@ -35,6 +36,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class NodeService {
+    /** DESIGN.md page palette; gray is the default and is stored as null. */
+    static final Set<String> COLORS = Set.of("gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red");
     static final int MAX_DEPTH = 50, MAX_TITLE = 200, MAX_ICON = 16, MAX_TAGS = 20, MAX_TAG = 40, MAX_RECENT = 20;
 
     private final NodeRepository nodes;
@@ -45,10 +48,11 @@ public class NodeService {
     private final MongoTemplate mongo;
     private final NodeVersionService versions;
     private final ActivityLogService activity;
+    private final AiAnswerRepository answers;
 
     public NodeService(NodeRepository nodes, SpaceRepository spaces, NodeContentRepository contents,
                        NodeAccessService access, TeamMemberRepository members, MongoTemplate mongo,
-                       NodeVersionService versions, ActivityLogService activity) {
+                       NodeVersionService versions, ActivityLogService activity, AiAnswerRepository answers) {
         this.nodes = nodes;
         this.spaces = spaces;
         this.contents = contents;
@@ -57,6 +61,7 @@ public class NodeService {
         this.mongo = mongo;
         this.versions = versions;
         this.activity = activity;
+        this.answers = answers;
     }
 
     // ---------- reads ----------
@@ -68,7 +73,7 @@ public class NodeService {
         Map<String, Access> acc = access.resolveAll(access.currentUser().getId(), space, all);
         return all.stream().filter(n -> acc.get(n.getId()).compareTo(Access.TITLE_ONLY) >= 0)
                 .map(n -> new NodeSummaryDTO(n.getId(), n.getParentId(), n.getRank(), n.getTitle(), n.getIcon(),
-                        n.getType(), n.getPublishState(), n.isLocked(), acc.get(n.getId()) == Access.TITLE_ONLY))
+                        n.getType(), n.getPublishState(), n.isLocked(), acc.get(n.getId()) == Access.TITLE_ONLY, n.getColor()))
                 .toList();
     }
 
@@ -137,6 +142,10 @@ public class NodeService {
             node.setIcon(icon.isEmpty() ? null : icon);
         }
         if (req.tags() != null) node.setTags(normalizeTags(req.tags()));
+        if (req.color() != null) {
+            if (!COLORS.contains(req.color())) throw bad("Pick one of the page colours");
+            node.setColor("gray".equals(req.color()) ? null : req.color());
+        }
         node.setUpdatedBy(ref(user));
         node.setUpdatedAt(new Date());
         node = nodes.save(node);
@@ -157,13 +166,24 @@ public class NodeService {
     public NodeDTO move(String id, MoveNodeRequest req) {
         Node node = access.requireEdit(id);
         User user = access.currentUser();
+        String fromSpaceId = node.getSpaceId();
+        String spaceId = req.spaceId() == null ? fromSpaceId : req.spaceId();
+        boolean crossSpace = !spaceId.equals(fromSpaceId);
+        Space dest = space(spaceId);
+        if (crossSpace) {
+            Space from = space(fromSpaceId);
+            if (from.getOwnerType() != Space.OwnerType.TEAM || dest.getOwnerType() != Space.OwnerType.TEAM
+                    || !from.getTeamId().equals(dest.getTeamId())) {
+                throw bad("Pages can only be moved between spaces of the same team");
+            }
+        }
         Node parent = null;
         if (req.parentId() == null) {
-            if (!access.canEditSpace(user.getId(), space(node.getSpaceId()))) throw forbidden("You can't edit this space");
+            if (!access.canEditSpace(user.getId(), dest)) throw forbidden("You can't edit this space");
         } else {
             if (req.parentId().equals(id)) throw bad("Can't move a page inside itself");
             parent = access.requireEdit(req.parentId());
-            if (!node.getSpaceId().equals(parent.getSpaceId())) throw bad("Pages can only be moved within their space");
+            if (!spaceId.equals(parent.getSpaceId())) throw bad("That page is in another space");
             if (parent.getAncestors().contains(id)) throw bad("Can't move a page inside itself");
         }
         List<String> newAncestors = ancestorsUnder(parent);
@@ -173,8 +193,9 @@ public class NodeService {
         if (newAncestors.size() + deepest > MAX_DEPTH) throw bad("Pages can't be nested deeper than " + MAX_DEPTH + " levels");
 
         String parentId = parent == null ? null : parent.getId();
-        List<Node> siblings = nodes.findBySpaceIdAndStatusAndParentIdOrderByRankAsc(node.getSpaceId(), NodeStatus.ACTIVE, parentId)
+        List<Node> siblings = nodes.findBySpaceIdAndStatusAndParentIdOrderByRankAsc(spaceId, NodeStatus.ACTIVE, parentId)
                 .stream().filter(s -> !s.getId().equals(id)).collect(Collectors.toCollection(ArrayList::new));
+        node.setSpaceId(spaceId);
         node.setParentId(parentId);
         node.setAncestors(newAncestors);
         node.setRank(rank(siblings, req.beforeId(), req.afterId()));
@@ -182,12 +203,24 @@ public class NodeService {
         node.setUpdatedAt(new Date());
         node = nodes.save(node);
 
-        // shortcut: no transaction; if this fails the node is moved but descendants keep old ancestors, repeating the move repairs them
+        // shortcut: no transaction; if this fails the node is moved but descendants keep old ancestors (and space),
+        // repeating the move repairs them
         if (!descendants.isEmpty()) {
             List<ObjectId> prefix = newAncestors.stream().map(ObjectId::new).toList();
-            mongo.getCollection("nodes").updateMany(new Document("ancestors", new ObjectId(id)), List.of(new Document("$set",
-                    new Document("ancestors", new Document("$concatArrays", List.of(prefix,
-                            new Document("$slice", List.of("$ancestors", oldDepth, MAX_DEPTH + 1))))))));
+            Document set = new Document("ancestors", new Document("$concatArrays", List.of(prefix,
+                    new Document("$slice", List.of("$ancestors", oldDepth, MAX_DEPTH + 1)))));
+            if (crossSpace) set.append("spaceId", new ObjectId(spaceId));
+            mongo.getCollection("nodes").updateMany(new Document("ancestors", new ObjectId(id)), List.of(new Document("$set", set)));
+        }
+        if (crossSpace) {
+            // The whole branch (trashed and archived sub-pages too) follows; restrictions stay, the team is the same.
+            List<ObjectId> oids = java.util.stream.Stream.concat(java.util.stream.Stream.of(id), descendants.stream().map(Node::getId))
+                    .map(ObjectId::new).toList();
+            Document toDest = new Document("$set", new Document("spaceId", new ObjectId(spaceId)));
+            mongo.getCollection("node_contents").updateMany(new Document("_id", new Document("$in", oids)), toDest);
+            mongo.getCollection("node_versions").updateMany(new Document("nodeId", new Document("$in", oids)), toDest);
+            answers.deleteBySpaceId(fromSpaceId); // saved answers of either space may quote (or miss) the moved pages
+            answers.deleteBySpaceId(spaceId);
         }
         return toDto(node, user);
     }
@@ -258,7 +291,7 @@ public class NodeService {
                 .filter(n -> access.resolve(user.getId(), n).compareTo(Access.VIEW) >= 0)
                 .sorted(java.util.Comparator.comparing(Node::getContentUpdatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
                 .map(n -> new TaggedNodeDTO(n.getId(), n.getSpaceId(), mine.get(n.getSpaceId()).getName(), n.getTitle(),
-                        n.getIcon(), n.getTags(), n.getPublishState()))
+                        n.getIcon(), n.getTags(), n.getPublishState(), n.getColor()))
                 .toList();
     }
 
@@ -333,7 +366,7 @@ public class NodeService {
         return new NodeDTO(n.getId(), n.getSpaceId(), n.getParentId(), n.getTitle(), n.getIcon(), n.getTags(),
                 n.getPublishState(), n.isLocked(), n.getLockedBy(), n.getStatus(), access.resolve(user.getId(), n),
                 access.resolveIgnoringState(user.getId(), n).compareTo(Access.EDIT) >= 0,
-                crumbs, n.getCreatedBy(), n.getUpdatedBy(), n.getContentUpdatedAt());
+                crumbs, n.getCreatedBy(), n.getUpdatedBy(), n.getContentUpdatedAt(), n.getColor());
     }
 
     private static UserRef ref(User u) {

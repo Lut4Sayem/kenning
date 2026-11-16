@@ -7,6 +7,7 @@ import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
 import PageTree from './PageTree'
+import TreeDnd, { useSpaceDrop } from './TreeDnd'
 import s from './Sidebar.module.css'
 import NewTeamDialog from '../team/NewTeamDialog'
 import { useRemembered } from '../ui/useRemembered'
@@ -87,11 +88,47 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
       {newTeam && <NewTeamDialog onClose={() => setNewTeam(false)} />}
 
       <div className={s.foot}>
+        <TrashPicker teams={teams.data ?? []} priv={priv} />
         {me.data && (
           <Link to="/profile" className={s.me}><span className={s.avatar} aria-hidden="true">{initialsOf(name)}</span>{name}</Link>
         )}
       </div>
     </nav>
+  )
+}
+
+/** QA-47: Trash at the bottom (DESIGN.md sidebar item 7): a team's trash (all its spaces) or the private one. */
+function TrashPicker({ teams, priv }: { teams: MyTeam[]; priv?: MySpace }) {
+  const [open, setOpen] = useState(false)
+  const btn = useRef<HTMLButtonElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+
+  useEffect(() => setOpen(false), [pathname])
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const places = [
+    ...teams.map((t) => ({ key: t.teamId, label: t.teamName || 'Untitled team', to: `/teams/${t.teamId}/trash` })),
+    ...(priv ? [{ key: priv.id, label: 'Private', to: `/s/${priv.id}/trash` }] : []),
+  ]
+  if (places.length === 0) return null
+  if (places.length === 1) return <Link to={places[0].to} className={s.navLink}><Icon name="trash" />Trash</Link>
+  return (
+    <div ref={box} className={s.trash} onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); btn.current?.focus() } }}>
+      <button ref={btn} type="button" className={cx(s.navLink, s.navBtn)} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="trash" />Trash
+      </button>
+      {open && (
+        <div className={s.menu} role="menu" aria-label="Open the trash of">
+          {places.map((p) => <Link key={p.key} to={p.to} role="menuitem" className={s.menuItem}>{p.label}</Link>)}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -145,7 +182,8 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
       </div>
       {open && (
         <div className={s.nested}>
-          {spaces.map((sp) => <SpaceSection key={sp.id} space={sp} activeId={activeId} />)}
+          {/* one drag area per team: pages can be dragged into another space of the team (QA-12) */}
+          <TreeDnd>{spaces.map((sp) => <SpaceSection key={sp.id} space={sp} activeId={activeId} />)}</TreeDnd>
           {loaded && spaces.length === 0 && <p className={s.note}>No spaces in this team yet.</p>}
         </div>
       )}
@@ -155,9 +193,10 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
 
 function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }) {
   const [open, toggle] = useRemembered(`kf.sidebar.space.${space.id}`)
+  const drop = useSpaceDrop(space.id)
   return (
     <section className={s.group} data-space={space.id} aria-label={space.name}>
-      <div className={s.groupRow}>
+      <div ref={drop.setNodeRef} className={cx(s.groupRow, drop.isOver && s.dropOver)}>
         <button type="button" className={s.chevBtn} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${space.name}`} onClick={toggle}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>

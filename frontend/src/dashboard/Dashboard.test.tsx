@@ -7,11 +7,12 @@ import Dashboard from './Dashboard'
 import Recent from './Recent'
 
 const api = vi.hoisted(() => ({
-  getRecent: vi.fn(), getDrafts: vi.fn(), getMe: vi.fn(), getMySpaces: vi.fn(), createNode: vi.fn(),
+  getRecent: vi.fn(), getDrafts: vi.fn(), getMe: vi.fn(), getMySpaces: vi.fn(), getMyTeams: vi.fn(), createNode: vi.fn(), createTeam: vi.fn(),
 }))
 vi.mock('../api/search', () => ({ getRecent: api.getRecent }))
 vi.mock('../api/home', () => ({ getDrafts: api.getDrafts }))
-vi.mock('../api/spaces', () => ({ getMe: api.getMe, getMySpaces: api.getMySpaces }))
+vi.mock('../api/spaces', () => ({ getMe: api.getMe, getMySpaces: api.getMySpaces, getMyTeams: api.getMyTeams }))
+vi.mock('../api/teams', () => ({ createTeam: api.createTeam }))
 vi.mock('../api/nodes', () => ({ createNode: api.createNode }))
 // The top bar lives in the shell; here it renders in place so the tests can see it.
 vi.mock('../app/ShellSlots', () => ({ TopBar: ({ children }: { children: React.ReactNode }) => <header>{children}</header> }))
@@ -31,6 +32,7 @@ function setup(path = '/') {
           <Route path="/recent" element={<Recent />} />
           <Route path="/p/:id" element={<p>page opened</p>} />
           <Route path="/search" element={<p>search page</p>} />
+          <Route path="/join/:code" element={<p>join page</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -42,8 +44,38 @@ beforeEach(() => {
   api.getMySpaces.mockResolvedValue([{ id: 'priv', name: 'Private', icon: null, ownerType: 'USER', teamId: null, teamName: null, myRole: null }])
   api.getRecent.mockResolvedValue([])
   api.getDrafts.mockResolvedValue({ items: [], total: 0 })
+  api.getMyTeams.mockResolvedValue([{ teamId: 't1', teamName: 'CSE391', role: 'ADMIN' }])
 })
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers() })
+
+// QA-02: a new user with no team gets a first step on Home.
+describe('home without a team', () => {
+  beforeEach(() => api.getMyTeams.mockResolvedValue([]))
+
+  it('offersCreateATeamAndJoinWithALink', async () => {
+    setup()
+    const start = await screen.findByRole('region', { name: 'Start with your team' })
+    expect(within(start).getByRole('button', { name: 'Create a team' })).toBeTruthy()
+    await userEvent.click(within(start).getByRole('button', { name: 'Create a team' }))
+    expect(await screen.findByRole('dialog', { name: 'New team' })).toBeTruthy()
+  })
+
+  it('joinWithALinkOpensTheJoinScreenForAPastedLinkOrCode', async () => {
+    setup()
+    await userEvent.click(await screen.findByRole('button', { name: 'Join with an invite link' }))
+    await userEvent.type(await screen.findByLabelText('Invite link'), 'https://kf.example/app/join/AbC123')
+    await userEvent.click(screen.getByRole('button', { name: 'Open invite' }))
+    expect(await screen.findByText('join page')).toBeTruthy()
+  })
+
+  it('isNotShownOnceIAmInATeam', async () => {
+    api.getMyTeams.mockResolvedValue([{ teamId: 't1', teamName: 'CSE391', role: 'ADMIN' }])
+    setup()
+    await screen.findByText('Recently visited')
+    await waitFor(() => expect(api.getMyTeams).toHaveBeenCalled())
+    expect(screen.queryByRole('region', { name: 'Start with your team' })).toBeNull()
+  })
+})
 
 describe('home', () => {
   it('greetsByFirstNameWithTheDateAndNoTeamNews', async () => {

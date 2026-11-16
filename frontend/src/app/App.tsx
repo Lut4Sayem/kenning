@@ -42,6 +42,7 @@ export default function App() {
             <Route path="pages" element={<Suspense fallback={null}><TeamPages /></Suspense>} />
             <Route path="members" element={<Suspense fallback={null}><TeamMembers /></Suspense>} />
             <Route path="requests" element={<Suspense fallback={null}><TeamRequests /></Suspense>} />
+            <Route path="trash" element={<Suspense fallback={null}><TrashPage /></Suspense>} />
           </Route>
           <Route path="/profile" element={<Suspense fallback={<ScreenSkeleton />}><Profile /></Suspense>} />
           <Route path="/p/:nodeId" element={<Suspense fallback={<ScreenSkeleton />}><PageView /></Suspense>} />

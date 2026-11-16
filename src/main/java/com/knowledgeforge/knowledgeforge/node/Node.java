@@ -38,6 +38,8 @@ public class Node {
     private String rank;
     private String title = "";
     private String icon;
+    /** One of NodeService.COLORS; null = the default gray (QA-47). */
+    private String color;
     private List<String> tags = new ArrayList<>();
     private NodeStatus status = NodeStatus.ACTIVE;
     private PublishState publishState = PublishState.DRAFT;

@@ -14,5 +14,5 @@ public record SearchResultDTO(String type, String nodeId, String teamId, String 
                               String title, String path, String snippetHtml, List<String> tags,
                               PublishState publishState, boolean archived,
                               String teamName, Date openedAt,
-                              Date updatedAt, String updatedByName) {
+                              Date updatedAt, String updatedByName, String color) {
 }

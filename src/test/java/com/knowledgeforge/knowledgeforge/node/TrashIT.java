@@ -393,6 +393,67 @@ class TrashIT extends NodeIntegrationTest {
         assertTrue(e.getReason().contains("locked"), e.getReason());
     }
 
+    // ---------- QA-33: a trashed page says where it went ----------
+
+    @Test
+    void trashedSubPageNamesItsBranchForRestore() {
+        NodeDTO a = createPage("Reading list");
+        NodeDTO b = child(a, "Attention notes");
+        trash.trash(a.id());
+
+        TrashedDTO t = trash.trashed(b.id());
+        assertEquals(a.id(), t.rootId());
+        assertEquals("Reading list", t.rootTitle());
+        assertEquals(space.getId(), t.spaceId());
+        assertEquals(admin.getId(), t.by().getUserId());
+        assertNotNull(t.at());
+        assertTrue(t.canRestore());
+
+        loginAs(newMember("VIEWER"));
+        assertFalse(trash.trashed(b.id()).canRestore());
+    }
+
+    @Test
+    void trashedInfoOnlyForTrashedPagesTheUserCouldSee() {
+        NodeDTO a = createPage("A");
+        assertEquals(404, failure(() -> trash.trashed(a.id())).getStatusCode().value()); // not in the trash
+        trash.trash(a.id());
+        loginAs(newUser());
+        assertEquals(404, failure(() -> trash.trashed(a.id())).getStatusCode().value()); // outsider learns nothing
+    }
+
+    // ---------- QA-34: the team trash lists every space ----------
+
+    @Test
+    void teamTrashGroupsBranchesBySpace() {
+        Space other = new Space();
+        other.setName("Experiments");
+        other.setTeamId(team.getId());
+        other.setOwnerType(Space.OwnerType.TEAM);
+        other = spaces.save(other);
+        NodeDTO a = createPage("A");
+        NodeDTO b = nodeService.create(other.getId(), new CreateNodeRequest(null, "B", null));
+        NodeDTO c = nodeService.create(other.getId(), new CreateNodeRequest(null, "C", null));
+        trash.trash(a.id());
+        trash.trash(b.id());
+        trash.archive(c.id());
+
+        List<SpaceBranchesDTO> groups = trash.teamTrash(team.getId());
+        assertEquals(2, groups.size());
+        SpaceBranchesDTO exp = groups.stream().filter(g -> g.spaceId().equals(space.getId())).findFirst().orElseThrow();
+        assertEquals("Docs", exp.spaceName());
+        assertEquals(List.of("A"), exp.items().stream().map(BranchDTO::title).toList());
+        assertTrue(exp.canPurge());
+        SpaceBranchesDTO o = groups.stream().filter(g -> g.spaceName().equals("Experiments")).findFirst().orElseThrow();
+        assertEquals(List.of("B"), o.items().stream().map(BranchDTO::title).toList());
+
+        List<SpaceBranchesDTO> archived = trash.teamArchived(team.getId());
+        assertEquals(List.of("C"), archived.stream().flatMap(g -> g.items().stream()).map(BranchDTO::title).toList());
+
+        loginAs(newUser());
+        assertEquals(403, failure(() -> trash.teamTrash(team.getId())).getStatusCode().value());
+    }
+
     // ---------- seeding ----------
 
     /** One of everything a page can own; returns the GridFS file id. */

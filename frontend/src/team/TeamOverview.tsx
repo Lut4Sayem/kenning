@@ -89,7 +89,7 @@ export default function TeamOverview() {
             <>
               <ul className={s.list}>
                 {pages.data.items.map((p) => (
-                  <PageRow key={p.id} id={p.id} title={p.title} location={p.spaceName} status={p.publishState}
+                  <PageRow key={p.id} id={p.id} title={p.title} color={p.color} location={p.spaceName} status={p.publishState}
                     avatar={p.lastEditorName ? { name: p.lastEditorName } : undefined} when={p.updatedAt} />
                 ))}
               </ul>

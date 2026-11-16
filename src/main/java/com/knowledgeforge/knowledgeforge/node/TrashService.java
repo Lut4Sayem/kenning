@@ -15,6 +15,7 @@ import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersion;
 import com.knowledgeforge.knowledgeforge.space.Space;
 import com.knowledgeforge.knowledgeforge.space.SpaceRepository;
+import com.knowledgeforge.knowledgeforge.team.TeamMemberRepository;
 import com.knowledgeforge.knowledgeforge.user.User;
 import com.knowledgeforge.knowledgeforge.user.UserRepository;
 import org.bson.Document;
@@ -54,12 +55,13 @@ public class TrashService {
     private final CommentRepository comments;
     private final AiSummaryRepository summaries;
     private final AiAnswerRepository answers;
+    private final TeamMemberRepository members;
     private final MongoTemplate mongo;
 
     public TrashService(NodeRepository nodes, SpaceRepository spaces, UserRepository users, NodeAccessService access,
                         ActivityLogService activity, AttachmentRepository attachments, AttachmentStorageService storage,
                         CommentRepository comments, AiSummaryRepository summaries, AiAnswerRepository answers,
-                        MongoTemplate mongo) {
+                        TeamMemberRepository members, MongoTemplate mongo) {
         this.nodes = nodes;
         this.spaces = spaces;
         this.users = users;
@@ -70,6 +72,7 @@ public class TrashService {
         this.comments = comments;
         this.summaries = summaries;
         this.answers = answers;
+        this.members = members;
         this.mongo = mongo;
     }
 
@@ -124,6 +127,43 @@ public class TrashService {
 
     public BranchListDTO archivedList(String spaceId) {
         return branches(spaceId, NodeStatus.ARCHIVED);
+    }
+
+    /** Every space of the team that has trashed branches, by space name (QA-34). */
+    public List<SpaceBranchesDTO> teamTrash(String teamId) {
+        return teamBranches(teamId, NodeStatus.TRASHED);
+    }
+
+    public List<SpaceBranchesDTO> teamArchived(String teamId) {
+        return teamBranches(teamId, NodeStatus.ARCHIVED);
+    }
+
+    private List<SpaceBranchesDTO> teamBranches(String teamId, NodeStatus status) {
+        if (!members.existsByTeamIdAndUserId(teamId, access.currentUser().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a part of the team");
+        }
+        // shortcut: one branches() pass per space (a team has a handful); one query over all spaces if teams grow many
+        List<SpaceBranchesDTO> out = new ArrayList<>();
+        for (Space sp : spaces.findByTeamId(teamId)) {
+            BranchListDTO list = branches(sp.getId(), status);
+            if (!list.items().isEmpty()) out.add(new SpaceBranchesDTO(sp.getId(), sp.getName(), list.canPurge(), list.items()));
+        }
+        out.sort(Comparator.comparing(SpaceBranchesDTO::spaceName, String.CASE_INSENSITIVE_ORDER));
+        return out;
+    }
+
+    /** Where a trashed page went (QA-33). 404 unless it is trashed and the user could see it otherwise. */
+    public TrashedDTO trashed(String id) {
+        Node node = nodes.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Page not found"));
+        User user = access.currentUser();
+        if (node.getStatus() != NodeStatus.TRASHED || access.resolveForTrash(user.getId(), node).compareTo(Access.VIEW) < 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Page not found");
+        }
+        Node root = node.getTrashRootId() == null ? node : nodes.findById(node.getTrashRootId()).orElse(node);
+        User who = root.getTrashedBy() == null ? null : users.findById(root.getTrashedBy()).orElse(null);
+        return new TrashedDTO(root.getId(), root.getTitle(), root.getSpaceId(),
+                who == null ? null : new UserRef(who.getId(), who.getDisplayName(), who.getProfilePicture()), root.getTrashedAt(),
+                access.resolveForTrash(user.getId(), root).compareTo(Access.EDIT) >= 0);
     }
 
     private BranchListDTO branches(String spaceId, NodeStatus status) {

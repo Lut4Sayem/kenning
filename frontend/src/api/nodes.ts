@@ -10,6 +10,8 @@ export interface NodeSummary {
   publishState: 'DRAFT' | 'PUBLISHED'
   locked: boolean
   titleOnly: boolean
+  /** A DESIGN.md page colour; null = gray (QA-47). */
+  color?: string | null
 }
 
 export interface NodeDetail {
@@ -30,12 +32,15 @@ export interface NodeDetail {
   createdBy: { id: string; name: string; avatarUrl: string | null } | null
   updatedBy: { id: string; name: string; avatarUrl: string | null } | null
   contentUpdatedAt: string
+  color?: string | null
 }
 
 export interface MoveBody {
   parentId: string | null
   beforeId?: string
   afterId?: string
+  /** Another space of the same team (QA-12); left out = stay in the page's space. */
+  spaceId?: string
 }
 
 export const getTree = (spaceId: string) => api<NodeSummary[]>(`/api/spaces/${spaceId}/tree`)
@@ -45,7 +50,7 @@ export const createNode = (spaceId: string, body: { parentId?: string | null; ti
 
 export const getNode = (id: string) => api<NodeDetail>(`/api/nodes/${id}`)
 
-export const updateNode = (id: string, body: { title?: string; icon?: string; tags?: string[] }) =>
+export const updateNode = (id: string, body: { title?: string; icon?: string; tags?: string[]; color?: string }) =>
   api<NodeDetail>(`/api/nodes/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
 
 export const moveNode = (id: string, body: MoveBody) =>
@@ -70,6 +75,7 @@ export interface TaggedNode {
   icon: string | null
   tags: string[]
   publishState: 'DRAFT' | 'PUBLISHED'
+  color?: string | null
 }
 export const getTagged = (tag: string) => api<TaggedNode[]>(`/api/tags/${encodeURIComponent(tag)}/nodes`)
 
@@ -97,7 +103,24 @@ export const getSubtreeCount = (id: string) => api<{ count: number }>(`/api/node
 export const trashNode = (id: string) => post<{ count: number }>(`/api/nodes/${id}/trash`)
 export const archiveNode = (id: string) => post<{ count: number }>(`/api/nodes/${id}/archive`)
 export const unarchiveNode = (id: string) => post<{ movedToTop: boolean }>(`/api/nodes/${id}/unarchive`)
+/** Where a trashed page went (QA-33); 404 unless it is trashed and I could see it otherwise. */
+export interface Trashed {
+  rootId: string
+  rootTitle: string
+  spaceId: string
+  by: { id: string; name: string } | null
+  at: string | null
+  canRestore: boolean
+}
+export const getTrashed = (id: string) => api<Trashed>(`/api/nodes/${id}/trashed`)
 export const getTrash = (spaceId: string) => api<BranchList>(`/api/spaces/${spaceId}/trash`)
 export const getArchived = (spaceId: string) => api<BranchList>(`/api/spaces/${spaceId}/archived`)
+/** QA-34: one space's branches in the team trash; only spaces with something in them. */
+export interface SpaceBranches extends BranchList {
+  spaceId: string
+  spaceName: string
+}
+export const getTeamTrash = (teamId: string) => api<SpaceBranches[]>(`/api/teams/${teamId}/trash`)
+export const getTeamArchived = (teamId: string) => api<SpaceBranches[]>(`/api/teams/${teamId}/archived`)
 export const restoreBranch = (rootId: string) => post<{ movedToTop: boolean }>(`/api/trash/${rootId}/restore`)
 export const deleteForever = (rootId: string) => api<null>(`/api/trash/${rootId}`, { method: 'DELETE' })

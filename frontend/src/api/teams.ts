@@ -15,6 +15,7 @@ export interface TeamSummary {
 export interface TeamPageItem {
   id: string; title: string; spaceId: string; spaceName: string; publishState: 'DRAFT' | 'PUBLISHED' | null
   lastEditorName: string | null; lastEditorId: string | null; updatedAt: string; parentTitle: string | null
+  color?: string | null
 }
 export interface TeamPages { items: TeamPageItem[]; total: number }
 export interface TeamActivity { actorName: string | null; action: string; targetTitle: string; targetId: string; createdAt: string }

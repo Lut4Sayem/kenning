@@ -10,6 +10,6 @@ import java.util.List;
 public record NodeDTO(String id, String spaceId, String parentId, String title, String icon, List<String> tags,
                       PublishState publishState, boolean locked, String lockedBy, NodeStatus status, Access access,
                       boolean canManage,
-                      List<Crumb> breadcrumbs, UserRef createdBy, UserRef updatedBy, Date contentUpdatedAt) {
+                      List<Crumb> breadcrumbs, UserRef createdBy, UserRef updatedBy, Date contentUpdatedAt, String color) {
     public record Crumb(String id, String title) {}
 }

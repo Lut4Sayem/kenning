@@ -55,6 +55,8 @@ public class SchemaSetup implements ApplicationRunner {
                         .append("title", str(0, 200))
                         .append("icon", new Document("bsonType", java.util.List.of("string", "null")).append("maxLength", 16))
                         .append("tags", arr(str(1, 40), 20))
+                        .append("color", new Document("enum", java.util.Arrays.asList(
+                                "gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red", null)))
                         .append("status", en("ACTIVE", "ARCHIVED", "TRASHED"))
                         .append("publishState", en("DRAFT", "PUBLISHED"))
                         .append("trashedAt", t("date", "null"))
