@@ -1,4 +1,6 @@
-# KnowledgeForge
+# Kenning
+
+A kenning joins two words to make a new meaning. Kenning joins your team's notes, wiki and boards into one place.
 
 A knowledge base for student project teams. Teams own spaces, spaces hold a tree of pages, and pages are edited in a block editor with autosave, version history, comments and file attachments.
 

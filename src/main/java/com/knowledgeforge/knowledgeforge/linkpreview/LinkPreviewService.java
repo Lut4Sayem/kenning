@@ -96,7 +96,7 @@ public class LinkPreviewService {
                 c.setInstanceFollowRedirects(false);
                 c.setConnectTimeout(3000);
                 c.setReadTimeout(5000);
-                c.setRequestProperty("User-Agent", "KnowledgeForgeLinkPreview/1.0");
+                c.setRequestProperty("User-Agent", "KenningLinkPreview/1.0");
                 c.setRequestProperty("Accept", "text/html");
                 int code = c.getResponseCode();
                 if (code >= 300 && code < 400) {

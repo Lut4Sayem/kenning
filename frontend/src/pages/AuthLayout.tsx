@@ -1,5 +1,6 @@
 import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import preview from '../assets/auth-preview.webp'
+import mark from '../assets/brand/kenning-mark-small.svg'
 import Icon from '../ui/Icon'
 import s from './AuthLayout.module.css'
 
@@ -8,12 +9,8 @@ export function AuthLayout({ title, subtitle, alt, lead, children }: { title: st
     <div className={s.split}>
       <div className={s.left}>
         <header className={s.brand}>
-          <span className={s.logo}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-              <path d="M4 2.5h8v11l-4-2.8-4 2.8z" />
-            </svg>
-          </span>
-          KnowledgeForge
+          <img className={s.logo} src={mark} alt="" width={30} height={30} />
+          kenning
         </header>
         <main className={s.formcol}>
           {lead}
@@ -23,7 +20,7 @@ export function AuthLayout({ title, subtitle, alt, lead, children }: { title: st
           {alt && <p className={s.alt}>{alt}</p>}
         </main>
         <footer className={s.foot}>
-          <span>&copy; {new Date().getFullYear()} KnowledgeForge</span>
+          <span>&copy; {new Date().getFullYear()} Kenning</span>
           <a href="https://github.com/Lut4Sayem/knowledgeforge-ai" target="_blank" rel="noopener noreferrer">
             Source on GitHub
           </a>

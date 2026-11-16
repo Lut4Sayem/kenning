@@ -1,12 +1,12 @@
 ---
-name: KnowledgeForge design system
+name: Kenning design system
 status: final 2026-11-15 (replaces the 2026-11-03 "Notion-warm" version). Every screen below has an approved mockup.
 references: Linear (structure), Miro (palette and warmth), Notion (per-page colour)
 ---
 
-# KnowledgeForge Design System
+# Kenning Design System
 
-This file is the single source of truth for how KnowledgeForge looks and behaves.
+This file is the single source of truth for how Kenning looks and behaves.
 If code and this file disagree, this file wins. Change this file first, then the code.
 
 ## 0. Decisions (2026-11-15)
@@ -60,7 +60,7 @@ All colours go through these CSS variables. No raw colour values in components.
 |---|---|---|
 | `--primary` | `#1c1b17` | Primary button, checked boxes, focus outline |
 | `--on-primary` | `#ffffff` | Text on primary |
-| `--accent` | `#ffd23f` | The one accent: logo glyph, focus ring glow, selected picker, highlights |
+| `--accent` | `#ffd23f` | The one accent: logo dots, focus ring glow, selected picker, highlights |
 | `--accent-soft` | `#ffefb0` | Own avatar, soft highlights |
 | `--accent-ink` | `#5a4500` | Text on accent-soft |
 | `--link` | `#3554d1` | Inline links, "View all", always underlined in prose |
@@ -203,7 +203,7 @@ Borders for structure (list rows, tabs, inputs), shadows for lift (panel, active
 - **Profile:** two cards: You (88px avatar with camera button, upload/remove, name, read-only email, Save) and My teams (team tile, name, role pill).
 - **Inbox (Release 1b):** segmented Unread · All · Mentions, team filter, notifications grouped Today / Earlier on a `--surface-card` panel, unread rows soft yellow with a dot, a type tile (mention, comment, join request, publish), Mark all read, Load more.
 - **Version history:** opens in the right panel. Versions grouped by day (avatar, name, kind: Autosaved / Published / Restored, time); the current one has a "Current" pill. Selecting one shows a bar above the page ("Viewing version 11 by …") and highlights changes in the page, one colour per author with a legend at the top of the panel. Restore this version (primary) and Compare with current at the bottom.
-- **Login / register / join:** split screen, no sidebar. Left half white: brand top left, footer bottom ("© year KnowledgeForge" left, "Source on GitHub" right), a 380px left-aligned form column centred vertically: `title-login` heading, one line, 44px inputs, full-width black 46px button, link to the other auth page. Right half `--ground` with a real app preview (shell + page) scaled to 72%, offset 64px from the left and top and bleeding off the edges, level-2 shadow, not interactive. Join leads with the team (52px tile, name, "N members · invited by …"), then who you are signed in as ("Not you?"), Ask to join, and one line on what happens next; it needs `GET /api/team-invites/{code}` and falls back to "Join a team" without it.
+- **Login / register / join:** split screen, no sidebar. Left half white: brand top left (the Kenning mark, small version under 32px, plus the live-text wordmark "kenning" in Outfit 600), footer bottom ("© year Kenning" left, "Source on GitHub" right), a 380px left-aligned form column centred vertically: `title-login` heading, one line, 44px inputs, full-width black 46px button, link to the other auth page. Right half `--ground` with a real app preview (shell + page) scaled to 72%, offset 64px from the left and top and bleeding off the edges, level-2 shadow, not interactive. Join leads with the team (52px tile, name, "N members · invited by …"), then who you are signed in as ("Not you?"), Ask to join, and one line on what happens next; it needs `GET /api/team-invites/{code}` and falls back to "Join a team" without it.
 
 ## 8. Bounded lists (non-negotiable)
 
