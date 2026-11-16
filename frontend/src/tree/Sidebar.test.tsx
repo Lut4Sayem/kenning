@@ -41,6 +41,13 @@ afterEach(() => {
 })
 
 describe('Sidebar', () => {
+  it('searchButtonIsNamedSearchWithTheShortcutAsAHint', async () => {
+    renderSidebar()
+    // QA-51: the shortcut text made the name "Search Ctrl K"
+    const search = await screen.findByRole('button', { name: 'Search' })
+    expect(search.getAttribute('aria-keyshortcuts')).toBe('Control+K')
+  })
+
   it('listsEveryTeamWithItsSpacesAndThePrivateSpace', async () => {
     renderSidebar()
 

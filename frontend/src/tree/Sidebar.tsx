@@ -53,7 +53,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
       </div>
 
       <div className={s.scroll}>
-      <button type="button" className={s.search} onClick={onSearch}>
+      <button type="button" className={s.search} aria-label="Search" aria-keyshortcuts="Control+K" onClick={onSearch}>
         <Icon name="search" /><span>Search</span><kbd className={s.kbd}>Ctrl K</kbd>
       </button>
 
