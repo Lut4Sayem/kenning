@@ -11,7 +11,7 @@ async function newPage(page: Page, title: string): Promise<string> {
   await expect(page.locator('.bn-editor[contenteditable="true"]')).toBeVisible()
   await page.getByLabel('Page title').fill(title)
   await page.getByLabel('Page title').press('Enter')
-  await expect(page.getByRole('navigation', { name: 'Workspace' }).getByRole('link', { name: title })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Workspace' }).getByRole('treeitem', { name: title })).toBeVisible()
   return page.url()
 }
 
@@ -32,7 +32,7 @@ test('offline edits survive in-app navigation and are sent when back online', as
   await page.keyboard.type(' Typed offline.')
   await expect(saveState(page)).toHaveText('Offline: changes kept on this device')
 
-  await sidebar.getByRole('link', { name: 'Related work' }).click() // in-app, no page load
+  await sidebar.getByRole('treeitem', { name: 'Related work' }).click() // in-app, no page load
   await expect(page).not.toHaveURL(methodology)
   await context.setOffline(false)
 
@@ -46,7 +46,7 @@ test('offline edits survive in-app navigation and are sent when back online', as
   }).toPass({ timeout: 15_000 })
   await other.close()
 
-  await sidebar.getByRole('link', { name: 'Methodology' }).click()
+  await sidebar.getByRole('treeitem', { name: 'Methodology' }).click()
   await expect(page).toHaveURL(methodology)
   await expect(editor(page)).toContainText('Saved online. Typed offline.')
   await expect(saveState(page)).toHaveText('Saved')

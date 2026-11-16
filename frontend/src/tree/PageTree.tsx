@@ -36,9 +36,20 @@ interface Props {
   activeId?: string
   /** false for viewers: no New sub-page and no drag grip (QA-37) */
   canEdit?: boolean
+  /** Name of the tree for screen readers, e.g. "Pages in Literature Review" */
+  label?: string
 }
 
-export default function PageTree({ spaceId, activeId, canEdit = true }: Props) {
+/** The pages a reader can reach with the arrow keys: every top-level page and the children of open ones, top to bottom. */
+function visibleIds(list: TreeNode[], expanded: Set<string>, out: string[] = []): string[] {
+  for (const n of list) {
+    out.push(n.id)
+    if (expanded.has(n.id)) visibleIds(n.children, expanded, out)
+  }
+  return out
+}
+
+export default function PageTree({ spaceId, activeId, canEdit = true, label = 'Pages' }: Props) {
   const qc = useQueryClient()
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['tree', spaceId], queryFn: () => getTree(spaceId) })
   const nodes = useMemo<NodeSummary[]>(() => data ?? [], [data])
@@ -76,6 +87,44 @@ export default function PageTree({ spaceId, activeId, canEdit = true }: Props) {
       saveExpanded(spaceId, next)
       return next
     })
+
+  // QA-45: the tree is one Tab stop (roving tabindex, WAI-ARIA tree): the focused row, else the open page, else the first.
+  const [focusId, setFocusId] = useState<string | null>(null)
+  const visible = visibleIds(tree, expanded)
+  const tabStop = [focusId, activeId].find((id) => id && visible.includes(id)) ?? visible[0]
+  const byId = useMemo(() => {
+    const m = new Map<string, TreeNode>()
+    const walk = (list: TreeNode[]) => list.forEach((n) => { m.set(n.id, n); walk(n.children) })
+    walk(tree)
+    return m
+  }, [tree])
+
+  function onTreeKey(e: React.KeyboardEvent<HTMLUListElement>) {
+    const id = (e.target as HTMLElement).getAttribute('data-id')
+    const node = id ? byId.get(id) : undefined
+    if (!node) return // a row's buttons keep their own keys (Space on the grip starts a keyboard drag)
+    const items = [...e.currentTarget.querySelectorAll<HTMLElement>('[role="treeitem"]')]
+    const at = items.indexOf(e.target as HTMLElement)
+    const open = expanded.has(node.id) && node.children.length > 0
+    let next: HTMLElement | undefined
+    switch (e.key) {
+      case 'ArrowDown': next = items[at + 1]; break
+      case 'ArrowUp': next = items[at - 1]; break
+      case 'Home': next = items[0]; break
+      case 'End': next = items[items.length - 1]; break
+      case 'ArrowRight':
+        if (node.children.length && !open) toggle(node.id)
+        else if (open) next = items[at + 1]
+        break
+      case 'ArrowLeft':
+        if (open) toggle(node.id)
+        else next = items.find((el) => el.getAttribute('data-id') === node.parentId)
+        break
+      default: return
+    }
+    e.preventDefault()
+    next?.focus()
+  }
 
   const newPage = (parentId: string) => create(parentId, () => expand([parentId])) // top-level pages come from the space row's +
 
@@ -131,9 +180,10 @@ export default function PageTree({ spaceId, activeId, canEdit = true }: Props) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={{ announcements, screenReaderInstructions }}>
       {message && <p className={s.note} role="alert">{message}</p>}
-      <ul className={s.tree}>
+      <ul className={s.tree} role="tree" aria-label={label} onKeyDown={onTreeKey}>
         {tree.map((node) => (
-          <Row key={node.id} node={node} depth={0} activeId={activeId} expanded={expanded} onToggle={toggle} onNew={newPage} canEdit={canEdit} />
+          <Row key={node.id} node={node} depth={0} activeId={activeId} expanded={expanded} onToggle={toggle} onNew={newPage} canEdit={canEdit}
+            tabStop={tabStop} onFocusRow={setFocusId} />
         ))}
       </ul>
       <TopLevelDrop spaceId={spaceId} />
@@ -149,43 +199,50 @@ interface RowProps {
   onToggle: (id: string) => void
   onNew: (parentId: string) => void
   canEdit: boolean
+  /** The one row in Tab order; its New sub-page and grip buttons follow it */
+  tabStop?: string
+  onFocusRow: (id: string) => void
 }
 
-function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit }: RowProps) {
+function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabStop, onFocusRow }: RowProps) {
   const drag = useDraggable({ id: node.id })
   // A page can't be dropped on its own row: those drops were no-ops announced as "inside itself"
   const into = useDroppable({ id: `in:${node.id}`, disabled: drag.isDragging })
   const after = useDroppable({ id: `after:${node.id}`, disabled: drag.isDragging })
   const open = expanded.has(node.id)
   const title = node.title || 'Untitled'
+  const tab = node.id === tabStop ? 0 : -1
   return (
-    <li className={cx(s.item, drag.isDragging && s.dragging)}>
+    <li role="none" className={cx(s.item, drag.isDragging && s.dragging)}>
       <div
         ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el) }}
         className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
         style={{ paddingLeft: depth * 12 }}
       >
-        <button type="button" className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
+        <button type="button" tabIndex={-1} className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
         {/* shortcut: page colour field comes later, every page shows the gray dot */}
         <span className={s.dot} aria-hidden="true" />
-        <Link to={`/p/${node.id}`} className={s.link} aria-current={node.id === activeId ? 'page' : undefined}>
+        <Link to={`/p/${node.id}`} className={s.link} aria-current={node.id === activeId ? 'page' : undefined}
+          role="treeitem" data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
+          onFocus={() => onFocusRow(node.id)}>
           {title}
         </Link>
         {canEdit && (
           <>
-            <button type="button" className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
+            <button type="button" tabIndex={tab} className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
             <button type="button" className={cx(s.btn, s.grip)} aria-label={`Move ${title}`}
-              {...drag.listeners} {...drag.attributes}><Icon name="grip" /></button>
+              {...drag.listeners} {...drag.attributes} tabIndex={tab}><Icon name="grip" /></button>
           </>
         )}
       </div>
       {open && node.children.length > 0 && (
-        <ul className={s.tree}>
+        <ul className={s.tree} role="group">
           {node.children.map((c) => (
-            <Row key={c.id} node={c} depth={depth + 1} activeId={activeId} expanded={expanded} onToggle={onToggle} onNew={onNew} canEdit={canEdit} />
+            <Row key={c.id} node={c} depth={depth + 1} activeId={activeId} expanded={expanded} onToggle={onToggle} onNew={onNew} canEdit={canEdit}
+              tabStop={tabStop} onFocusRow={onFocusRow} />
           ))}
         </ul>
       )}

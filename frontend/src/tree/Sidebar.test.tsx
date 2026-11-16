@@ -75,11 +75,11 @@ describe('Sidebar', () => {
     nodes.getTree.mockImplementation((id: string) =>
       Promise.resolve(id === 's1' ? [{ id: 'a', parentId: null, rank: 'V', title: 'Use cases', icon: null, type: 'PAGE', publishState: 'PUBLISHED', locked: false, titleOnly: false }] : []))
     renderSidebar()
-    expect(await screen.findByRole('link', { name: 'Use cases' })).toBeTruthy()
+    expect(await screen.findByRole('treeitem', { name: 'Use cases' })).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: 'Collapse Requirements' }))
 
     expect(localStorage.getItem('kf.sidebar.space.s1')).toBe('0')
-    expect(screen.queryByRole('link', { name: 'Use cases' })).toBeNull()
+    expect(screen.queryByRole('treeitem', { name: 'Use cases' })).toBeNull()
   })
 
   it('hasNoPerSpaceNewPageArchivedOrTrashRows', async () => {

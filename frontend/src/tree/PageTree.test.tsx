@@ -60,7 +60,7 @@ describe('PageTree', () => {
     ])
     renderTree()
 
-    await screen.findByRole('link', { name: 'Alpha' })
+    await screen.findByRole('treeitem', { name: 'Alpha' })
     expect(screen.queryByText('Draft')).toBeNull()
   })
 
@@ -84,5 +84,42 @@ describe('PageTree', () => {
     await waitFor(() => expect(said.join(' | ')).toContain('Methodology was not moved.'))
     heard.disconnect()
     expect(said.join(' | ')).not.toMatch(/6afa2fb4|inside Methodology/)
+  })
+
+  it('treeIsOneTabStopWithArrowKeys', async () => {
+    // QA-45: every row was three Tab stops and the arrow keys did nothing
+    nodesApi.getTree.mockResolvedValue([page('a', 'Alpha'), page('a1', 'Alpha child', 'a'), page('b', 'Beta', null, 'W')])
+    renderTree()
+    const alpha = await screen.findByRole('treeitem', { name: 'Alpha' })
+    expect(screen.getByRole('tree')).toBeTruthy()
+    expect(screen.getAllByRole('treeitem').filter((e) => e.tabIndex === 0)).toEqual([alpha])
+
+    await userEvent.tab()
+    expect(document.activeElement).toBe(alpha)
+    await userEvent.keyboard('{ArrowDown}')
+    expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Beta' }))
+    await userEvent.keyboard('{ArrowUp}{ArrowRight}')
+    expect(alpha.getAttribute('aria-expanded')).toBe('true')
+    await userEvent.keyboard('{ArrowRight}')
+    expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Alpha child' }))
+    await userEvent.keyboard('{ArrowLeft}')
+    expect(document.activeElement).toBe(alpha)
+    await userEvent.keyboard('{ArrowLeft}')
+    expect(alpha.getAttribute('aria-expanded')).toBe('false')
+    await userEvent.keyboard('{End}')
+    expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Beta' }))
+    await userEvent.keyboard('{Home}')
+    expect(document.activeElement).toBe(alpha)
+
+    // The focused row's actions come next on Tab, then the tree is left: no other row adds stops.
+    await userEvent.tab()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'New sub-page under Alpha' }))
+    await userEvent.tab()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Move Alpha' }))
+    await userEvent.tab()
+    expect(document.activeElement?.closest('[role="tree"]')).toBeNull()
+
+    await userEvent.click(alpha)
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/p/a'))
   })
 })

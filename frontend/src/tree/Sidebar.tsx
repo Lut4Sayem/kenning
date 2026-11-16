@@ -78,7 +78,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
             <h2 className={s.label}>Private</h2>
             <SpaceActions space={priv} />
           </div>
-          <PageTree spaceId={priv.id} activeId={activeId} />
+          <PageTree spaceId={priv.id} activeId={activeId} label="Private pages" />
         </section>
       )}
 
@@ -164,7 +164,7 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
         <Link to={`/s/${space.id}`} className={s.groupLink}>{space.name}</Link>
         <SpaceActions space={space} />
       </div>
-      {open && <PageTree spaceId={space.id} activeId={activeId} canEdit={canEditSpace(space)} />}
+      {open && <PageTree spaceId={space.id} activeId={activeId} canEdit={canEditSpace(space)} label={`Pages in ${space.name}`} />}
     </section>
   )
 }
