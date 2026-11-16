@@ -38,6 +38,7 @@ public class SchemaSetup implements ApplicationRunner {
         setupLocks();
         setupSpaces();
         setupJoinRequests();
+        setupInvites();
     }
 
     // ---------- collections ----------
@@ -183,6 +184,24 @@ public class SchemaSetup implements ApplicationRunner {
     private void setupJoinRequests() {
         mongo.indexOps("team_join_requests").createIndex(new Index().named("teamId_userId_status")
                 .on("teamId", Sort.Direction.ASC).on("userId", Sort.Direction.ASC).on("status", Sort.Direction.ASC));
+    }
+
+    /**
+     * One invite link per team (QA-03). Before, every "Create link" added a row and all stayed valid:
+     * keep each team's newest (missing createdAt counts as oldest), delete the rest, then the unique index holds the rule.
+     */
+    private void setupInvites() {
+        var coll = mongo.getCollection("teamInvites");
+        java.util.Set<Object> seen = new java.util.HashSet<>();
+        java.util.List<Object> revoked = new java.util.ArrayList<>();
+        for (Document d : coll.find().sort(new Document("createdAt", -1).append("_id", -1))) {
+            if (!seen.add(d.get("teamId"))) revoked.add(d.get("_id"));
+        }
+        if (!revoked.isEmpty()) {
+            coll.deleteMany(new Document("_id", new Document("$in", revoked)));
+            LoggerFactory.getLogger(SchemaSetup.class).info("Revoked {} extra invite links", revoked.size());
+        }
+        mongo.indexOps("teamInvites").createIndex(new Index().named("teamId_unique").on("teamId", Sort.Direction.ASC).unique());
     }
 
     // ---------- helpers ----------

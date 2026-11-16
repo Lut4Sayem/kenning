@@ -5,4 +5,6 @@ import java.util.Optional;
 
 public interface TeamInviteRepository extends MongoRepository<TeamInvite, String> {
     Optional<TeamInvite> findByInviteCode(String inviteCode);
+    Optional<TeamInvite> findByTeamId(String teamId);
+    void deleteByTeamId(String teamId);
 }

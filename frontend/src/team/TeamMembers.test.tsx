@@ -9,6 +9,7 @@ import TeamMembers, { TeamRequests } from './TeamMembers'
 
 const teams = vi.hoisted(() => ({
   getTeam: vi.fn(), setRole: vi.fn(), removeMember: vi.fn(), answerJoinRequest: vi.fn(), createInvite: vi.fn(),
+  getInvite: vi.fn(), turnOffInvite: vi.fn(),
 }))
 vi.mock('../api/teams', () => teams)
 
@@ -48,7 +49,9 @@ beforeEach(() => {
   teams.setRole.mockResolvedValue({})
   teams.removeMember.mockResolvedValue(null)
   teams.answerJoinRequest.mockResolvedValue({})
-  teams.createInvite.mockResolvedValue({ inviteCode: 'abc' })
+  teams.createInvite.mockResolvedValue({ inviteCode: 'abc', createdAt: new Date().toISOString(), createdByName: 'Ada' })
+  teams.getInvite.mockResolvedValue(null)
+  teams.turnOffInvite.mockResolvedValue(null)
 })
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
@@ -116,6 +119,19 @@ describe('team members', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Copy' }))
     expect(write).toHaveBeenCalledWith(`${location.origin}/app/join/abc`)
     expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy()
+  })
+
+  it('inviteShowsTheTeamsLinkAfterAReloadWithWhoAndWhen_andAnAdminCanTurnItOff', async () => { // QA-03
+    teams.getInvite.mockResolvedValue({ inviteCode: 'old', createdAt: new Date(Date.now() - 2 * 3600_000).toISOString(), createdByName: 'Ada' })
+    setup('u1')
+    expect(((await screen.findByRole('textbox', { name: 'Invite link address' })) as HTMLInputElement).value).toBe(`${location.origin}/app/join/old`)
+    expect(screen.getByText('Created by Ada 2 hours ago')).toBeTruthy()
+    expect(screen.getByText(/The old link stops working/)).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Turn off link' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Turn off' }))
+    expect(teams.turnOffInvite).toHaveBeenCalledWith('t1')
+    expect(await screen.findByRole('button', { name: 'Create link' })).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: 'Invite link address' })).toBeNull()
   })
 
   it('viewersSeeTheListOnly', async () => {

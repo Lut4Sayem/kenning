@@ -15,7 +15,7 @@ const tint = (name: string) => ({ background: `var(--tint-${tintOf(name)}-bg)`, 
 const WAITING = "You've already asked to join. It's waiting for approval."
 const NOT_FOUND: Problem = {
   title: 'This invite doesn’t work',
-  message: 'We couldn’t find this invite. It may have been replaced; ask for a new link.',
+  message: 'We couldn’t find this invite. It may have been replaced or turned off. Ask the team for a new link.',
   home: true,
 }
 
