@@ -13,7 +13,7 @@ import Editor, { useKfEditor } from '../editor/Editor'
 import { extractText } from '../editor/extractText'
 import SaveIndicator, { ReadOnlyTag, SaveNotice } from '../editor/SaveIndicator'
 import { useEndSessionOnLeave } from '../editor/session'
-import SoftLockBanner, { useEditLock, type LockMode } from '../editor/SoftLockBanner'
+import SoftLockBanner, { TakenOverBanner, useEditLock, type LockMode } from '../editor/SoftLockBanner'
 import DiffView from '../history/DiffView'
 import HistoryPanel, { type Viewing } from '../history/HistoryPanel'
 import VersionBar from '../history/VersionBar'
@@ -160,7 +160,7 @@ export default function PageView() {
   const canEdit = n.access === 'EDIT'
   const editing = canEdit && n.status === 'ACTIVE'
   const space = spaces.data?.find((x) => x.id === n.spaceId)
-  const readingOnly = lockMode === 'blocked' || lockMode === 'readonly' || lockMode === 'denied'
+  const readingOnly = lockMode === 'blocked' || lockMode === 'taken' || lockMode === 'readonly' || lockMode === 'denied'
   const published = n.publishState === 'PUBLISHED'
   // Draft, unsaved typing, or newer than the last published version. A published page with no version on record counts as clean.
   const changes = !published || (saveState !== 'saved' && saveState !== 'recovered') || (!!lastPublished && Date.parse(n.contentUpdatedAt) > Date.parse(lastPublished.createdAt))
@@ -343,6 +343,7 @@ function PageContent({ node, userId, slots, onSaveState, onLock, textRef, titleS
           onLock={onLock}
           textRef={textRef}
           titleSaving={titleSaving}
+          onReload={() => setReloads((r) => r + 1)}
           // The local copy is now a private version: say so and load what the server has.
           onRecovered={() => {
             setNotice(RECOVERED_NOTICE)
@@ -358,12 +359,14 @@ function PageContent({ node, userId, slots, onSaveState, onLock, textRef, titleS
   )
 }
 
-function PageEditor({ node, opened, slots, onRecovered, onSaveState, onLock, textRef, titleSaving }: {
+function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, onLock, textRef, titleSaving }: {
   node: NodeDetail
   opened: Opened
   slots: Slots
   titleSaving: boolean
   onRecovered: () => void
+  /** Opens the content again from the server. */
+  onReload: () => void
   onSaveState: (s: SaveState) => void
   onLock: (m: LockMode) => void
   textRef: MutableRefObject<() => string>
@@ -407,6 +410,10 @@ function PageEditor({ node, opened, slots, onRecovered, onSaveState, onLock, tex
       {problem && slots.banners && createPortal(<SaveNotice>{problem}</SaveNotice>, slots.banners)}
       {lock.mode === 'blocked' && slots.banners && createPortal(
         <SoftLockBanner holder={lock.holder} onReadOnly={lock.openReadOnly} onEditAnyway={lock.editAnyway} />,
+        slots.banners,
+      )}
+      {lock.mode === 'taken' && slots.banners && createPortal(
+        <TakenOverBanner holder={lock.holder} saved={save.state === 'saved' || save.state === 'recovered'} onReload={onReload} onTakeBack={lock.editAnyway} />,
         slots.banners,
       )}
       {!canEdit && <p className={s.note}>{node.status === 'ARCHIVED' ? 'This page is archived and read-only.' : node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
