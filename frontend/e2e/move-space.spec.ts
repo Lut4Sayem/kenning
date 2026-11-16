@@ -50,10 +50,12 @@ test('dragging a page onto another space row moves it there', async ({ page }) =
   await from.getByRole('treeitem', { name: 'Methodology' }).hover()
   const grip = from.getByRole('button', { name: 'Move Methodology' })
   const box = (await grip.boundingBox())!
-  const target = (await to.getByRole('link', { name: 'Experiments' }).boundingBox())!
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()
   await page.mouse.move(box.x + box.width / 2, box.y + 20, { steps: 5 }) // past the 5px start distance
+  // Measured after the drag started: the "Move to top level" strips that appear then push the rows below down.
+  await expect(from.getByTestId('top-drop')).toBeVisible()
+  const target = (await to.getByRole('link', { name: 'Experiments' }).boundingBox())!
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 10 })
   await page.mouse.up()
 
