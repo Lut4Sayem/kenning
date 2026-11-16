@@ -104,7 +104,7 @@ export default function TrashPage() {
         <span className={`${s.tile} ${soon ? s.tileUrgent : ''}`} aria-hidden="true"><Icon name="doc-lines" /></span>
         <span className={s.main}>
           <span className={s.name}>
-            <span className={s.title}>{b.title || 'Untitled'}</span>
+            <span className={s.title} title={b.title || 'Untitled'}>{b.title || 'Untitled'}</span>
             {b.descendantCount > 0 && <span className={s.subs}>+ {b.descendantCount} sub-page{b.descendantCount === 1 ? '' : 's'}</span>}
           </span>
           <span className={s.was}>Was in {where}</span>

@@ -20,7 +20,7 @@ export default function PageRow({ id, title, location, status, avatar, when }: P
     <li>
       <Link to={`/p/${id}`} className={s.row}>
         <span className={s.rowDot} aria-hidden="true" />
-        <span className={s.rowTitle}>{title || 'Untitled'}</span>
+        <span className={s.rowTitle} title={title || 'Untitled'}>{title || 'Untitled'}</span>
         <span className={s.rowLoc}>{location}</span>
         {status && <span className={`${s.pill} ${status === 'PUBLISHED' ? s.published : ''}`}>{status === 'PUBLISHED' ? 'Published' : 'Draft'}</span>}
         {avatar && <span className={s.rowAvatar}><Avatar name={avatar.name} me={avatar.me} /></span>}

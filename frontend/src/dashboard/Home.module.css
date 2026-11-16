@@ -24,7 +24,7 @@ button.more { padding: 0; border: 0; background: none; font-family: inherit; cur
 .cardDot { display: block; width: 12px; height: 12px; border-radius: var(--r-chip); background: var(--page-gray); }
 .cardTitle {
   font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--ink);
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: break-word; /* break between words, not inside them (QA-42) */
 }
 .cardMeta { margin-top: auto; display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--ink-muted); }
 .cardMeta span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

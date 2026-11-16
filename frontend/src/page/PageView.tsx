@@ -41,6 +41,19 @@ export default function PageView() {
   const canEditNode = node.data?.access === 'EDIT'
   const versions = useQuery({ queryKey: ['versions', nodeId], queryFn: () => listVersions(nodeId), enabled: canEditNode })
   const [title, setTitle] = useState('')
+  // QA-42: the title wraps over as many lines as it needs (a one-line input cut long titles mid-word)
+  const titleBox = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    const fit = () => {
+      const el = titleBox.current
+      if (!el) return
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight}px`
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [title, detailsOpen])
   const [head, setHead] = useState<HTMLElement | null>(null)
   const [banners, setBanners] = useState<HTMLElement | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('saved')
@@ -236,16 +249,18 @@ export default function PageView() {
         {compareError && <p role="alert" className={s.error}>{compareError}</p>}
         <div className={s.iconTile} aria-hidden="true"><Icon name="doc-lines" size={26} /></div>
         <h1 className="sr-only">{title || 'Untitled'}</h1>
-        <input
+        <textarea
+          ref={titleBox}
+          rows={1}
           className={s.title}
           aria-label="Page title"
           placeholder="Untitled"
           maxLength={200}
           value={title}
           readOnly={!canEdit}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value.replace(/\s*\n\s*/g, ' '))}
           onBlur={() => titleDirty && rename.mutate({ id: n.id, title })}
-          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
         />
         {rename.error && <p role="alert" className={s.error}>{rename.error.message}</p>}
         {n.status === 'ARCHIVED' && <p className={s.note} role="status">This page is archived and read-only.</p>}

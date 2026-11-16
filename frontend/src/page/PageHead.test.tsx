@@ -79,6 +79,30 @@ describe('page top bar and properties', () => {
     expect(crumbs.querySelector('[aria-current="page"]')!.textContent).toBe('Use cases')
   })
 
+  it('longTitlesWrapAndDeepBreadcrumbsCollapseTheMiddleNotTheTeamAndSpace', async () => {
+    // QA-42: a 200-character title was cut mid-word in a one-line field and pushed the team and space out of the bar
+    const long = 'A very long working title about attention mechanisms in neural machine translation '.repeat(2).trim()
+    nodesApi.getNode.mockResolvedValue({ ...NODE, title: long, breadcrumbs: [{ id: 'p1', title: 'Reading list' }, { id: 'p2', title: 'Survey papers' }, { id: 'p3', title: 'Transformers' }] })
+    mount()
+    const field = await screen.findByLabelText('Page title')
+    await waitFor(() => expect((field as HTMLTextAreaElement).value).toBe(long))
+    expect(field.tagName).toBe('TEXTAREA') // wraps instead of scrolling sideways
+
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(Array.from(crumbs.querySelectorAll('li')).map((li) => li.textContent)).toEqual(['Thesis Group', 'Requirements', '…', 'Transformers', long])
+    expect(within(crumbs).getByText('…').getAttribute('title')).toBe('Reading list / Survey papers')
+    expect(crumbs.querySelector('[aria-current="page"] [title]')!.getAttribute('title')).toBe(long)
+  })
+
+  it('theTitleStaysOneLineOfText', async () => {
+    mount()
+    const field = (await screen.findByLabelText('Page title')) as HTMLTextAreaElement
+    await userEvent.clear(field)
+    await userEvent.type(field, 'Line one{Enter}')
+    expect(field.value).toBe('Line one') // Enter finishes the title, it does not add a line
+    expect(document.activeElement).not.toBe(field)
+  })
+
   it('aDraftShowsThePublishButtonAndPublishing', async () => {
     nodesApi.publishNode.mockResolvedValue({ ...NODE, publishState: 'PUBLISHED' })
     mount()

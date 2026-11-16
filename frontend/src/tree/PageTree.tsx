@@ -225,7 +225,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabSto
         </button>
         {/* shortcut: page colour field comes later, every page shows the gray dot */}
         <span className={s.dot} aria-hidden="true" />
-        <Link to={`/p/${node.id}`} className={s.link} aria-current={node.id === activeId ? 'page' : undefined}
+        <Link to={`/p/${node.id}`} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined}
           role="treeitem" data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
           onFocus={() => onFocusRow(node.id)}>
           {title}
