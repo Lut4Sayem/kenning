@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { createNode } from '../api/nodes'
-import { getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
+import { canEditSpace, getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
 import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
@@ -164,7 +164,7 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
         <Link to={`/s/${space.id}`} className={s.groupLink}>{space.name}</Link>
         <SpaceActions space={space} />
       </div>
-      {open && <PageTree spaceId={space.id} activeId={activeId} />}
+      {open && <PageTree spaceId={space.id} activeId={activeId} canEdit={canEditSpace(space)} />}
     </section>
   )
 }
@@ -186,7 +186,7 @@ function SpaceActions({ space }: { space: MySpace }) {
   return (
     <div ref={box} className={cx(s.actions, open && s.pinned)}
       onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); btn.current?.focus() } }}>
-      <button type="button" className={s.rowBtn} aria-label={`New page in ${space.name}`} onClick={() => void create(null)}><Icon name="plus" /></button>
+      {canEditSpace(space) && <button type="button" className={s.rowBtn} aria-label={`New page in ${space.name}`} onClick={() => void create(null)}><Icon name="plus" /></button>}
       <button ref={btn} type="button" className={s.rowBtn} aria-label={`More actions for ${space.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <Icon name="more" />
       </button>

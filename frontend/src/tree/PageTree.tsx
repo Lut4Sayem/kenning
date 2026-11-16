@@ -34,9 +34,11 @@ function saveExpanded(spaceId: string, ids: Set<string>) {
 interface Props {
   spaceId: string
   activeId?: string
+  /** false for viewers: no New sub-page and no drag grip (QA-37) */
+  canEdit?: boolean
 }
 
-export default function PageTree({ spaceId, activeId }: Props) {
+export default function PageTree({ spaceId, activeId, canEdit = true }: Props) {
   const qc = useQueryClient()
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['tree', spaceId], queryFn: () => getTree(spaceId) })
   const nodes = useMemo<NodeSummary[]>(() => data ?? [], [data])
@@ -109,7 +111,7 @@ export default function PageTree({ spaceId, activeId }: Props) {
       {message && <p className={s.note} role="alert">{message}</p>}
       <ul className={s.tree}>
         {tree.map((node) => (
-          <Row key={node.id} node={node} depth={0} activeId={activeId} expanded={expanded} onToggle={toggle} onNew={newPage} />
+          <Row key={node.id} node={node} depth={0} activeId={activeId} expanded={expanded} onToggle={toggle} onNew={newPage} canEdit={canEdit} />
         ))}
       </ul>
       <TopLevelDrop spaceId={spaceId} />
@@ -124,9 +126,10 @@ interface RowProps {
   expanded: Set<string>
   onToggle: (id: string) => void
   onNew: (parentId: string) => void
+  canEdit: boolean
 }
 
-function Row({ node, depth, activeId, expanded, onToggle, onNew }: RowProps) {
+function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit }: RowProps) {
   const drag = useDraggable({ id: node.id })
   const into = useDroppable({ id: `in:${node.id}` })
   const after = useDroppable({ id: `after:${node.id}` })
@@ -148,14 +151,18 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew }: RowProps) {
         <Link to={`/p/${node.id}`} className={s.link} aria-current={node.id === activeId ? 'page' : undefined}>
           {title}
         </Link>
-        <button type="button" className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
-        <button type="button" className={cx(s.btn, s.grip)} aria-label={`Move ${title}`}
-          {...drag.listeners} {...drag.attributes}><Icon name="grip" /></button>
+        {canEdit && (
+          <>
+            <button type="button" className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
+            <button type="button" className={cx(s.btn, s.grip)} aria-label={`Move ${title}`}
+              {...drag.listeners} {...drag.attributes}><Icon name="grip" /></button>
+          </>
+        )}
       </div>
       {open && node.children.length > 0 && (
         <ul className={s.tree}>
           {node.children.map((c) => (
-            <Row key={c.id} node={c} depth={depth + 1} activeId={activeId} expanded={expanded} onToggle={onToggle} onNew={onNew} />
+            <Row key={c.id} node={c} depth={depth + 1} activeId={activeId} expanded={expanded} onToggle={onToggle} onNew={onNew} canEdit={canEdit} />
           ))}
         </ul>
       )}

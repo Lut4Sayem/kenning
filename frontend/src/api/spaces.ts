@@ -23,6 +23,9 @@ export interface Me {
   profilePicture?: string | null
 }
 
+/** Viewers can read a team space but not add, move or edit pages in it; the private space is always the owner's (QA-37). */
+export const canEditSpace = (s: MySpace) => s.ownerType === 'USER' || s.myRole === 'ADMIN' || s.myRole === 'EDITOR'
+
 export const getMySpaces = () => api<MySpace[]>('/api/me/spaces')
 export const getMyTeams = () => api<MyTeam[]>('/api/me/teams')
 export const getMe = () => api<Me>('/api/me')
