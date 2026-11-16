@@ -203,7 +203,7 @@ export default function PageView() {
       )
     }
     if (gone && trashed.isPending) return <div className={s.column} aria-busy="true" aria-label="Loading page" />
-    if (gone && trashed.data) return <TrashedPage nodeId={nodeId} t={trashed.data} />
+    if (gone && trashed.data) return <TrashedPage nodeId={nodeId} t={trashed.data} space={spaces.data?.find((x) => x.id === trashed.data.spaceId)} />
     const code = node.error instanceof ApiError ? node.error.status : 0
     return (
       <div className={s.state}>
@@ -377,7 +377,7 @@ function TrashButton({ node, blocked }: { node: NodeDetail; blocked?: string }) 
 }
 
 /** QA-33: what a trashed page (or a sub-page of a trashed page) shows instead of "does not exist". */
-function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
+function TrashedPage({ nodeId, t, space }: { nodeId: string; t: Trashed; space?: MySpace }) {
   const qc = useQueryClient()
   const restore = useMutation({
     mutationFn: () => restoreBranch(t.rootId),
@@ -393,9 +393,15 @@ function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
   })
   const what = t.rootId === nodeId ? 'It was' : `“${t.rootTitle || 'Untitled'}” and its sub-pages were`
   const when = timeAgo(t.at)
+  const name = t.title || 'Untitled'
   return (
+    <>
+    {/* QA-60: say which page, and where it lived */}
+    <TopBar>
+      <Breadcrumbs team={space?.teamId && space.teamName ? { id: space.teamId, name: space.teamName } : null} spaceName={space?.name} crumbs={[]} current={name} />
+    </TopBar>
     <ScreenMessage
-      title="This page is in the trash"
+      title={`“${name}” is in the trash`}
       action={<>
         {t.canRestore && (
           <ActionButton onClick={() => restore.mutate()}>
@@ -408,6 +414,7 @@ function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
     >
       {what} moved to the trash{t.by ? ` by ${t.by.name}` : ''}{when ? ` ${when}` : ''}. {t.canRestore ? 'Restore it to read and edit it again.' : 'Ask an editor to restore it.'}
     </ScreenMessage>
+    </>
   )
 }
 

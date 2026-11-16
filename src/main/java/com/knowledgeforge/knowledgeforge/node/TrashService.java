@@ -161,7 +161,7 @@ public class TrashService {
         }
         Node root = node.getTrashRootId() == null ? node : nodes.findById(node.getTrashRootId()).orElse(node);
         User who = root.getTrashedBy() == null ? null : users.findById(root.getTrashedBy()).orElse(null);
-        return new TrashedDTO(root.getId(), root.getTitle(), root.getSpaceId(),
+        return new TrashedDTO(node.getTitle(), root.getId(), root.getTitle(), root.getSpaceId(),
                 who == null ? null : new UserRef(who.getId(), who.getDisplayName(), who.getProfilePicture()), root.getTrashedAt(),
                 access.resolveForTrash(user.getId(), root).compareTo(Access.EDIT) >= 0);
     }

@@ -404,6 +404,7 @@ class TrashIT extends NodeIntegrationTest {
         TrashedDTO t = trash.trashed(b.id());
         assertEquals(a.id(), t.rootId());
         assertEquals("Reading list", t.rootTitle());
+        assertEquals("Attention notes", t.title()); // QA-60: the page itself is named too
         assertEquals(space.getId(), t.spaceId());
         assertEquals(admin.getId(), t.by().getUserId());
         assertNotNull(t.at());
