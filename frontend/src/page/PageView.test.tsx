@@ -103,7 +103,7 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     await clearPendingOf('u1')
     contentApi.getContent.mockRejectedValue(new TypeError('Failed to fetch'))
     const { view } = mount()
-    expect((await screen.findByRole('alert')).textContent).toContain("Could not load this page's content")
+    expect((await screen.findByRole('alert')).textContent).toContain("Could not load this page’s content")
     contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
     act(() => void window.dispatchEvent(new Event('online')))
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
@@ -129,6 +129,13 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect(screen.queryByRole('button', { name: 'Unarchive' })).toBeNull()
   })
 
+  // QA-39: a Viewer sees why typing does nothing, also on a page that has content.
+  it('aViewerSeesAViewOnlyTagInTheTopBar', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW', canManage: false })
+    const { topbar } = mount()
+    await waitFor(() => expect(topbar.textContent).toContain('View only'))
+  })
+
   it('aPageThatNeverLoadedShowsOnlyTheError', async () => {
     nodesApi.getNode.mockRejectedValue(new ApiError(404, 'Page not found'))
     nodesApi.getTrashed.mockRejectedValue(new ApiError(404, 'Page not found'))
@@ -141,11 +148,14 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
   it('aTrashedPageSaysSoAndRestoresItsBranch', async () => {
     nodesApi.getNode.mockRejectedValueOnce(new ApiError(404, TRASHED)).mockResolvedValue(NODE)
     nodesApi.getTrashed.mockResolvedValue({
-      rootId: 'r1', rootTitle: 'Reading list', spaceId: 's1', by: { id: 'u2', name: 'Rafi' }, at: new Date().toISOString(), canRestore: true,
+      title: 'Attention notes', rootId: 'r1', rootTitle: 'Reading list', spaceId: 's1', by: { id: 'u2', name: 'Rafi' }, at: new Date().toISOString(), canRestore: true,
     })
     nodesApi.restoreBranch.mockResolvedValue({ movedToTop: false })
-    const { view } = mount()
-    expect((await screen.findByRole('heading', { name: 'This page is in the trash' }))).toBeTruthy()
+    spacesApi.getMySpaces.mockResolvedValue([{ id: 's1', name: 'Experiments', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis Group', myRole: 'EDITOR' }])
+    const { view, topbar } = mount()
+    // QA-60: the page is named, and the top bar says where it lived
+    expect((await screen.findByRole('heading', { name: '“Attention notes” is in the trash' }))).toBeTruthy()
+    await waitFor(() => expect(topbar.textContent).toBe('Thesis GroupExperimentsAttention notes'))
     expect(view.container.textContent).toContain('“Reading list” and its sub-pages were moved to the trash by Rafi')
     expect(screen.queryByText('This page does not exist.')).toBeNull()
     expect(screen.getByRole('link', { name: 'Open the trash' }).getAttribute('href')).toBe('/s/s1/trash')
@@ -156,9 +166,9 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
 
   it('aViewerSeesNoRestoreButton', async () => {
     nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
-    nodesApi.getTrashed.mockResolvedValue({ rootId: 'n1', rootTitle: 'Plan', spaceId: 's1', by: null, at: null, canRestore: false })
+    nodesApi.getTrashed.mockResolvedValue({ title: 'Plan', rootId: 'n1', rootTitle: 'Plan', spaceId: 's1', by: null, at: null, canRestore: false })
     mount()
-    expect((await screen.findByRole('heading', { name: 'This page is in the trash' }))).toBeTruthy()
+    expect((await screen.findByRole('heading', { name: '“Plan” is in the trash' }))).toBeTruthy()
     expect(screen.queryByRole('button', { name: /^Restore/ })).toBeNull()
   })
 })

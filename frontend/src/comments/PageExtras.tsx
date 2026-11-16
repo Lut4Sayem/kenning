@@ -7,7 +7,7 @@ import Avatar from '../ui/Avatar'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import Icon from '../ui/Icon'
 import Markdown from '../ui/Markdown'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import s from './Panel.module.css'
 
 // "AI is not configured on this server" (503): the AI controls disappear instead of failing on every click.
@@ -30,7 +30,7 @@ export function Comments({ nodeId }: { nodeId: string }) {
   })
 
   async function remove(id: string) {
-    if (!(await confirmDialog({ title: 'Delete your comment?', body: "This can't be undone.", confirmLabel: 'Delete comment', danger: true }))) return
+    if (!(await confirmDialog({ title: 'Delete your comment?', body: "This can’t be undone.", confirmLabel: 'Delete comment', danger: true }))) return
     try { await deleteComment(id); setError(''); await refresh() } catch (e) { setError((e as Error).message) }
   }
 
@@ -54,7 +54,7 @@ export function Comments({ nodeId }: { nodeId: string }) {
                 <div className={s.who}>
                   <Avatar name={name} me={mine} />
                   <strong className={s.name}>{name}</strong>
-                  <time className={s.time} dateTime={c.createdAt} title={new Date(c.createdAt).toLocaleString()}>{timeAgo(c.createdAt)}</time>
+                  <Time className={s.time} iso={c.createdAt} />
                   {mine && <button type="button" className={s.iconBtn} aria-label="Delete comment" onClick={() => void remove(c.id)}><Icon name="trash" /></button>}
                 </div>
                 <p className={s.text}>{c.content}</p>

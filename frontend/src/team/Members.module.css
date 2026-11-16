@@ -24,25 +24,25 @@
 .ADMIN { background: var(--tint-lavender-bg); color: var(--tint-lavender-fg); }
 .EDITOR { background: var(--tint-sky-bg); color: var(--tint-sky-fg); }
 .VIEWER { background: var(--tint-gray-bg); color: var(--tint-gray-fg); }
-.roleBtn:hover { filter: brightness(0.97); }
+@media (hover: hover) { .roleBtn:hover { filter: brightness(0.97); } }
 .option { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 4px; border: 0; border-radius: var(--r-row); background: none; font-size: 13px; color: var(--ink); text-align: left; cursor: pointer; }
 .option:hover, .option:focus-visible { background: var(--hover); }
 .tick { display: grid; place-items: center; width: 18px; }
 .remove, .removeGap { flex: none; width: 28px; height: 28px; }
 .remove { display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-.remove:hover { background: var(--hover); color: var(--ink); }
+@media (hover: hover) { .remove:hover { background: var(--hover); color: var(--ink); } }
 
 .requests { padding: 18px 20px; border-radius: 16px; background: var(--callout); }
 .requests.full { max-width: none; }
 .boxHead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
 .boxTitle { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
 .reqList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.req { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px; border-radius: var(--r-lg); background: var(--canvas); }
+.req { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; border-radius: var(--r-lg); background: var(--canvas); }
 .decline, .accept { height: 30px; padding: 0 12px; border-radius: var(--r-pill); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
 .decline { background: transparent; border-color: var(--line); color: var(--ink); }
-.decline:hover:not(:disabled) { background: var(--hover); }
+@media (hover: hover) { .decline:hover:not(:disabled) { background: var(--hover); } }
 .accept { background: var(--primary); color: var(--on-primary); }
-.accept:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); }
+@media (hover: hover) { .accept:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
 .decline:active:not(:disabled), .accept:active:not(:disabled) { scale: 0.96; }
 .decline:disabled, .accept:disabled { opacity: 0.5; cursor: not-allowed; }
 .joinRole { height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--canvas); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
@@ -56,7 +56,7 @@
 .linkField:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
 .linkField input:focus { outline: none; }
 .copy { display: inline-flex; align-items: center; gap: 6px; height: 32px; margin-right: 4px; padding: 0 12px; border: 0; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 500; cursor: pointer; }
-.copy:hover { background: color-mix(in srgb, var(--primary), white 14%); }
+@media (hover: hover) { .copy:hover { background: color-mix(in srgb, var(--primary), white 14%); } }
 .create { height: 36px; padding: 0 16px; border: 0; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 500; cursor: pointer; }
 .create:disabled { opacity: 0.5; cursor: not-allowed; }
 .live { margin: 0; min-height: 0; font-size: 12px; color: var(--success-text); }
@@ -68,3 +68,8 @@
 
 @media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); } .side { max-width: 560px; } }
 @media (max-width: 560px) { .find { width: 100%; margin-left: 0; } .head { flex-wrap: wrap; } }
+/* QA-56: one row per request (name and time left; Decline, role, Accept right). When there is no room the three move down together. */
+.req .who { flex: 1 1 4em; }
+.reqActions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.req .decline, .req .accept { padding: 0 10px; }
+.req .joinRole { padding: 0 4px; }

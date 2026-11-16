@@ -124,7 +124,7 @@ describe('team members', () => {
     expect(teams.answerJoinRequest).toHaveBeenCalledWith('t1', 'r1', 'accept', 'VIEWER')
     expect((screen.getByRole('button', { name: 'Decline Cy' }) as HTMLButtonElement).disabled).toBe(true)
     finish()
-    expect(await screen.findByText('asked 3 hours ago')).toBeTruthy()
+    expect(await screen.findByText('3 h ago')).toBeTruthy()
   })
 
   it('inviteStartsWithCreateLinkThenShowsAnAppJoinLinkWithCopy', async () => {
@@ -143,13 +143,25 @@ describe('team members', () => {
     teams.getInvite.mockResolvedValue({ inviteCode: 'old', createdAt: new Date(Date.now() - 2 * 3600_000).toISOString(), createdByName: 'Ada' })
     setup('u1')
     expect(((await screen.findByRole('textbox', { name: 'Invite link address' })) as HTMLInputElement).value).toBe(`${location.origin}/app/join/old`)
-    expect(screen.getByText('Created by Ada 2 hours ago')).toBeTruthy()
+    expect(screen.getByText('2 h ago').parentElement!.textContent).toBe('Created by Ada 2 h ago')
     expect(screen.getByText(/The old link stops working/)).toBeTruthy()
     await userEvent.click(screen.getByRole('button', { name: 'Turn off link' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Turn off' }))
     expect(teams.turnOffInvite).toHaveBeenCalledWith('t1')
     expect(await screen.findByRole('button', { name: 'Create link' })).toBeTruthy()
     expect(screen.queryByRole('textbox', { name: 'Invite link address' })).toBeNull()
+  })
+
+  // QA-55: replacing the link kills the old one, so it asks first like Turn off link does.
+  it('createANewLinkAsksFirstBecauseTheOldLinkStopsWorking', async () => {
+    teams.getInvite.mockResolvedValue({ inviteCode: 'old', createdAt: new Date().toISOString(), createdByName: 'Ada' })
+    teams.createInvite.mockResolvedValue({ inviteCode: 'new', createdAt: new Date().toISOString(), createdByName: 'Me' })
+    setup('u1')
+    await userEvent.click(await screen.findByRole('button', { name: 'Create a new link' }))
+    expect(await screen.findByText('People with the old link can no longer ask to join.')).toBeTruthy()
+    expect(teams.createInvite).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Create new link' }))
+    expect(teams.createInvite).toHaveBeenCalledWith('t1')
   })
 
   it('declineHappensAtOnceAndCanBeUndoneFromTheToast', async () => { // QA-06

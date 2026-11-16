@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { answerJoinRequest, type JoinRequest } from '../api/teams'
 import Avatar from '../ui/Avatar'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { toast } from '../ui/Toast'
 import type { TeamContext } from './TeamLayout'
 import s from './Members.module.css'
@@ -58,15 +58,17 @@ export default function JoinRequests({ full }: { full?: boolean }) {
                 <Avatar name={r.fullName} size={28} />
                 <span className={s.who}>
                   <span className={s.name}>{r.fullName}</span>
-                  <span className={s.email}>asked {timeAgo(r.requestedAt)}</span>
+                  <span className={s.email}>asked <Time iso={r.requestedAt} /></span>
                 </span>
-                <button type="button" className={s.decline} disabled={answering === r.id} aria-label={`Decline ${r.fullName}`} onClick={() => void answer(r, false)}>Decline</button>
-                <select className={s.joinRole} aria-label={`Role for ${r.fullName}`} disabled={answering === r.id}
-                  value={roles[r.id] ?? 'VIEWER'} onChange={(e) => setRoles({ ...roles, [r.id]: e.target.value as Role })}>
-                  <option value="VIEWER">Viewer</option>
-                  <option value="EDITOR">Editor</option>
-                </select>
-                <button type="button" className={s.accept} disabled={answering === r.id} aria-label={`Accept ${r.fullName}`} onClick={() => void answer(r, true)}>Accept</button>
+                <span className={s.reqActions}>
+                  <button type="button" className={s.decline} disabled={answering === r.id} aria-label={`Decline ${r.fullName}`} onClick={() => void answer(r, false)}>Decline</button>
+                  <select className={s.joinRole} aria-label={`Role for ${r.fullName}`} disabled={answering === r.id}
+                    value={roles[r.id] ?? 'VIEWER'} onChange={(e) => setRoles({ ...roles, [r.id]: e.target.value as Role })}>
+                    <option value="VIEWER">Viewer</option>
+                    <option value="EDITOR">Editor</option>
+                  </select>
+                  <button type="button" className={s.accept} disabled={answering === r.id} aria-label={`Accept ${r.fullName}`} onClick={() => void answer(r, true)}>Accept</button>
+                </span>
               </li>
             ))}
           </ul>

@@ -7,7 +7,7 @@ import { confirmDialog } from '../ui/ConfirmDialog'
 import Icon from '../ui/Icon'
 import Popover from '../ui/Popover'
 import RolePill, { roleLabel } from '../ui/RolePill'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import JoinRequests from './JoinRequests'
 import type { TeamContext } from './TeamLayout'
 import s from './Members.module.css'
@@ -133,6 +133,10 @@ function InviteBox() {
     setBusy(false)
   }
   const create = () => change(async () => qc.setQueryData(['invite', teamId], await createInvite(teamId)), 'Could not create the link')
+  async function replace() {
+    if (!(await confirmDialog({ title: 'Create a new invite link?', body: 'People with the old link can no longer ask to join.', confirmLabel: 'Create new link', danger: true }))) return
+    await create()
+  }
   async function turnOff() {
     if (!(await confirmDialog({ title: 'Turn off the invite link?', body: 'People who have it can no longer ask to join. You can create a new link later.', confirmLabel: 'Turn off', danger: true }))) return
     await change(async () => { await turnOffInvite(teamId); qc.setQueryData(['invite', teamId], null) }, 'Could not turn off the link')
@@ -159,11 +163,11 @@ function InviteBox() {
           </div>
           <p className={s.live} aria-live="polite">{copied ? 'Link copied' : ''}</p>
           {invite.data?.createdAt && (
-            <p className={s.note}>Created{invite.data.createdByName ? ` by ${invite.data.createdByName}` : ''} {timeAgo(invite.data.createdAt)}</p>
+            <p className={s.note}>Created{invite.data.createdByName ? ` by ${invite.data.createdByName}` : ''} <Time iso={invite.data.createdAt} /></p>
           )}
           <p className={s.note}>A new link replaces this one. The old link stops working.</p>
           <div className={s.linkActions}>
-            <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void create()}>Create a new link</button>
+            <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void replace()}>Create a new link</button>
             <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void turnOff()}>Turn off link</button>
           </div>
         </>

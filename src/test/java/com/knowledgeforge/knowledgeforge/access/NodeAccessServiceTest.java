@@ -228,6 +228,21 @@ class NodeAccessServiceTest {
         assertEquals(403, statusOf(() -> access.requireEditIgnoringLock("n1")));
     }
 
+    // QA-38: a Viewer trying to edit is told what Viewers can do and who can change it.
+    @Test
+    void viewerEditingIsToldToAskAnAdmin() {
+        loginAs(ME);
+        role(ME, "VIEWER");
+        when(nodes.findById("n1")).thenReturn(Optional.of(teamNode()));
+        String msg = assertThrows(ResponseStatusException.class, () -> access.requireEdit("n1")).getReason();
+        assertEquals("Viewers can read and comment. Ask a team admin to make you an Editor.", msg);
+
+        role(ME, "EDITOR");
+        when(nodes.findById("n1")).thenReturn(Optional.of(node("n1", "sTeam", restriction(List.of(ME), List.of()))));
+        msg = assertThrows(ResponseStatusException.class, () -> access.requireEdit("n1")).getReason();
+        assertEquals("You do not have access to this page", msg);
+    }
+
     @Test
     void requireMissingNodeIs404AndNonMemberIs403() {
         loginAs(OTHER);

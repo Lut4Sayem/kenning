@@ -17,11 +17,11 @@
 .who { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .who b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
 .switch { flex: none; font-size: 13px; font-weight: 500; color: var(--link); text-decoration: none; }
-.switch:hover { text-decoration: underline; text-underline-offset: 2px; }
+@media (hover: hover) { .switch:hover { text-decoration: underline; text-underline-offset: 2px; } }
 
 .action > button { margin-top: 20px; }
 .open { display: flex; align-items: center; justify-content: center; height: 46px; margin-top: 20px; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 500; text-decoration: none; transition: scale 150ms ease-out, background-color 150ms ease-out; }
-.open:hover { background: var(--ink-label); }
+@media (hover: hover) { .open:hover { background: var(--ink-label); } }
 .open:active { scale: 0.96; }
 .notice { margin-top: 20px; padding: var(--space-3) var(--space-4); border-radius: var(--r-lg); background: var(--published-bg); color: var(--published-ink); font-size: 14px; line-height: 1.5; }
 

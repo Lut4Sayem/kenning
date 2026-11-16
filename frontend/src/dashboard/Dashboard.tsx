@@ -9,7 +9,7 @@ import NewTeamDialog from '../team/NewTeamDialog'
 import FormDialog from '../ui/FormDialog'
 import Icon from '../ui/Icon'
 import { dotColour } from '../ui/pageColour'
-import { timeShort } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { useCreatePage } from '../tree/useCreatePage'
 import { greetingFor, locationOf, longDate } from './home'
 import s from './Home.module.css'
@@ -98,7 +98,7 @@ export default function Dashboard() {
                   <span className={s.cardTitle} title={p.title || 'Untitled'}>{p.title || 'Untitled'}</span>
                   <span className={s.cardMeta}>
                     <span>{p.teamName == null ? 'Private' : p.spaceName}</span>
-                    <time dateTime={p.openedAt ?? undefined}>{timeShort(p.openedAt ?? null)}</time>
+                    <Time iso={p.openedAt} />
                   </span>
                 </Link>
               </li>

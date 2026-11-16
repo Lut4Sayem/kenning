@@ -269,13 +269,13 @@ public class AiService {
         Date dayStart = Date.from(LocalDate.now(ZoneOffset.UTC).atStartOfDay().toInstant(ZoneOffset.UTC));
         if (usageRepository.countByUserIdAndCreatedAtGreaterThanEqual(userId, dayStart) >= userDailyLimit) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                    "You've used today's " + userDailyLimit + " AI requests. Resets at 00:00 UTC.");
+                    "You’ve used today’s " + userDailyLimit + " AI requests. Resets at 00:00 UTC.");
         }
         long tokensToday = usageRepository.findByCreatedAtGreaterThanEqual(dayStart).stream()
                 .mapToLong(AiUsage::getTotalTokens).sum();
         if (tokensToday >= siteDailyTokens) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                    "Today's AI limit for the site is used up. Try again tomorrow.");
+                    "Today’s AI limit for the site is used up. Try again tomorrow.");
         }
     }
 

@@ -48,7 +48,7 @@ public class MoveToTeamService {
         if (nodeService.space(node.getSpaceId()).getOwnerType() != Space.OwnerType.USER) {
             throw NodeService.bad("Only private pages can be moved to a team project");
         }
-        if (!access.canEditSpace(user.getId(), dest)) throw NodeService.forbidden("You can't edit this space");
+        if (!access.canEditSpace(user.getId(), dest)) throw NodeService.forbidden("You can’t edit this space");
         Node parent = null;
         if (req.parentId() != null) {
             parent = access.requireEdit(req.parentId());
@@ -62,7 +62,7 @@ public class MoveToTeamService {
         }
         int deepest = descendants.stream().mapToInt(d -> d.getAncestors().size() - oldDepth).max().orElse(0);
         if (newAncestors.size() + deepest > NodeService.MAX_DEPTH) {
-            throw NodeService.bad("Pages can't be nested deeper than " + NodeService.MAX_DEPTH + " levels");
+            throw NodeService.bad("Pages can’t be nested deeper than " + NodeService.MAX_DEPTH + " levels");
         }
         String parentId = parent == null ? null : parent.getId();
         List<Node> siblings = nodes.findBySpaceIdAndStatusAndParentIdOrderByRankAsc(dest.getId(), NodeStatus.ACTIVE, parentId);

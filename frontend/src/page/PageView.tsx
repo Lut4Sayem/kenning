@@ -22,7 +22,7 @@ import VersionBar from '../history/VersionBar'
 import { readPref, savePref } from '../team/detailsPref'
 import Icon from '../ui/Icon'
 import { ActionButton, ActionLink, ScreenMessage } from '../ui/States'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
@@ -203,11 +203,11 @@ export default function PageView() {
       )
     }
     if (gone && trashed.isPending) return <div className={s.column} aria-busy="true" aria-label="Loading page" />
-    if (gone && trashed.data) return <TrashedPage nodeId={nodeId} t={trashed.data} />
+    if (gone && trashed.data) return <TrashedPage nodeId={nodeId} t={trashed.data} space={spaces.data?.find((x) => x.id === trashed.data.spaceId)} />
     const code = node.error instanceof ApiError ? node.error.status : 0
     return (
       <div className={s.state}>
-        <p role="alert">{code === 404 ? 'This page does not exist.' : code === 403 ? "You don't have access to this page." : 'Could not load this page.'}</p>
+        <p role="alert">{code === 404 ? 'This page does not exist.' : code === 403 ? "You don’t have access to this page." : 'Could not load this page.'}</p>
         {code !== 404 && code !== 403 && <p><button type="button" className={s.link} onClick={() => void node.refetch()}>Try again</button></p>}
       </div>
     )
@@ -267,6 +267,7 @@ export default function PageView() {
         <span className={s.actions}>
           <span ref={setHead} />
           {readingOnly && canEdit && <ReadOnlyTag />}
+          {n.access === 'VIEW' && n.status === 'ACTIVE' && !n.locked && <ReadOnlyTag label="View only" />}
           {n.access !== 'TITLE_ONLY' && (
             <button type="button" className={s.iconBtn} aria-label="Version history" title="Version history" aria-pressed={detailsOpen && panel === 'history'} onClick={toggleHistory}>
               <Icon name="history" />
@@ -275,7 +276,7 @@ export default function PageView() {
           {n.canManage && n.status === 'ACTIVE' && (
             <TrashButton node={n} blocked={trashBlocked(n, saveState !== 'saved' && saveState !== 'recovered')} />
           )}
-          {editing && changes && !readingOnly && (
+          {editing && changes && !readingOnly && !viewing && (
             <button type="button" className={`${s.btn} ${s.primary}`} disabled={publish.isPending} onClick={() => publish.mutate()}>{publish.isPending ? 'Publishing…' : 'Publish'}</button>
           )}
           {published && !changes && <span className={s.publishedText}><Icon name="check" />Published</span>}
@@ -318,7 +319,7 @@ export default function PageView() {
         {rename.error && <p role="alert" className={s.error}>{rename.error.message}</p>}
         {n.status === 'ARCHIVED' && <ArchivedNote node={n} />}
         {n.access === 'TITLE_ONLY' ? (
-          <p className={s.note}>You can see this page's title but not its content.</p>
+          <p className={s.note}>You can see this page’s title but not its content.</p>
         ) : (
           <>
             {/* QA-22: the properties are the current page's, not the version's */}
@@ -368,7 +369,7 @@ export default function PageView() {
 function TrashButton({ node, blocked }: { node: NodeDetail; blocked?: string }) {
   const trash = useTrashPage(node)
   return (
-    <button type="button" className={s.iconBtn} aria-label="Move to trash" title={blocked ?? 'Move to trash'} disabled={!!blocked}
+    <button type="button" className={`${s.iconBtn} ${s.wideOnly}`} aria-label="Move to trash" title={blocked ?? 'Move to trash'} disabled={!!blocked}
       onClick={() => void trash().catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not move the page to the trash.', 'error'))}>
       <Icon name="trash" />
     </button>
@@ -376,7 +377,7 @@ function TrashButton({ node, blocked }: { node: NodeDetail; blocked?: string }) 
 }
 
 /** QA-33: what a trashed page (or a sub-page of a trashed page) shows instead of "does not exist". */
-function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
+function TrashedPage({ nodeId, t, space }: { nodeId: string; t: Trashed; space?: MySpace }) {
   const qc = useQueryClient()
   const restore = useMutation({
     mutationFn: () => restoreBranch(t.rootId),
@@ -391,10 +392,15 @@ function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
     },
   })
   const what = t.rootId === nodeId ? 'It was' : `“${t.rootTitle || 'Untitled'}” and its sub-pages were`
-  const when = timeAgo(t.at)
+  const name = t.title || 'Untitled'
   return (
+    <>
+    {/* QA-60: say which page, and where it lived */}
+    <TopBar>
+      <Breadcrumbs team={space?.teamId && space.teamName ? { id: space.teamId, name: space.teamName } : null} spaceName={space?.name} crumbs={[]} current={name} />
+    </TopBar>
     <ScreenMessage
-      title="This page is in the trash"
+      title={`“${name}” is in the trash`}
       action={<>
         {t.canRestore && (
           <ActionButton onClick={() => restore.mutate()}>
@@ -405,8 +411,9 @@ function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
         {restore.error && <p role="alert">{restore.error.message}</p>}
       </>}
     >
-      {what} moved to the trash{t.by ? ` by ${t.by.name}` : ''}{when ? ` ${when}` : ''}. {t.canRestore ? 'Restore it to read and edit it again.' : 'Ask an editor to restore it.'}
+      {what} moved to the trash{t.by ? ` by ${t.by.name}` : ''}{t.at && <> <Time iso={t.at} /></>}. {t.canRestore ? 'Restore it to read and edit it again.' : 'Ask an editor to restore it.'}
     </ScreenMessage>
+    </>
   )
 }
 
@@ -472,7 +479,7 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
   if (failed) {
     return (
       <p role="alert" className={s.error}>
-        Could not load this page's content. <button type="button" className={s.link} onClick={() => setReloads((r) => r + 1)}>Try again</button>
+        Could not load this page’s content. <button type="button" className={s.link} onClick={() => setReloads((r) => r + 1)}>Try again</button>
       </p>
     )
   }

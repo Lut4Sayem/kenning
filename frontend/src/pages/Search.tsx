@@ -11,7 +11,7 @@ import Icon from '../ui/Icon'
 import { markWords } from '../ui/markWords'
 import Segmented from '../ui/Segmented'
 import TeamTile from '../ui/TeamTile'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import s from './Search.module.css'
 
 const DEBOUNCE_MS = 300
@@ -187,7 +187,7 @@ function Row({ hit, q }: { hit: SearchHit; q: string }) {
             {hit.type === 'SPACE' && (hit.teamId ? hit.teamName : 'Private') && <span className={s.chip}>{hit.teamId ? hit.teamName : 'Private'}</span>}
             {hit.type === 'TEAM' && <span>Team</span>}
             {hit.updatedByName && <span className={s.editor}><Avatar name={hit.updatedByName} /><span className="sr-only">Last edited by {hit.updatedByName}</span></span>}
-            {hit.updatedAt && <time dateTime={hit.updatedAt}>{timeAgo(hit.updatedAt)}</time>}
+            <Time iso={hit.updatedAt} />
             {hit.tags.map((t) => (
               <Link key={t} className={s.tag} to={`/tags/${encodeURIComponent(t)}`}>#{t}</Link>
             ))}

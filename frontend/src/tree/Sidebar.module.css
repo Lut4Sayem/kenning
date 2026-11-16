@@ -1,25 +1,25 @@
 .sidebar { display: flex; flex-direction: column; height: 100%; padding: 10px 8px 8px; }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--space-1); }
 .top { display: flex; align-items: center; gap: var(--space-1); position: relative; }
 .account { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); font-weight: 600; cursor: pointer; text-align: left; }
 .account:hover, .account[aria-expanded='true'] { background: var(--hover); }
 .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .iconBtn { display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-.iconBtn:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+@media (hover: hover) { .iconBtn:hover:not(:disabled) { background: var(--hover); color: var(--ink); } }
 .iconBtn:disabled { opacity: 0.5; cursor: default; }
 .avatar { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); font-size: 11px; font-weight: 700; }
 .menu { position: absolute; z-index: 20; top: 40px; left: 0; min-width: 200px; padding: var(--space-1); border-radius: var(--r-lg); background: var(--canvas); box-shadow: var(--shadow-3); display: flex; flex-direction: column; }
 .menuItem { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); text-decoration: none; cursor: pointer; text-align: left; }
 .menuItem:hover, .menuItem:focus-visible { background: var(--hover); }
 .search { display: flex; align-items: center; gap: var(--space-2); width: 100%; height: 32px; margin: 0 0 var(--space-2); padding: 0 10px; border: 0; border-radius: var(--r-lg); background: var(--canvas); box-shadow: 0 1px 2px rgb(20 20 15 / 0.06); color: var(--ink-muted); cursor: pointer; text-align: left; }
-.search:hover { background: var(--surface-card); }
+@media (hover: hover) { .search:hover { background: var(--surface-card); } }
 .search svg { flex: none; }
 .search span { flex: 1; }
 .kbd { padding: 0 6px; border-radius: var(--r-chip); background: var(--surface-card); font: inherit; font-size: 11px; font-weight: 600; line-height: 18px; color: var(--ink-muted); }
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .navLink { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border-radius: var(--r-row); color: var(--ink-label); text-decoration: none; }
 .navLink svg { color: var(--ink-muted); }
-.navLink:hover { background: var(--hover); }
+@media (hover: hover) { .navLink:hover { background: var(--hover); } }
 .navLink.active { background: var(--canvas); box-shadow: var(--shadow-1); font-weight: 500; color: var(--ink); }
 .labelRow { display: flex; align-items: center; padding-right: var(--space-1); }
 .labelRow .label { flex: 1; }
@@ -27,10 +27,10 @@
 .label { margin: 0; padding: 14px 10px 4px; font-family: var(--font-sans); color: var(--ink-muted); font-size: 12px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .group { display: flex; flex-direction: column; gap: 2px; }
 .groupRow { display: flex; align-items: center; gap: 2px; height: 32px; padding-right: var(--space-1); border-radius: var(--r-row); }
-.groupRow:hover { background: var(--hover); }
+@media (hover: hover) { .groupRow:hover { background: var(--hover); } }
 .groupRow.dropOver { outline: 2px solid var(--primary); }
 .chevBtn { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-.chevBtn:hover { background: var(--hover); }
+@media (hover: hover) { .chevBtn:hover { background: var(--hover); } }
 .chev { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
 .chev.open { transform: rotate(90deg); }
 .tile { display: grid; place-items: center; flex: none; width: 18px; height: 18px; margin-right: var(--space-2); border-radius: var(--r-tag); font-size: 11px; font-weight: 700; }
@@ -40,14 +40,14 @@
 .note { margin: 0; padding: var(--space-1) var(--space-2); color: var(--ink-muted); font-size: 12px; }
 .foot { flex: none; padding-top: var(--space-4); }
 .me { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border-radius: var(--r-row); color: var(--ink); text-decoration: none; font-weight: 500; }
-.me:hover { background: var(--hover); }
+@media (hover: hover) { .me:hover { background: var(--hover); } }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
 .privateHead { height: auto; padding: 0 var(--space-1) 0 0; }
 .privateHead .label { flex: 1; }
-.groupRow.privateHead:hover { background: none; }
+@media (hover: hover) { .groupRow.privateHead:hover { background: none; } }
 .actions { position: relative; display: flex; flex: none; align-items: center; gap: 2px; }
 .rowBtn { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; opacity: 0; }
-.rowBtn:hover { background: var(--hover); color: var(--ink); }
+@media (hover: hover) { .rowBtn:hover { background: var(--hover); color: var(--ink); } }
 .groupRow:hover .rowBtn, .groupRow:focus-within .rowBtn, .pinned .rowBtn { opacity: 1; }
 .actions .menu { top: 28px; right: 0; left: auto; min-width: 160px; }
 .actions .note { position: absolute; top: 28px; right: 0; width: 200px; background: var(--canvas); box-shadow: var(--shadow-3); border-radius: var(--r-row); z-index: 20; }

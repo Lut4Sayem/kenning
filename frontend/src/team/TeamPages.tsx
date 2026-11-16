@@ -7,7 +7,7 @@ import Avatar from '../ui/Avatar'
 import Icon from '../ui/Icon'
 import { dotColour } from '../ui/pageColour'
 import Popover from '../ui/Popover'
-import { timeCompact } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { useRemembered } from '../ui/useRemembered'
 import type { TeamContext } from './TeamLayout'
 import s from './Pages.module.css'
@@ -181,7 +181,7 @@ function PageRowT({ p }: { p: TeamPageItem }) {
       </td>
       <td className={s.cStatus}><span className={`${s.circle} ${published ? s.pub : ''}`} aria-hidden="true" />{published ? 'Published' : 'Draft'}</td>
       <td className={s.cEditor}>{p.lastEditorName && <><Avatar name={p.lastEditorName} /><span className={s.ename}>{p.lastEditorName}</span></>}</td>
-      <td className={s.cTime}><time dateTime={p.updatedAt}>{timeCompact(p.updatedAt)}</time></td>
+      <td className={s.cTime}><Time iso={p.updatedAt} /></td>
       <td className={s.cEnd} />
     </tr>
   )

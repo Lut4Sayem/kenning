@@ -12,7 +12,7 @@ type Me = { fullName?: string; email?: string }
 type Problem = { title: string; message: string; home?: boolean }
 
 const tint = (name: string) => ({ background: `var(--tint-${tintOf(name)}-bg)`, color: `var(--tint-${tintOf(name)}-fg)` })
-const WAITING = "You've already asked to join. It's waiting for approval."
+const WAITING = "You’ve already asked to join. It’s waiting for approval."
 const NOT_FOUND: Problem = {
   title: 'This invite doesn’t work',
   message: 'We couldn’t find this invite. It may have been replaced or turned off. Ask the team for a new link.',
@@ -84,7 +84,7 @@ export default function Join() {
     } catch (err) {
       const x = err as ApiError
       if (x.status === 409 && /already a member/i.test(x.message)) {
-        setNotice("You're already a member. Taking you to your dashboard…")
+        setNotice("You’re already a member. Taking you to your dashboard…")
         setTimeout(() => window.location.assign(DEFAULT_NEXT), 1500)
       } else if (x.status === 409) setNotice(WAITING)
       else if (x.status === 404) setProblem(NOT_FOUND)

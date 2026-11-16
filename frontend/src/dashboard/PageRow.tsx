@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import Avatar from '../ui/Avatar'
 import { dotColour } from '../ui/pageColour'
-import { timeCompact } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import s from './Home.module.css'
 
 export interface PageRowProps {
@@ -27,7 +27,7 @@ export default function PageRow({ id, title, color, location, status, avatar, wh
         <span className={s.rowLoc}>{location}</span>
         {status && <span className={`${s.pill} ${status === 'PUBLISHED' ? s.published : ''}`}>{status === 'PUBLISHED' ? 'Published' : 'Draft'}</span>}
         {avatar && <span className={s.rowAvatar}><Avatar name={avatar.name} me={avatar.me} /></span>}
-        <time className={s.when} dateTime={when ?? undefined}>{timeCompact(when)}</time>
+        <Time className={s.when} iso={when} />
       </Link>
     </li>
   )

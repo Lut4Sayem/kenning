@@ -8,6 +8,8 @@ const api = vi.hoisted(() => ({ getSubtreeCount: vi.fn(), getTree: vi.fn(), move
 const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn() }))
 vi.mock('../api/nodes', () => api)
 vi.mock('../api/spaces', () => spaces)
+const toasts = vi.hoisted(() => ({ toast: vi.fn() }))
+vi.mock('../ui/Toast', () => toasts)
 
 const space = (id: string, name: string, role: string, teamId = 't1') =>
   ({ id, name, icon: null, ownerType: 'TEAM', teamId, teamName: 'CSE391 Team', myRole: role })
@@ -40,7 +42,7 @@ describe('MoveToTeamDialog', () => {
   it('listsOnlyEditableParents', async () => {
     mount()
     expect((await screen.findByRole('radio', { name: 'Overview' })).hasAttribute('disabled')).toBe(false)
-    expect(screen.getByRole('radio', { name: "Budget (you can't edit here)" }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('radio', { name: "Budget (you can’t edit here)" }).hasAttribute('disabled')).toBe(true)
     // projects I can only view, and my private space, are not offered
     expect(screen.queryByRole('option', { name: 'Read only' })).toBeNull()
     expect(screen.queryByRole('option', { name: 'Private' })).toBeNull()
@@ -50,7 +52,7 @@ describe('MoveToTeamDialog', () => {
   // QA-13: there is no copy or duplicate yet, so the dialog must not offer one.
   it('doesNotPromiseACopy', async () => {
     mount()
-    expect(await screen.findByText(/can't be moved back to your private space/)).toBeTruthy()
+    expect(await screen.findByText(/can’t be moved back to your private space/)).toBeTruthy()
     expect(screen.queryByText(/copy it/i)).toBeNull()
   })
 
@@ -109,6 +111,7 @@ describe('Move to… (within the team)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Move' }))
     await waitFor(() => expect(api.moveNode).toHaveBeenCalledWith('n1', { parentId: 'e1', spaceId: 's2' }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(toasts.toast).toHaveBeenCalledWith('Moved “Methodology” to Experiments') // QA-61
   })
 
   it('inItsOwnSpaceThePageAndItsSubPagesAreNotParents', async () => {

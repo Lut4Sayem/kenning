@@ -33,8 +33,9 @@ describe('Login', () => {
     await userEvent.type(screen.getByLabelText('Email'), 'a@b.co')
     await userEvent.type(screen.getByLabelText('Password'), 'wrongpass')
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }))
-    expect((await screen.findAllByRole('alert'))[0].textContent).toMatch(/don't match/)
+    expect((await screen.findAllByRole('alert'))[0].textContent).toMatch(/don’t match/)
     expect(assign).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(screen.getByLabelText('Password')) // QA-43: focus lands where the fix is typed
   })
 
   it('loginRedirectsToSafeNextOnly', async () => {
@@ -88,6 +89,24 @@ describe('Register', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByText('Use at least 8 characters.')).toBeTruthy()
     expect(apiMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything())
+  })
+
+  // QA-43: a bad email is caught in the form, and a taken email links to Log in.
+  it('registerSaysWhenTheEmailIsNotAnEmailAndLinksToLogInWhenItIsTaken', async () => {
+    render(<MemoryRouter><Register /></MemoryRouter>)
+    await userEvent.type(screen.getByLabelText('Full name'), 'Ann')
+    await userEvent.type(screen.getByLabelText('Email'), 'not-an-email')
+    await userEvent.type(screen.getByLabelText('Password'), '12345678')
+    await userEvent.type(screen.getByLabelText('Confirm password'), '12345678')
+    await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+    expect(await screen.findByText('Enter an email like name@example.com.')).toBeTruthy()
+    expect(apiMock).not.toHaveBeenCalledWith('/api/auth/register', expect.anything())
+
+    apiMock.mockImplementation((path: string) => Promise.reject(path === '/api/me' ? new ApiError(401, 'Unauthorized') : new ApiError(409, 'taken')))
+    await userEvent.clear(screen.getByLabelText('Email'))
+    await userEvent.type(screen.getByLabelText('Email'), 'a@b.co')
+    await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
+    expect((await screen.findByRole('link', { name: 'Log in instead' })).getAttribute('href')).toBe('/login')
   })
 
   it('registerSignsYouInAndGoesOnToTheSafeNextWithAWelcome', async () => { // QA-01: the invite survives sign-up

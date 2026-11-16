@@ -30,7 +30,7 @@ export const ActionButton = ({ onClick, children }: { onClick: () => void; child
 
 export function NotFound() {
   return (
-    <ScreenMessage title="This page doesn't exist" action={<ActionLink to="/">Go to Home</ActionLink>}>
+    <ScreenMessage title="This page doesn’t exist" action={<ActionLink to="/">Go to Home</ActionLink>}>
       The link may be old, or the page was moved.
     </ScreenMessage>
   )

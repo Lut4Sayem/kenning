@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { timeCompact, timeShort } from '../ui/timeAgo'
 import { greetingFor, groupByDay, locationOf, longDate } from './home'
 
 describe('home helpers', () => {
@@ -29,12 +28,5 @@ describe('home helpers', () => {
   it('locationIsPrivateOrTeamAndSpace', () => {
     expect(locationOf(null, 'Private')).toBe('Private')
     expect(locationOf('CSE391', 'Requirements')).toBe('CSE391 · Requirements')
-  })
-
-  it('shortTimes', () => {
-    const now = Date.parse('2026-11-15T12:00:00Z')
-    const ago = (min: number) => new Date(now - min * 60_000).toISOString()
-    expect([0, 5, 120, 24 * 60, 3 * 24 * 60].map((m) => timeShort(ago(m), now))).toEqual(['just now', '5m ago', '2h ago', 'yesterday', '3d ago'])
-    expect([0, 5, 120, 24 * 60, 3 * 24 * 60].map((m) => timeCompact(ago(m), now))).toEqual(['now', '5m', '2h', '1d', '3d'])
   })
 })

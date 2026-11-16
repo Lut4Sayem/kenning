@@ -36,11 +36,12 @@ export default function Login() {
       window.location.assign(next)
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        setFormError("That email and password don't match. Check them and try again.")
+        setFormError("That email and password don’t match. Check them and try again.")
       } else {
-        setFormError(err instanceof ApiError ? "Couldn't log you in: " + err.message : "Can't reach the server. Check your connection and try again.")
+        setFormError(err instanceof ApiError ? "Couldn’t log you in: " + err.message : "Can’t reach the server. Check your connection and try again.")
       }
       setBusy(false)
+      document.getElementById('password')?.focus() // QA-43: the disabled button dropped focus to <body>
     }
   }
 

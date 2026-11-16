@@ -18,7 +18,7 @@ import { TopBar } from '../app/ShellSlots'
 import Avatar from '../ui/Avatar'
 import Icon from '../ui/Icon'
 import Segmented from '../ui/Segmented'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { confirmDeleteForever } from './ConfirmTrashDialog'
 import s from './Trash.module.css'
 
@@ -139,7 +139,7 @@ export default function TrashPage() {
         </span>
         <span className={s.by}>
           <Avatar name={b.by?.name ?? '?'} />
-          <span><b>{b.by?.name ?? 'Unknown'}</b>{' '}{tab === 'trash' ? 'deleted' : 'archived'} {b.at ? timeAgo(b.at) : ''}</span>
+          <span><b>{b.by?.name ?? 'Unknown'}</b>{' '}{tab === 'trash' ? 'deleted' : 'archived'} <Time iso={b.at} /></span>
         </span>
         {tab === 'trash' && b.purgeAt && (
           <span className={`${s.left} ${soon ? s.leftSoon : ''}`} title="Deleted for good after 30 days in the trash">

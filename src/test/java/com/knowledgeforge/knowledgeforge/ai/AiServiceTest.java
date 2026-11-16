@@ -124,7 +124,7 @@ class AiServiceTest {
         when(usage.countByUserIdAndCreatedAtGreaterThanEqual(eq("u1"), any(Date.class))).thenReturn(10L);
         ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> service.checkLimits("u1"));
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, e.getStatusCode());
-        assertEquals("You've used today's 10 AI requests. Resets at 00:00 UTC.", e.getReason());
+        assertEquals("You’ve used today’s 10 AI requests. Resets at 00:00 UTC.", e.getReason());
     }
 
     @Test
@@ -133,7 +133,7 @@ class AiServiceTest {
                 .thenReturn(List.of(usageWithTokens(600), usageWithTokens(400)));
         ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> service.checkLimits("u1"));
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, e.getStatusCode());
-        assertEquals("Today's AI limit for the site is used up. Try again tomorrow.", e.getReason());
+        assertEquals("Today’s AI limit for the site is used up. Try again tomorrow.", e.getReason());
     }
 
     @Test

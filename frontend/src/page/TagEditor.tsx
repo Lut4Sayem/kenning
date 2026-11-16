@@ -1,10 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { updateNode, type NodeDetail } from '../api/nodes'
 import Icon from '../ui/Icon'
 import { tintOf } from '../ui/tint'
 import s from './Page.module.css'
+
+const MAX_TAGS = 20 // same limit as NodeService
 
 /** Tag chips (tint by name) that link to the tag's page list. Editors add with "+ Add" and remove with ×. */
 export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit: boolean }) {
@@ -12,14 +14,28 @@ export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit
   const [draft, setDraft] = useState('')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
+  // QA-66: each save is built from the latest local list and sent after the one before it, so quick adds don't overwrite each other.
+  const latest = useRef(node.tags)
+  const queue = useRef(Promise.resolve())
+  const pending = useRef(0)
+  if (pending.current === 0) latest.current = node.tags
 
-  async function save(tags: string[]) {
-    setError('')
-    try {
-      qc.setQueryData(['node', node.id], await updateNode(node.id, { tags }))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save the tags.')
-    }
+  function save(change: (tags: string[]) => string[]) {
+    const tags = change(latest.current)
+    latest.current = tags
+    pending.current++
+    queue.current = queue.current.then(async () => {
+      try {
+        const saved = await updateNode(node.id, { tags })
+        qc.setQueryData(['node', node.id], saved)
+        setError('')
+      } catch (e) {
+        latest.current = node.tags
+        setError(e instanceof Error ? e.message : 'Could not save the tags.')
+      } finally {
+        pending.current--
+      }
+    })
   }
 
   // QA-24: Enter/comma keeps the field open for the next tag; leaving it closes it.
@@ -27,7 +43,7 @@ export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit
     const tag = draft.trim().replace(/^#/, '')
     setDraft('')
     if (close) setAdding(false)
-    if (tag && !node.tags.includes(tag)) void save([...node.tags, tag])
+    if (tag) save((tags) => (tags.includes(tag) ? tags : [...tags, tag]))
   }
 
   if (!canEdit && node.tags.length === 0) return <span className={s.hint}>No tags</span>
@@ -39,11 +55,13 @@ export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit
           return (
             <li key={t} className={s.chip} style={{ background: `var(--tint-${tint}-bg)`, color: `var(--tint-${tint}-fg)` }}>
               <Link to={`/tags/${encodeURIComponent(t)}`}>{t}</Link>
-              {canEdit && <button type="button" aria-label={`Remove tag ${t}`} onClick={() => void save(node.tags.filter((x) => x !== t))}><Icon name="close" size={12} /></button>}
+              {canEdit && <button type="button" aria-label={`Remove tag ${t}`} onClick={() => save((tags) => tags.filter((x) => x !== t))}><Icon name="close" size={12} /></button>}
             </li>
           )
         })}
-        {canEdit && (adding ? (
+        {canEdit && (node.tags.length >= MAX_TAGS && !adding ? (
+          <li className={s.hint}>{MAX_TAGS} of {MAX_TAGS} tags</li>
+        ) : adding ? (
           <li>
             <input
               className={s.tagInput}

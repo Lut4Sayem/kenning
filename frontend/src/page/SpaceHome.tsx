@@ -18,7 +18,7 @@ export default function SpaceHome() {
   if (!tree.data) {
     const code = tree.error instanceof ApiError ? tree.error.status : 0
     return code === 404 || code === 403
-      ? <ScreenMessage alert title="You can't open this space" action={<ActionLink to="/">Go to Home</ActionLink>}>It was deleted, or you are not a member of its team.</ScreenMessage>
+      ? <ScreenMessage alert title="You can’t open this space" action={<ActionLink to="/">Go to Home</ActionLink>}>It was deleted, or you are not a member of its team.</ScreenMessage>
       : <ScreenMessage alert title="Could not open this space" action={<ActionButton onClick={() => void tree.refetch()}>Try again</ActionButton>}>The server did not answer. Check your connection, then try again.</ScreenMessage>
   }
   const first = buildTree(tree.data).find((n) => n.type === 'PAGE') ?? tree.data.find((n) => n.type === 'PAGE')
@@ -32,9 +32,6 @@ function EmptySpace({ spaceId }: { spaceId: string }) {
   const { create, message } = useCreatePage(spaceId)
   const editable = !!space && canEditSpace(space)
   const who = space?.teamName ?? 'the team'
-  const newPage = (cls: string) => (
-    <button type="button" className={cls} onClick={() => void create(null)}><Icon name="plus" />New page</button>
-  )
   return (
     <div className={s.wrap} data-bleed>
       <TopBar>
@@ -42,7 +39,6 @@ function EmptySpace({ spaceId }: { spaceId: string }) {
           {space?.teamId && <><Link to={`/teams/${space.teamId}`}>{space.teamName}</Link><span aria-hidden="true">/</span></>}
           <span className={s.here} aria-current="page">{space?.name ?? 'Space'}</span>
         </nav>
-        {editable && newPage(s.topBtn)}
       </TopBar>
       <h1 className={s.title}>{space?.name ?? 'Space'}</h1>
       <p className={s.help}>
@@ -52,7 +48,7 @@ function EmptySpace({ spaceId }: { spaceId: string }) {
             ? `No pages yet. Write the first one; everyone in ${who} can read it.`
             : `No pages yet. An editor of ${who} can write the first one.`}
       </p>
-      {editable && newPage(s.mainBtn)}
+      {editable && <button type="button" className={s.mainBtn} onClick={() => void create(null)}><Icon name="plus" />New page</button>}
       {message && <p role="alert" className={s.error}>{message}</p>}
     </div>
   )

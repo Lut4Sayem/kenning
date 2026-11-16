@@ -8,7 +8,7 @@ import { AvatarStack } from '../ui/Avatar'
 import FormDialog from '../ui/FormDialog'
 import Icon from '../ui/Icon'
 import RolePill from '../ui/RolePill'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { readPref, savePref } from './detailsPref'
 import TeamDetails from './TeamDetails'
 import TeamTitle from './TeamTitle'
@@ -33,8 +33,8 @@ export default function TeamOverview() {
     return () => setDetailsOpen(false)
   }, [setDetailsOpen])
 
-  async function addSpace(name: string) {
-    await createTeamSpace(teamId, name, '')
+  async function addSpace(name: string, description: string) {
+    await createTeamSpace(teamId, name, description)
     await Promise.all(['team-spaces', 'team-summary', 'team-pages', 'spaces'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
     setNewSpace(false)
   }
@@ -53,7 +53,7 @@ export default function TeamOverview() {
             <span><span className={s.strong}>{plural(summary.spaceCount, 'space')}</span> · {plural(summary.pageCount, 'page')}</span>
           </span>
           <span className={s.fact}>Your role <RolePill role={summary.myRole} /></span>
-          {summary.updatedAt && <span className={s.fact}><Icon name="clock" />Updated {timeAgo(summary.updatedAt)}</span>}
+          {summary.updatedAt && <span className={s.fact}><Icon name="clock" />Updated <Time iso={summary.updatedAt} /></span>}
         </p>
       </header>
 
@@ -85,7 +85,7 @@ export default function TeamOverview() {
         <div className={s.sectionHead}><h2 id="recent-h" className={s.sectionTitle}>Recently updated</h2></div>
         {pages.isPending ? <SkeletonRows n={4} />
           : pages.isError ? <p className={s.error} role="alert">Could not load the pages. <button type="button" className={t.linkBtn} onClick={() => void pages.refetch()}>Try again</button></p>
-          : pages.data.items.length === 0 ? <p className={s.empty}>No pages yet. Pages created in this team's spaces show up here.</p>
+          : pages.data.items.length === 0 ? <p className={s.empty}>No pages yet. Pages created in this team’s spaces show up here.</p>
           : (
             <>
               <ul className={s.list}>
@@ -99,7 +99,7 @@ export default function TeamOverview() {
           )}
       </section>
 
-      {newSpace && <FormDialog title="New space" label="Space name" submitLabel="Create space" onSubmit={addSpace} onClose={() => setNewSpace(false)} />}
+      {newSpace && <FormDialog title="New space" label="Space name" noteLabel="What is this space for? (optional)" submitLabel="Create space" onSubmit={addSpace} onClose={() => setNewSpace(false)} />}
       {detailsOpen && <DetailsPanel><TeamDetails teamId={teamId} onClose={() => { savePref(false); setDetailsOpen(false) }} /></DetailsPanel>}
     </div>
   )

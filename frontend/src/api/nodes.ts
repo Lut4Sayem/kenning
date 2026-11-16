@@ -105,6 +105,8 @@ export const archiveNode = (id: string) => post<{ count: number }>(`/api/nodes/$
 export const unarchiveNode = (id: string) => post<{ movedToTop: boolean }>(`/api/nodes/${id}/unarchive`)
 /** Where a trashed page went (QA-33); 404 unless it is trashed and I could see it otherwise. */
 export interface Trashed {
+  /** The asked page's own title (QA-60). */
+  title: string
   rootId: string
   rootTitle: string
   spaceId: string

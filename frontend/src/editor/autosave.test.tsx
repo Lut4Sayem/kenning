@@ -451,7 +451,7 @@ describe('autosave', () => {
     expect(pending()).toBeUndefined()
   })
 
-  // QA-53: opening a page while offline showed "Could not load this page's content" although a copy was on the device.
+  // QA-53: opening a page while offline showed "Could not load this page’s content" although a copy was on the device.
   it('openingOfflineShowsTheKeptCopyAndSendsItOnceOnline', async () => {
     const mine = serverDoc()
     type(mine, 'typed offline earlier')
@@ -692,6 +692,6 @@ describe('autosave', () => {
     expect(text('saved')).toBe('Saved')
     expect(text('saving')).toBe('Saving…')
     expect(text('offline')).toBe('Offline: changes kept on this device')
-    expect(text('retrying')).toBe("Couldn't save, retrying")
+    expect(text('retrying')).toBe("Couldn’t save, retrying")
   })
 })

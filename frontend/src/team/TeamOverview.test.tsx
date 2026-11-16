@@ -191,6 +191,17 @@ describe('team overview', () => {
     expect(teams.createTeamSpace).toHaveBeenCalledWith('t1', 'Research', '')
   })
 
+  // QA-10: an optional description, which Ask uses as background.
+  it('newSpaceTakesAnOptionalDescription', async () => {
+    teams.createTeamSpace.mockResolvedValue({ id: 's9' })
+    setup()
+    await userEvent.click(await screen.findByRole('button', { name: /New space/ }))
+    await userEvent.type(screen.getByLabelText('Space name'), 'Research')
+    await userEvent.type(screen.getByLabelText('What is this space for? (optional)'), '  Papers we read for the thesis ')
+    await userEvent.click(screen.getByRole('button', { name: 'Create space' }))
+    expect(teams.createTeamSpace).toHaveBeenCalledWith('t1', 'Research', 'Papers we read for the thesis')
+  })
+
   it('detailsToggleIsPressedWhenOpenAndFlipsThePanel', async () => {
     setup()
     const toggle = await screen.findByRole('button', { name: 'Details' })

@@ -19,10 +19,10 @@
   flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-left: -6px; padding: 0; border: 0;
   border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer;
 }
-.menuBtn:hover { background: var(--hover); color: var(--ink); }
+@media (hover: hover) { .menuBtn:hover { background: var(--hover); color: var(--ink); } }
 .main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-8) var(--space-10); container-type: inline-size; } /* screens can adapt to the room they really have (details panel open or not) */
 .main:has([data-bleed]) { padding: 0; } /* Home and Recent bring their own column padding */
-.details { width: var(--details-width); min-height: 0; overflow-y: auto; padding: var(--space-4); }
+.details { width: var(--details-width); min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-4); }
 .skip {
   position: absolute; left: var(--space-3); top: var(--space-3); z-index: 100; padding: var(--space-2) var(--space-4);
   border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); text-decoration: none; font-weight: 500;

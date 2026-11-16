@@ -36,7 +36,7 @@ export function AuthLayout({ title, subtitle, alt, lead, children }: { title: st
   )
 }
 
-type FieldProps = { label: string; error?: string; id: string; eye?: ReactNode } & InputHTMLAttributes<HTMLInputElement>
+type FieldProps = { label: string; error?: ReactNode; id: string; eye?: ReactNode } & InputHTMLAttributes<HTMLInputElement>
 
 export function Field({ label, error, id, eye, ...props }: FieldProps) {
   return (
