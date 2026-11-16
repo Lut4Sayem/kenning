@@ -59,4 +59,27 @@ describe('TagEditor', () => {
     await waitFor(() => expect(sent.at(-1)).toEqual(['thesis', 'draft']))
     await waitFor(() => expect(screen.getAllByRole('link').map((a) => a.textContent)).toEqual(['thesis', 'draft']))
   })
+
+  // QA-44: at the limit there is no Add, the count says so, and an old error goes once a change saves.
+  it('atTwentyTagsHidesAddAndAnErrorClearsOnTheNextSave', async () => {
+    const full = { ...NODE, tags: Array.from({ length: 20 }, (_, i) => `t${i}`) }
+    nodesApi.updateNode.mockRejectedValueOnce(new Error('A page can have at most 20 tags'))
+    nodesApi.updateNode.mockImplementation(async (_id: string, body: { tags: string[] }) => ({ ...full, tags: body.tags }))
+    function Host() {
+      const { data } = useQuery({ queryKey: ['node', 'n1'], queryFn: () => full, initialData: full, staleTime: Infinity })
+      return <TagEditor node={data} canEdit />
+    }
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter><Host /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.queryByRole('button', { name: 'Add' })).toBeNull()
+    expect(screen.getByText('20 of 20 tags')).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Remove tag t0' }))
+    await screen.findByRole('alert')
+    await userEvent.click(screen.getByRole('button', { name: 'Remove tag t1' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy()
+  })
 })

@@ -6,6 +6,8 @@ import Icon from '../ui/Icon'
 import { tintOf } from '../ui/tint'
 import s from './Page.module.css'
 
+const MAX_TAGS = 20 // same limit as NodeService
+
 /** Tag chips (tint by name) that link to the tag's page list. Editors add with "+ Add" and remove with ×. */
 export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit: boolean }) {
   const qc = useQueryClient()
@@ -57,7 +59,9 @@ export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit
             </li>
           )
         })}
-        {canEdit && (adding ? (
+        {canEdit && (node.tags.length >= MAX_TAGS && !adding ? (
+          <li className={s.hint}>{MAX_TAGS} of {MAX_TAGS} tags</li>
+        ) : adding ? (
           <li>
             <input
               className={s.tagInput}
