@@ -71,3 +71,5 @@
 .kf-bookmark-text span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .kf-bookmark img { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; }
 .kf-offer { margin: 8px 0; font-size: 14px; color: var(--ink-muted); }
+/* QA-46: a table wider than the column scrolls inside its own box, not the page */
+.bn-editor .bn-block-content[data-content-type='table'] { max-width: 100%; overflow-x: auto; }

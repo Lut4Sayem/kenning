@@ -23,7 +23,7 @@ export default function Breadcrumbs({ team, spaceName, crumbs, current, colour =
     <nav className={s.crumbs} aria-label="Breadcrumb">
       <ol>
         {team && <li><Link to={`/teams/${team.id}`} title={team.name}>{team.name}</Link></li>}
-        {spaceName && <li><span title={spaceName}>{spaceName}</span></li>}
+        {spaceName && <li className={s.space}><span title={spaceName}>{spaceName}</span></li>}
         {hidden.length > 0 && <li><span title={hidden.map(name).join(' / ')}>…</span></li>}
         {shown.map((c) => <li key={c.id}><Link to={`/p/${c.id}`} title={name(c)}>{name(c)}</Link></li>)}
         <li aria-current="page">

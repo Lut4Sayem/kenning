@@ -75,5 +75,9 @@
   .banners { padding-inline: 16px; }
   .title { font-size: 34px; }
   .props { grid-template-columns: 96px minmax(0, 1fr); }
-  .crumbs li:not(:last-child) { display: none; }
+  /* QA-46: the big title says which page this is; the top bar keeps the space (the page title when there is no space) */
+  .wideOnly { display: none; } /* Move to trash is in the page menu too; phones need the room for the crumb */
+  .crumbs li:not(.space) { display: none; }
+  .crumbs li.space, .crumbs ol:not(:has(.space)) li:last-child { display: inline-flex; flex: 0 1 auto; max-width: none; overflow: hidden; }
+  .crumbs li.space::after { content: none; }
 }

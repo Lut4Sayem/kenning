@@ -369,7 +369,7 @@ export default function PageView() {
 function TrashButton({ node, blocked }: { node: NodeDetail; blocked?: string }) {
   const trash = useTrashPage(node)
   return (
-    <button type="button" className={s.iconBtn} aria-label="Move to trash" title={blocked ?? 'Move to trash'} disabled={!!blocked}
+    <button type="button" className={`${s.iconBtn} ${s.wideOnly}`} aria-label="Move to trash" title={blocked ?? 'Move to trash'} disabled={!!blocked}
       onClick={() => void trash().catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not move the page to the trash.', 'error'))}>
       <Icon name="trash" />
     </button>
