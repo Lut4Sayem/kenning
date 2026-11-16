@@ -129,6 +129,13 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect(screen.queryByRole('button', { name: 'Unarchive' })).toBeNull()
   })
 
+  // QA-39: a Viewer sees why typing does nothing, also on a page that has content.
+  it('aViewerSeesAViewOnlyTagInTheTopBar', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW', canManage: false })
+    const { topbar } = mount()
+    await waitFor(() => expect(topbar.textContent).toContain('View only'))
+  })
+
   it('aPageThatNeverLoadedShowsOnlyTheError', async () => {
     nodesApi.getNode.mockRejectedValue(new ApiError(404, 'Page not found'))
     nodesApi.getTrashed.mockRejectedValue(new ApiError(404, 'Page not found'))

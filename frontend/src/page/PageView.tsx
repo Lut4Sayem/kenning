@@ -267,6 +267,7 @@ export default function PageView() {
         <span className={s.actions}>
           <span ref={setHead} />
           {readingOnly && canEdit && <ReadOnlyTag />}
+          {n.access === 'VIEW' && n.status === 'ACTIVE' && !n.locked && <ReadOnlyTag label="View only" />}
           {n.access !== 'TITLE_ONLY' && (
             <button type="button" className={s.iconBtn} aria-label="Version history" title="Version history" aria-pressed={detailsOpen && panel === 'history'} onClick={toggleHistory}>
               <Icon name="history" />
