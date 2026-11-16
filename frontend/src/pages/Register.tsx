@@ -4,6 +4,8 @@ import { ApiError, api } from '../api/client'
 import { AuthLayout, Field, FormError, PasswordField, SubmitButton } from './AuthLayout'
 import { DEFAULT_NEXT, safeNext } from './safeNext'
 import { toast } from '../ui/Toast'
+import { TeamBlock } from './Join'
+import { useInviteFor } from './useInviteFor'
 
 type Errors = Partial<Record<'fullName' | 'email' | 'password' | 'confirm', string>>
 
@@ -11,6 +13,7 @@ export default function Register() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const rawNext = params.get('next')
+  const invite = useInviteFor(safeNext(rawNext))
   const loginUrl = '/login' + (rawNext && safeNext(rawNext) !== DEFAULT_NEXT ? '?next=' + encodeURIComponent(safeNext(rawNext)) : '')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -58,8 +61,9 @@ export default function Register() {
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Write things down once. Your team finds them later."
+      title={invite ? `Create an account to join ${invite.teamName}` : 'Create your account'}
+      subtitle={invite ? 'Then ask to join. An admin approves each request.' : 'Write things down once. Your team finds them later.'}
+      lead={invite && <TeamBlock preview={invite} />}
       alt={<>Already have an account? <Link to={loginUrl}>Log in</Link></>}
     >
       <form onSubmit={submit} noValidate>

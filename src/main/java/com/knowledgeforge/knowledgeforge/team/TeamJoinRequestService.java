@@ -27,7 +27,7 @@ public class TeamJoinRequestService {
         this.teamRepository = teamRepository;
     }
 
-    /** `email`: the caller, whose own request state the join page shows. */
+    /** `email`: the caller, whose own request state the join page shows; null when logged out. */
     public InvitePreviewDTO preview(String inviteCode, String email) {
         TeamInvite invite = teamInviteRepository.findByInviteCode(inviteCode)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite code not found"));
@@ -35,7 +35,7 @@ public class TeamJoinRequestService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invite code not found"));
         String by = invite.getCreatedBy() == null ? null
                 : userRepository.findById(invite.getCreatedBy()).map(User::getFullName).orElse(null);
-        String userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
+        String userId = email == null ? null : userRepository.findByEmail(email).map(User::getId).orElse(null);
         boolean pending = userId != null && teamJoinRequestRepository.existsByTeamIdAndUserIdAndStatus(team.getId(), userId, "PENDING");
         boolean member = userId != null && teamMemberRepository.existsByTeamIdAndUserId(team.getId(), userId);
         return new InvitePreviewDTO(team.getName(), teamMemberRepository.countByTeamId(team.getId()), by, pending,

@@ -71,6 +71,8 @@ public class SecurityConfig {
                                 "/google557de5fbfde00618.html"
 
                         ).permitAll()
+                        // invite preview: the login page names the team the link is for (QA-04); joining still needs a login
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/team-invites/*").permitAll()
                         .anyRequest().authenticated()
                 )
                 // ✅ CLEAN FIX: always return JSON for API auth failures instead of HTML redirects

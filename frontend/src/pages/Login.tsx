@@ -2,11 +2,14 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client'
 import { AuthLayout, Field, FormError, PasswordField, SubmitButton } from './AuthLayout'
+import { TeamBlock } from './Join'
 import { safeNext } from './safeNext'
+import { useInviteFor } from './useInviteFor'
 
 export default function Login() {
   const [params] = useSearchParams()
   const next = safeNext(params.get('next'))
+  const invite = useInviteFor(next)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
@@ -44,8 +47,9 @@ export default function Login() {
   const registerUrl = '/register' + (params.get('next') ? '?next=' + encodeURIComponent(params.get('next')!) : '')
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Log in to pick up where you left off."
+      title={invite ? `Log in to join ${invite.teamName}` : 'Welcome back'}
+      subtitle={invite ? 'New here? Create an account first. The invite stays open.' : 'Log in to pick up where you left off.'}
+      lead={invite && <TeamBlock preview={invite} />}
       alt={<>New here? <Link to={registerUrl}>Create an account</Link></>}
     >
       <form onSubmit={submit} noValidate>

@@ -51,6 +51,33 @@ describe('Login', () => {
   })
 })
 
+describe('invite links while logged out (QA-04)', () => {
+  const next = '?next=' + encodeURIComponent('/app/join/abc')
+  beforeEach(() => {
+    apiMock.mockImplementation((path: string) => path === '/api/me' ? Promise.reject(new ApiError(401, 'Unauthorized'))
+      : path === '/api/team-invites/abc' ? Promise.resolve({ teamName: 'CSE391 Thesis Group', memberCount: 4, invitedByName: 'Ayesha Rahman', hasPendingRequest: false, isMember: false, teamId: null })
+      : Promise.resolve(null))
+  })
+
+  it('loginNamesTheTeamAndKeepsTheInviteThroughCreateAccount', async () => {
+    render(<MemoryRouter initialEntries={['/login' + next]}><Login /></MemoryRouter>)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Log in to join CSE391 Thesis Group' })).toBeTruthy()
+    expect(screen.getByText('4 members · invited by Ayesha Rahman')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Create an account' }).getAttribute('href')).toBe('/register' + next)
+  })
+
+  it('registerNamesTheTeamToo', async () => {
+    render(<MemoryRouter initialEntries={['/register' + next]}><Register /></MemoryRouter>)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Create an account to join CSE391 Thesis Group' })).toBeTruthy()
+  })
+
+  it('aBrokenInviteLeavesThePlainLogin', async () => {
+    apiMock.mockImplementation(() => Promise.reject(new ApiError(404, 'Invite code not found')))
+    render(<MemoryRouter initialEntries={['/login' + next]}><Login /></MemoryRouter>)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Welcome back' })).toBeTruthy()
+  })
+})
+
 describe('Register', () => {
   it('registerValidatesPasswordLength8', async () => {
     render(<MemoryRouter><Register /></MemoryRouter>)
