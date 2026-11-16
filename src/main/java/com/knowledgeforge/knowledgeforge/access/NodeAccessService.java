@@ -134,7 +134,17 @@ public class NodeAccessService {
         if (!ignoreLock && node.isLocked() && compute(userId, node, false, true).compareTo(needed) >= 0) {
             return new ResponseStatusException(HttpStatus.FORBIDDEN, "This page is locked and read-only");
         }
+        if (needed == Access.EDIT && isTeamViewer(userId, node) && compute(userId, node, false, ignoreLock) == Access.VIEW) {
+            return new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Viewers can read and comment. Ask a team admin to make you an Editor.");
+        }
         return new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have access to this page");
+    }
+
+    private boolean isTeamViewer(String userId, Node node) {
+        Space space = spaceRepository.findById(node.getSpaceId()).orElse(null);
+        Base base = space == null ? null : base(userId, space);
+        return base != null && base.team() && base.access() == Access.VIEW;
     }
 
     private record Base(Access access, boolean admin, boolean team) {}
