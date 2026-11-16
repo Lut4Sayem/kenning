@@ -46,6 +46,16 @@ public class TrashController {
         return trash.trashed(id);
     }
 
+    @GetMapping("/api/teams/{teamId}/trash")
+    public java.util.List<SpaceBranchesDTO> teamTrash(@PathVariable String teamId) {
+        return trash.teamTrash(teamId);
+    }
+
+    @GetMapping("/api/teams/{teamId}/archived")
+    public java.util.List<SpaceBranchesDTO> teamArchived(@PathVariable String teamId) {
+        return trash.teamArchived(teamId);
+    }
+
     @PostMapping("/api/trash/{trashRootId}/restore")
     public RestoreDTO restore(@PathVariable String trashRootId) {
         return trash.restore(trashRootId);

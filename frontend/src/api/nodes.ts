@@ -109,5 +109,12 @@ export interface Trashed {
 export const getTrashed = (id: string) => api<Trashed>(`/api/nodes/${id}/trashed`)
 export const getTrash = (spaceId: string) => api<BranchList>(`/api/spaces/${spaceId}/trash`)
 export const getArchived = (spaceId: string) => api<BranchList>(`/api/spaces/${spaceId}/archived`)
+/** QA-34: one space's branches in the team trash; only spaces with something in them. */
+export interface SpaceBranches extends BranchList {
+  spaceId: string
+  spaceName: string
+}
+export const getTeamTrash = (teamId: string) => api<SpaceBranches[]>(`/api/teams/${teamId}/trash`)
+export const getTeamArchived = (teamId: string) => api<SpaceBranches[]>(`/api/teams/${teamId}/archived`)
 export const restoreBranch = (rootId: string) => post<{ movedToTop: boolean }>(`/api/trash/${rootId}/restore`)
 export const deleteForever = (rootId: string) => api<null>(`/api/trash/${rootId}`, { method: 'DELETE' })

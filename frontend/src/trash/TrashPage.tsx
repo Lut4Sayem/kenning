@@ -4,10 +4,14 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   deleteForever,
   getArchived,
+  getTeamArchived,
+  getTeamTrash,
   getTrash,
   restoreBranch,
   unarchiveNode,
   type Branch,
+  type BranchList,
+  type SpaceBranches,
 } from '../api/nodes'
 import { getMySpaces } from '../api/spaces'
 import { TopBar } from '../app/ShellSlots'
@@ -31,74 +35,95 @@ export function daysLeft(purgeAt: string | null, now = Date.now()): string {
 }
 
 type Tab = 'trash' | 'archived'
+/** A row knows its space: the team trash mixes spaces (QA-34). */
+type Row = Branch & { spaceId: string; spaceName: string; canPurge: boolean }
 
-/** Trash and Archived tabs of one space (mockup trash). */
+const asGroup = (spaceId: string) => (l: BranchList): SpaceBranches[] => [{ spaceId, spaceName: '', ...l }]
+
+/** Trash and Archived tabs of one space (`/s/:spaceId/trash`) or of every space of a team (`/teams/:teamId/trash`). */
 export default function TrashPage() {
-  const { spaceId = '' } = useParams()
+  const { spaceId = '', teamId = '' } = useParams()
   const [params, setParams] = useSearchParams()
   const tab: Tab = params.get('tab') === 'archived' ? 'archived' : 'trash'
   const qc = useQueryClient()
   const spaces = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces })
-  const trash = useQuery({ queryKey: ['trash', spaceId], queryFn: () => getTrash(spaceId), retry: false })
-  const archived = useQuery({ queryKey: ['archived', spaceId], queryFn: () => getArchived(spaceId), retry: false })
+  const space = spaces.data?.find((x) => x.id === spaceId)
+  const spaceName = space?.name ?? 'this space'
+  const teamName = spaces.data?.find((x) => x.teamId === teamId)?.teamName
+  const scope = teamId ? `all spaces of ${teamName ?? 'the team'}` : spaceName
+  // The team lists come grouped by space; a space's list becomes one group, so both render the same way.
+  const trash = useQuery({
+    queryKey: teamId ? ['team-trash', teamId] : ['trash', spaceId],
+    queryFn: () => (teamId ? getTeamTrash(teamId) : getTrash(spaceId).then(asGroup(spaceId))),
+    retry: false,
+  })
+  const archived = useQuery({
+    queryKey: teamId ? ['team-archived', teamId] : ['archived', spaceId],
+    queryFn: () => (teamId ? getTeamArchived(teamId) : getArchived(spaceId).then(asGroup(spaceId))),
+    retry: false,
+  })
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
   const [shown, setShown] = useState(PAGE)
-  const space = spaces.data?.find((x) => x.id === spaceId)
-  const spaceName = space?.name ?? 'this space'
 
   const active = tab === 'trash' ? trash : archived
-  const refresh = () =>
+  const refresh = (b: Row) =>
     Promise.all([
-      qc.invalidateQueries({ queryKey: ['trash', spaceId] }),
-      qc.invalidateQueries({ queryKey: ['archived', spaceId] }),
-      qc.invalidateQueries({ queryKey: ['tree', spaceId] }),
+      qc.invalidateQueries({ queryKey: ['trash', b.spaceId] }),
+      qc.invalidateQueries({ queryKey: ['archived', b.spaceId] }),
+      qc.invalidateQueries({ queryKey: ['tree', b.spaceId] }),
+      qc.invalidateQueries({ queryKey: ['team-trash'] }),
+      qc.invalidateQueries({ queryKey: ['team-archived'] }),
     ])
 
   const restore = useMutation({
-    mutationFn: (b: Branch) => (tab === 'trash' ? restoreBranch(b.id) : unarchiveNode(b.id)),
+    mutationFn: (b: Row) => (tab === 'trash' ? restoreBranch(b.id) : unarchiveNode(b.id)),
     onSuccess: async (result, b) => {
       setError('')
       setNotice(
         result.movedToTop
-          ? `"${b.title || 'Untitled'}" was restored to the top level of ${spaceName}, because its parent was deleted or is in the trash.`
+          ? `"${b.title || 'Untitled'}" was restored to the top level of ${b.spaceName}, because its parent was deleted or is in the trash.`
           : `"${b.title || 'Untitled'}" was restored.`,
       )
-      await refresh()
+      await refresh(b)
     },
     onError: (e) => setError(e.message),
   })
   const forever = useMutation({
-    mutationFn: async (b: Branch) => {
+    mutationFn: async (b: Row) => {
       if (!(await confirmDeleteForever(b.title, b.descendantCount))) return false
       await deleteForever(b.id)
       return true
     },
-    onSuccess: async (done) => {
+    onSuccess: async (done, b) => {
       setError('')
       if (done) {
         setNotice('Deleted forever.')
-        await refresh()
+        await refresh(b)
       }
     },
     onError: (e) => setError(e.message),
   })
 
-  const canPurge = tab === 'trash' && !!trash.data?.canPurge
+  const canPurgeAny = tab === 'trash' && !!trash.data?.some((g) => g.canPurge)
   const needle = filter.trim().toLowerCase()
-  const all = (active.data?.items ?? []).filter((b) => !needle || (b.title || 'Untitled').toLowerCase().includes(needle))
+  const rows = (d?: SpaceBranches[]): Row[] =>
+    (d ?? []).flatMap((g) => g.items.map((b) => ({ ...b, spaceId: g.spaceId, spaceName: teamId ? g.spaceName : spaceName, canPurge: g.canPurge })))
+  const all = rows(active.data).filter((b) => !needle || (b.title || 'Untitled').toLowerCase().includes(needle))
   const items = all.slice(0, shown)
   const now = Date.now()
   const urgent = (b: Branch) => tab === 'trash' && !!b.purgeAt && daysUntil(b.purgeAt, now) <= URGENT_DAYS
-  const groups = tab === 'trash'
-    ? [{ key: 'soon', label: 'Gone for good this week', items: items.filter(urgent) }, { key: 'later', label: 'Later', items: items.filter((b) => !urgent(b)) }]
-    : [{ key: 'all', label: '', items }]
+  const groups: { key: string; label: string; items: Row[] }[] = teamId
+    ? (active.data ?? []).map((g) => ({ key: g.spaceId, label: g.spaceName, items: items.filter((b) => b.spaceId === g.spaceId) }))
+    : tab === 'trash'
+      ? [{ key: 'soon', label: 'Gone for good this week', items: items.filter(urgent) }, { key: 'later', label: 'Later', items: items.filter((b) => !urgent(b)) }]
+      : [{ key: 'all', label: '', items }]
   const switchTab = (t: Tab) => { setParams(t === 'trash' ? {} : { tab: t }); setShown(PAGE); setNotice(''); setError('') }
 
-  const row = (b: Branch) => {
+  const row = (b: Row) => {
     const soon = urgent(b)
-    const where = [spaceName, ...b.path.map((p) => p.title || 'Untitled')].join(' / ')
+    const where = [b.spaceName, ...b.path.map((p) => p.title || 'Untitled')].join(' / ')
     return (
       <li key={b.id} className={`${s.item} ${soon ? s.urgent : ''}`}>
         <span className={`${s.tile} ${soon ? s.tileUrgent : ''}`} aria-hidden="true"><Icon name="doc-lines" /></span>
@@ -108,7 +133,7 @@ export default function TrashPage() {
             {b.descendantCount > 0 && <span className={s.subs}>+ {b.descendantCount} sub-page{b.descendantCount === 1 ? '' : 's'}</span>}
           </span>
           <span className={s.was}>Was in {where}</span>
-          {b.parentGone && <span className={s.warn}>Its parent is also deleted or archived, so it will come back at the top of {spaceName}.</span>}
+          {b.parentGone && <span className={s.warn}>Its parent is also deleted or archived, so it will come back at the top of {b.spaceName}.</span>}
         </span>
         <span className={s.by}>
           <Avatar name={b.by?.name ?? '?'} />
@@ -125,7 +150,7 @@ export default function TrashPage() {
               <Icon name="restore" size={14} />{tab === 'trash' ? 'Restore' : 'Unarchive'}
             </button>
           )}
-          {canPurge && (
+          {tab === 'trash' && b.canPurge && (
             <button type="button" className={s.purge} aria-label="Delete forever" title="Delete forever" onClick={() => forever.mutate(b)} disabled={forever.isPending}>
               <Icon name="trash" />
             </button>
@@ -137,27 +162,27 @@ export default function TrashPage() {
 
   return (
     <div className={s.wrap} data-bleed>
-      <TopBar>
+      {!teamId && <TopBar>
         <nav className={s.crumbs} aria-label="Breadcrumb">
           {space?.teamId && <><Link to={`/teams/${space.teamId}`}>{space.teamName}</Link><span aria-hidden="true">/</span></>}
           {space && <><Link to={`/s/${space.id}`}>{space.name}</Link><span aria-hidden="true">/</span></>}
           <span className={s.here} aria-current="page"><Icon name="trash" size={14} />Trash</span>
         </nav>
-      </TopBar>
+      </TopBar>}
 
       <div className={s.hero}>
         <h1>{tab === 'trash' ? 'Trash' : 'Archived'}</h1>
         <p className={s.lead}>
           {tab === 'trash'
-            ? `Deleted pages from ${spaceName} stay here for 30 days, then they are gone for good.`
-            : `Archived pages from ${spaceName} are read-only and still show up in search. Unarchiving brings back the page and its sub-pages.`}
+            ? `Deleted pages from ${scope} stay here for 30 days, then they are gone for good.`
+            : `Archived pages from ${scope} are read-only and still show up in search. Unarchiving brings back the page and its sub-pages.`}
         </p>
       </div>
 
       <div className={s.toolbar}>
         <Segmented<Tab> label="Trash and archive" idPrefix="trash" onPage value={tab} onChange={switchTab} options={[
-          { value: 'trash', label: 'Trash', count: trash.data?.items.length },
-          { value: 'archived', label: 'Archived', count: archived.data?.items.length },
+          { value: 'trash', label: 'Trash', count: trash.data && rows(trash.data).length },
+          { value: 'archived', label: 'Archived', count: archived.data && rows(archived.data).length },
         ]} />
         <label className={s.filter}>
           <Icon name="search" size={14} />
@@ -176,7 +201,7 @@ export default function TrashPage() {
         {active.isSuccess && all.length === 0 && (
           <p className={s.empty}>
             {needle ? `No page title matches “${filter.trim()}”.`
-              : tab === 'trash' ? `The trash is empty. Pages you delete from ${spaceName} wait here for 30 days.`
+              : tab === 'trash' ? `The trash is empty. Pages you delete from ${scope} wait here for 30 days.`
                 : `Nothing is archived. Archive a page from its … menu to keep it read-only.`}
           </p>
         )}
@@ -184,7 +209,7 @@ export default function TrashPage() {
           <section key={g.key} className={s.group} aria-labelledby={g.label ? `tg-${g.key}` : undefined} aria-label={g.label ? undefined : 'Archived pages'}>
             {g.label && (
               <h2 id={`tg-${g.key}`} className={s.groupHead}>
-                <span className={g.key === 'soon' ? s.clockSoon : s.clock}><Icon name="clock" size={14} /></span>
+                {!teamId && <span className={g.key === 'soon' ? s.clockSoon : s.clock}><Icon name="clock" size={14} /></span>}
                 {g.label}<span className={s.count}>{g.items.length}</span>
               </h2>
             )}
@@ -194,7 +219,7 @@ export default function TrashPage() {
         {all.length > items.length && (
           <button type="button" className={s.more} onClick={() => setShown((n) => n + PAGE)}>Load more</button>
         )}
-        {tab === 'trash' && !canPurge && trash.isSuccess && all.length > 0 && <p className={s.note}>Only team admins can delete forever.</p>}
+        {tab === 'trash' && !canPurgeAny && trash.isSuccess && all.length > 0 && <p className={s.note}>Only team admins can delete forever.</p>}
       </div>
     </div>
   )

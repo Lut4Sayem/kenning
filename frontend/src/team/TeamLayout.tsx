@@ -26,7 +26,7 @@ export interface TeamContext {
 export default function TeamLayout() {
   const { teamId = '' } = useParams()
   const { pathname } = useLocation()
-  const tabName = ({ pages: 'Pages', members: 'Members', requests: 'Join requests' } as Record<string, string>)[pathname.split('/').pop() ?? ''] // list tabs show no big title
+  const tabName = ({ pages: 'Pages', members: 'Members', requests: 'Join requests', trash: 'Trash' } as Record<string, string>)[pathname.split('/').pop() ?? ''] // list tabs show no big title
   const nav = useNavigate()
   const { detailsOpen, setDetailsOpen } = useShellSlots()
   const summary = useQuery({ queryKey: ['team-summary', teamId], queryFn: () => getTeamSummary(teamId), retry: false })
@@ -84,7 +84,7 @@ export default function TeamLayout() {
             Requests{pending > 0 && <span className={s.count} aria-label={`${pending} waiting`}>{pending}</span>}
           </NavLink>
         )}
-        {first && <Link to={`/s/${first.id}/trash`} className={s.tab}>Trash</Link>}
+        <NavLink to={`${base}/trash`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>Trash</NavLink>
       </nav>
 
       {summary.data ? (

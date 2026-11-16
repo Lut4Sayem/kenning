@@ -9,7 +9,10 @@ import { confirmTrash } from './ConfirmTrashDialog'
 import { timeAgo } from '../ui/timeAgo'
 import TrashPage, { daysLeft } from './TrashPage'
 
-const api = vi.hoisted(() => ({ getTrash: vi.fn(), getArchived: vi.fn(), restoreBranch: vi.fn(), unarchiveNode: vi.fn(), deleteForever: vi.fn() }))
+const api = vi.hoisted(() => ({
+  getTrash: vi.fn(), getArchived: vi.fn(), restoreBranch: vi.fn(), unarchiveNode: vi.fn(), deleteForever: vi.fn(),
+  getTeamTrash: vi.fn(), getTeamArchived: vi.fn(),
+}))
 vi.mock('../api/nodes', () => api)
 const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spaces)
@@ -40,11 +43,35 @@ function mount(url = '/s/s1/trash') {
         <ConfirmHost />
         <Routes>
           <Route path="/s/:spaceId/trash" element={<TrashPage />} />
+          <Route path="/teams/:teamId/trash" element={<TrashPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   )
 }
+
+// QA-34: the team Trash tab lists every space of the team, grouped by space.
+describe('team trash', () => {
+  it('groupsBranchesBySpaceAndRestoresFromAnyOfThem', async () => {
+    api.getTeamTrash.mockResolvedValue([
+      { spaceId: 's2', spaceName: 'Experiments', canPurge: true, items: [branch({ id: 'b2', title: 'Pilot run', path: [] })] },
+      { spaceId: 's1', spaceName: 'Thesis', canPurge: true, items: [branch()] },
+    ])
+    api.getTeamArchived.mockResolvedValue([])
+    api.restoreBranch.mockResolvedValue({ movedToTop: false })
+    mount('/teams/t/trash')
+    const exp = await screen.findByRole('region', { name: /Experiments/ })
+    expect(within(exp).getByText('Pilot run')).toBeTruthy()
+    expect(within(exp).getByText('Was in Experiments')).toBeTruthy()
+    const thesis = screen.getByRole('region', { name: /Thesis/ })
+    expect(within(thesis).getByText('Was in Thesis / Overview')).toBeTruthy()
+    expect(api.getTrash).not.toHaveBeenCalled()
+
+    await userEvent.click(within(exp).getByRole('button', { name: 'Restore' }))
+    await waitFor(() => expect(api.restoreBranch).toHaveBeenCalledWith('b2'))
+    expect(await statusText()).toBe('"Pilot run" was restored.')
+  })
+})
 
 describe('trash page', () => {
   it('listsBranchesWithWasInDeletedByAndDaysLeft', async () => {
