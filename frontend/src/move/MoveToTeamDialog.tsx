@@ -6,6 +6,7 @@ import { buildTree, type TreeNode } from '../tree/buildTree'
 import Icon from '../ui/Icon'
 import { dotColour } from '../ui/pageColour'
 import TeamTile from '../ui/TeamTile'
+import { toast } from '../ui/Toast'
 import s from './MoveToTeam.module.css'
 
 interface Props {
@@ -70,6 +71,7 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
         qc.invalidateQueries({ queryKey: ['tree', node.spaceId] }),
         qc.invalidateQueries({ queryKey: ['tree', space.id] }),
       ])
+      if (within) toast(`Moved “${node.title || 'Untitled'}” to ${space.name}`) // QA-61
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not work.')

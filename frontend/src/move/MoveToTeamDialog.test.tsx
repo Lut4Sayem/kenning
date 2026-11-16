@@ -8,6 +8,8 @@ const api = vi.hoisted(() => ({ getSubtreeCount: vi.fn(), getTree: vi.fn(), move
 const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn() }))
 vi.mock('../api/nodes', () => api)
 vi.mock('../api/spaces', () => spaces)
+const toasts = vi.hoisted(() => ({ toast: vi.fn() }))
+vi.mock('../ui/Toast', () => toasts)
 
 const space = (id: string, name: string, role: string, teamId = 't1') =>
   ({ id, name, icon: null, ownerType: 'TEAM', teamId, teamName: 'CSE391 Team', myRole: role })
@@ -109,6 +111,7 @@ describe('Move to… (within the team)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Move' }))
     await waitFor(() => expect(api.moveNode).toHaveBeenCalledWith('n1', { parentId: 'e1', spaceId: 's2' }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(toasts.toast).toHaveBeenCalledWith('Moved “Methodology” to Experiments') // QA-61
   })
 
   it('inItsOwnSpaceThePageAndItsSubPagesAreNotParents', async () => {
