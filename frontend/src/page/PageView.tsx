@@ -321,7 +321,8 @@ export default function PageView() {
           <p className={s.note}>You can see this page's title but not its content.</p>
         ) : (
           <>
-            <Properties node={n} canEdit={canEdit} changes={changes} canCompare={editing && !!lastPublished} onCompare={() => void compare()} />
+            {/* QA-22: the properties are the current page's, not the version's */}
+            {!viewing && <Properties node={n} canEdit={canEdit} changes={changes} canCompare={editing && !!lastPublished} onCompare={() => void compare()} />}
             {viewing && <DiffView state={viewing.state} previousState={viewing.previousState} authors={viewing.version.authors} />}
             {me.data ? (
               /* hidden, not unmounted: the editor keeps saving what was typed */

@@ -13,6 +13,7 @@ import { useEndSessionOnLeave } from '../editor/session'
 import DiffView from './DiffView'
 import HistoryPanel, { type Viewing } from './HistoryPanel'
 import { groupVersions } from './groupVersions'
+import VersionBar from './VersionBar'
 
 // jsdom has no matchMedia (Mantine) or layout (BlockNote's side menu).
 window.matchMedia ??= ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
@@ -218,3 +219,20 @@ describe('leaving the page', () => {
   })
 })
 
+// QA-22: the list has no version numbers, so the bar names the version the way the list does.
+describe('VersionBar', () => {
+  const view = (kind: VersionSummary['kind'], extra: Partial<Viewing> = {}, more: Partial<VersionSummary> = {}): Viewing => ({
+    version: v('x', kind, new Date(2020, 0, 3, 4, 23).toISOString(), more), number: 2, previousNumber: 1, state: '', previousState: '', canRestore: true, against: 'previous', ...extra,
+  })
+
+  it('namesTheKindAndTimeNotANumber', () => {
+    render(<VersionBar viewing={view('AUTO')} onBack={() => {}} />)
+    expect(screen.getByRole('status').textContent).toBe('Viewing the autosave from Jan 3 4:23 am by Sayem. Highlights show what changed since the version before it.Back to current')
+  })
+
+  it('namedVersionsByNameAndTheFirstVersionSaysSo', () => {
+    render(<VersionBar viewing={view('NAMED', { previousNumber: null }, { name: 'Draft 1' })} onBack={() => {}} />)
+    expect(screen.getByRole('status').textContent).toContain('Viewing “Draft 1” from Jan 3 4:23 am by Sayem. This is the first version: everything is new.')
+    expect(screen.getByRole('status').textContent).not.toMatch(/Version \d/)
+  })
+})
