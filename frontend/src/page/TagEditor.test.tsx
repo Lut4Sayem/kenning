@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -34,5 +34,29 @@ describe('TagEditor', () => {
     expect(document.activeElement).toBe(screen.getByLabelText('Add tag'))
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByLabelText('Add tag')).toBeNull()
+  })
+
+  // QA-66: the second tag must not be built from the list before the first save came back.
+  it('twoTagsAddedBackToBackBothReachTheServer', async () => {
+    const sent: string[][] = []
+    nodesApi.updateNode.mockImplementation(async (_id: string, body: { tags: string[] }) => {
+      sent.push(body.tags)
+      await new Promise((r) => setTimeout(r, 300))
+      return { ...NODE, tags: body.tags }
+    })
+    // like PageView: the node comes from the query cache that TagEditor writes to
+    function Host() {
+      const { data } = useQuery({ queryKey: ['node', 'n1'], queryFn: () => NODE, initialData: NODE, staleTime: Infinity })
+      return <TagEditor node={data} canEdit />
+    }
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter><Host /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await userEvent.type(screen.getByLabelText('Add tag'), 'Thesis{Enter}draft{Enter}')
+    await waitFor(() => expect(sent.at(-1)).toEqual(['thesis', 'draft']))
+    await waitFor(() => expect(screen.getAllByRole('link').map((a) => a.textContent)).toEqual(['thesis', 'draft']))
   })
 })
