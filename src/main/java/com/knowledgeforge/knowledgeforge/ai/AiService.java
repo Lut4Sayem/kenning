@@ -156,7 +156,8 @@ public class AiService {
         String questionKey = q.toLowerCase().replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
         String fingerprint = fingerprint(space, visible.values());
         AiAnswer cached = answerRepository.findBySpaceIdAndQuestionKey(spaceId, questionKey).orElse(null);
-        if (cached != null && fingerprint.equals(cached.getFingerprint())) {
+        // (an answer saved without sources before QA-57 is asked again, once)
+        if (cached != null && fingerprint.equals(cached.getFingerprint()) && cached.getSources() != null && !cached.getSources().isEmpty()) {
             return new AskResponse(cached.getAnswer(), cached.getSources(), cached.getUsedDocuments(), cached.isTrimmed(), true);
         }
 
@@ -258,6 +259,8 @@ public class AiService {
                 if (i >= 1 && i <= sent.size()) used.add(i);
             }
         }
+        // QA-57: no usable [n] in the answer: list every page it was given, so the answer still links to what it read
+        if (used.isEmpty()) for (int i = 1; i <= sent.size(); i++) used.add(i);
         return used.stream().map(i -> new SourceDTO(i, sent.get(i - 1).getId(), sent.get(i - 1).getTitle())).toList();
     }
 
