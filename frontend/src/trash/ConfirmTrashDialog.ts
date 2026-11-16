@@ -18,7 +18,7 @@ export function confirmTrash(title: string, subPages: number): Promise<boolean> 
 export function confirmDeleteForever(title: string, subPages: number): Promise<boolean> {
   return confirmDialog({
     title: `Delete "${title || 'Untitled'}" forever?`,
-    body: `This permanently deletes the page${subPages > 0 ? `, its ${pages(subPages)}` : ''}, and their versions, comments and files. This cannot be undone.`,
+    body: `This permanently deletes ${subPages > 0 ? `the page, its ${pages(subPages)}, and their` : 'the page and its'} versions, comments and files. This cannot be undone.`,
     confirmLabel: 'Delete forever',
     danger: true,
   })

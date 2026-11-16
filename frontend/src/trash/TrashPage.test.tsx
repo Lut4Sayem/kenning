@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Branch } from '../api/nodes'
 import { ConfirmHost } from '../ui/ConfirmDialog'
-import { confirmTrash } from './ConfirmTrashDialog'
+import { confirmDeleteForever, confirmTrash } from './ConfirmTrashDialog'
 import { timeAgo } from '../ui/timeAgo'
 import TrashPage, { daysLeft } from './TrashPage'
 
@@ -175,6 +175,15 @@ describe('trash list', () => {
     expect(within(soon).getByText('Scratchpad')).toBeTruthy()
     expect(within(soon).getByText('2 days left')).toBeTruthy()
     expect(within(screen.getByRole('region', { name: /Later/ })).getByText('Old outline')).toBeTruthy()
+    expect(screen.getByText('28 days left')).toBeTruthy() // QA-36: every pill says "left"
+  })
+
+  // QA-36: "Later" on its own read oddly.
+  it('withNothingDueThisWeekThereIsNoGroupHeading', async () => {
+    api.getTrash.mockResolvedValue({ canPurge: true, items: [branch()] })
+    mount()
+    expect(await screen.findByRole('region', { name: 'Pages in the trash' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /Later/ })).toBeNull()
   })
 
   it('filtersByTitleAndLoadsMoreAfter25', async () => {
@@ -196,6 +205,16 @@ describe('trash confirm text', () => {
     void confirmTrash('Methodology', 2)
     const dialog = await screen.findByRole('dialog', { name: 'Move "Methodology" to trash?' })
     expect(dialog.textContent).toContain('This also moves its 2 sub-pages. You can restore them from the trash for 30 days.')
+  })
+
+  it('deleteForeverSaysItsVersionsForOnePage', async () => {
+    render(<ConfirmHost />)
+    void confirmDeleteForever('Methodology', 0)
+    expect((await screen.findByRole('dialog')).textContent).toContain('This permanently deletes the page and its versions, comments and files.')
+    cleanup()
+    render(<ConfirmHost />)
+    void confirmDeleteForever('Methodology', 2)
+    expect((await screen.findByRole('dialog')).textContent).toContain('This permanently deletes the page, its 2 sub-pages, and their versions, comments and files.')
   })
 })
 
