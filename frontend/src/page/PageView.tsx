@@ -497,7 +497,11 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
   const lock = useEditLock(node.id, canEdit)
   const editable = canEdit && lock.mode === 'editing'
   const [uploadError, setUploadError] = useState('')
-  const files = useMemo(() => ({ nodeId: node.id, onError: setUploadError }), [node.id])
+  const qc = useQueryClient()
+  const files = useMemo(
+    () => ({ nodeId: node.id, onError: setUploadError, onUploaded: () => void qc.invalidateQueries({ queryKey: ['files', node.id] }) }),
+    [node.id, qc],
+  )
   const editor = useKfEditor(opened.ydoc, 'Me', editable, files)
   useEndSessionOnLeave(node.id, canEdit)
   const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit)

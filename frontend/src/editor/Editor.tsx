@@ -25,7 +25,7 @@ export function useKfEditor(
   ydoc: Y.Doc,
   userName: string,
   editable: boolean,
-  files?: { nodeId: string; onError: (message: string) => void },
+  files?: { nodeId: string; onError: (message: string) => void; onUploaded?: () => void },
 ): KfEditor {
   return useCreateBlockNote(
     withCollaboration({
@@ -35,7 +35,9 @@ export function useKfEditor(
         editable && files
           ? async (file: File) => {
               try {
-                return await uploadAttachment(files.nodeId, file)
+                const url = await uploadAttachment(files.nodeId, file)
+                files.onUploaded?.() // QA-23: e.g. the Files tab count
+                return url
               } catch (e) {
                 files.onError(e instanceof Error ? e.message : 'Upload failed')
                 throw e

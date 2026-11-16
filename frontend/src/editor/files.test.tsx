@@ -16,14 +16,14 @@ afterEach(() => {
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
-function Harness({ editable = true, onEditor, onError = () => {} }: { editable?: boolean; onEditor: (e: KfEditor) => void; onError?: (m: string) => void }) {
+function Harness({ editable = true, onEditor, onError = () => {}, onUploaded }: { editable?: boolean; onEditor: (e: KfEditor) => void; onError?: (m: string) => void; onUploaded?: () => void }) {
   const [ydoc] = useState(() => new Y.Doc())
-  const editor = useKfEditor(ydoc, 'Tester', editable, { nodeId: 'n1', onError })
+  const editor = useKfEditor(ydoc, 'Tester', editable, { nodeId: 'n1', onError, onUploaded })
   onEditor(editor)
   return <Editor editor={editor} editable={editable} />
 }
 
-async function mount(props: { editable?: boolean; onError?: (m: string) => void } = {}) {
+async function mount(props: { editable?: boolean; onError?: (m: string) => void; onUploaded?: () => void } = {}) {
   let editor!: KfEditor
   const view = render(<Harness {...props} onEditor={(e) => (editor = e)} />)
   await new Promise((r) => setTimeout(r, 80))
@@ -77,9 +77,11 @@ describe('files and bookmarks in pages', () => {
     const urls: string[] = []
     const fetchMock = vi.fn(async (u: string) => (urls.push(u), json(201, { id: 'a1' })))
     vi.stubGlobal('fetch', fetchMock)
-    const { editor } = await mount()
+    const onUploaded = vi.fn()
+    const { editor } = await mount({ onUploaded })
     expect(await editor.uploadFile!(new File(['x'], 'a.png'))).toBe('/api/attachments/a1/download')
     expect(urls[0]).toBe('/api/nodes/n1/attachments/upload')
+    expect(onUploaded).toHaveBeenCalledTimes(1) // QA-23: the Files tab count refreshes
   })
 
   it('readOnlyPageHasNoUpload', async () => {
