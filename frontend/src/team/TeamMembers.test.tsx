@@ -71,11 +71,11 @@ describe('team members', () => {
   it('makingAnAdminAsksFirstAndCancelChangesNothing', async () => {
     setup('u1')
     await userEvent.click(await screen.findByRole('button', { name: /Role of Bob/ }))
-    await userEvent.click(within(screen.getByRole('group', { name: /Role of Bob/ })).getByRole('button', { name: 'Admin' }))
+    await userEvent.click(within(screen.getByRole('menu', { name: /Role of Bob/ })).getByRole('menuitemradio', { name: 'Admin' }))
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(teams.setRole).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: /Role of Bob/ }))
-    await userEvent.click(within(screen.getByRole('group', { name: /Role of Bob/ })).getByRole('button', { name: 'Viewer' }))
+    await userEvent.click(within(screen.getByRole('menu', { name: /Role of Bob/ })).getByRole('menuitemradio', { name: 'Viewer' }))
     expect(teams.setRole).toHaveBeenCalledWith('t1', 'u2', 'VIEWER')
   })
 
@@ -85,8 +85,24 @@ describe('team members', () => {
     await userEvent.click(btn)
     expect(btn.getAttribute('aria-expanded')).toBe('true')
     await userEvent.keyboard('{Escape}')
-    expect(screen.queryByRole('group', { name: /Role of Bob/ })).toBeNull()
+    expect(screen.queryByRole('menu', { name: /Role of Bob/ })).toBeNull()
     expect(document.activeElement).toBe(btn)
+  })
+
+  // QA-08: a menu of radio items, the current role checked, arrow keys move between them.
+  it('roleMenuIsAMenuOfRadioItemsWithArrowKeys', async () => {
+    setup('u1')
+    await userEvent.click(await screen.findByRole('button', { name: /Role of Bob/ }))
+    const menu = screen.getByRole('menu', { name: /Role of Bob/ })
+    const items = within(menu).getAllByRole('menuitemradio')
+    expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false'])
+    expect(document.activeElement).toBe(items[1]) // focus starts on the current role
+    await userEvent.keyboard('{ArrowDown}')
+    expect(document.activeElement).toBe(items[2])
+    await userEvent.keyboard('{ArrowDown}')
+    expect(document.activeElement).toBe(items[0])
+    await userEvent.keyboard('{ArrowUp}')
+    expect(document.activeElement).toBe(items[2])
   })
 
   it('findAMemberFiltersByNameOrEmail', async () => {
