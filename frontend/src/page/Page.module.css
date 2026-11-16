@@ -6,7 +6,7 @@
 .crumbs a, .crumbs li > span:not(.current) { color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .current > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .crumbs li:not(:last-child) { flex: none; max-width: 12em; } /* team, space and parent stay readable; only the page title gives way (QA-42) */
-.crumbs a:hover { color: var(--ink); }
+@media (hover: hover) { .crumbs a:hover { color: var(--ink); } }
 .crumbs li:last-child { flex: 0 1 auto; min-width: 4em; overflow: hidden; }
 .current { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-weight: 500; color: var(--ink); }
 .current > span:last-child { overflow: hidden; text-overflow: ellipsis; }
@@ -15,11 +15,11 @@
 .actions { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex: none; }
 .btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 14px; border: 1px solid transparent; border-radius: var(--r-pill); font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out), opacity 150ms var(--ease-out); }
 .primary { background: var(--primary); color: var(--on-primary); }
-.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); }
+@media (hover: hover) { .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
 .btn:active:not(:disabled) { scale: 0.96; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .iconBtn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-.iconBtn:hover { background: var(--hover); color: var(--ink); }
+@media (hover: hover) { .iconBtn:hover { background: var(--hover); color: var(--ink); } }
 .iconBtn[aria-pressed='true'] { background: var(--surface-card-hover); color: var(--ink); border-color: var(--line); }
 .publishedText { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--success-text); }
 .tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--pill-bg); color: var(--pill-ink); font-size: 12px; font-weight: 600; }
@@ -51,12 +51,12 @@
 .tags { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .chip { display: inline-flex; align-items: center; height: 24px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; }
 .chip a { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; color: inherit; text-decoration: none; }
-.chip a:hover { text-decoration: underline; text-underline-offset: 2px; }
+@media (hover: hover) { .chip a:hover { text-decoration: underline; text-underline-offset: 2px; } }
 /* QA-24: always shown to editors (it was display:none until hover, so screen readers in browse mode missed it) */
 .chip button { display: grid; place-items: center; width: 20px; height: 24px; margin-left: -6px; padding: 0; border: 0; background: none; color: inherit; opacity: 0.7; cursor: pointer; }
 .chip button:hover { opacity: 1; }
 .add { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: none; font-size: 12.5px; color: var(--ink-muted); cursor: pointer; }
-.add:hover { background: var(--surface-card-hover); color: var(--ink); }
+@media (hover: hover) { .add:hover { background: var(--surface-card-hover); color: var(--ink); } }
 .tagInput { width: 120px; height: 24px; padding: 0 10px; border: 1px solid var(--input-border); border-radius: var(--r-pill); font-size: 12.5px; color: var(--ink); background: var(--canvas); }
 .tagInput:focus-visible { outline: 0; border-color: var(--ink); box-shadow: 0 0 0 3px var(--ring); }
 

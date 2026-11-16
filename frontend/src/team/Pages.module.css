@@ -2,11 +2,11 @@
 .viewBar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); }
 .views { display: flex; flex-wrap: wrap; gap: 4px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted); font-size: 13px; font-weight: 500; cursor: pointer; }
-.pill:hover { background: var(--surface-card); }
+@media (hover: hover) { .pill:hover { background: var(--surface-card); } }
 .pill.on { background: var(--surface-card-hover); color: var(--ink); }
 .chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 4px 0 10px; border-radius: var(--r-pill); background: var(--callout); color: var(--accent-ink); font-size: 13px; font-weight: 500; }
 .chip button { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; cursor: pointer; }
-.chip button:hover { background: var(--accent-soft); }
+@media (hover: hover) { .chip button:hover { background: var(--accent-soft); } }
 .chip svg { width: 12px; height: 12px; }
 .tools { margin-left: auto; display: flex; gap: 4px; }
 .menu { display: flex; flex-direction: column; gap: 12px; padding: 8px; min-width: 220px; }
@@ -24,7 +24,7 @@
 .cols svg { width: 13px; height: 13px; }
 .cols .cTime { justify-content: flex-end; }
 .row { height: 40px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
-.row:hover { background: var(--surface-row-hover); }
+@media (hover: hover) { .row:hover { background: var(--surface-row-hover); } }
 .row td { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .cTitle { min-width: 0; }
 .titleLink { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; height: 40px; color: inherit; text-decoration: none; }
@@ -40,7 +40,7 @@
 .group { display: block; height: 36px; background: var(--surface-card); border-bottom: 1px solid var(--line-soft); }
 .group td { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 22px 0 10px; }
 .chev, .gplus { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-.chev:hover, .gplus:hover { background: var(--hover); color: var(--ink); }
+@media (hover: hover) { .chev:hover, .gplus:hover { background: var(--hover); color: var(--ink); } }
 .chev svg { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
 .chevOpen { transform: rotate(90deg); }
 .gname { font-size: 13px; font-weight: 600; color: var(--ink); }

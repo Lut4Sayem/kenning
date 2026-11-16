@@ -9,9 +9,9 @@
 .error .text { color: var(--ink); }
 .text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .action { flex: none; height: 28px; padding: 0 10px; border: 0; border-radius: var(--r-row); background: transparent; color: var(--link); font: inherit; font-weight: 500; cursor: pointer; }
-.action:hover { background: var(--hover); }
+@media (hover: hover) { .action:hover { background: var(--hover); } }
 .close { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--r-row); background: transparent; color: var(--ink-muted); cursor: pointer; }
-.close:hover { background: var(--hover); color: var(--ink); }
+@media (hover: hover) { .close:hover { background: var(--hover); color: var(--ink); } }
 @media (pointer: coarse) { .close { width: 40px; height: 40px; } .action { height: 40px; } }
 @keyframes in { from { opacity: 0; transform: translateY(8px); } }
 @media (prefers-reduced-motion: reduce) { @keyframes in { from { opacity: 0; } } }
