@@ -31,6 +31,19 @@
 .bn-editor code, .bn-block-content[data-content-type='codeBlock'] { font-family: var(--font-mono); }
 .bn-editor code { padding: 1px 5px; border-radius: 5px; background: var(--surface-card-hover); font-size: 0.9em; }
 
+/* QA-19: BlockNote draws code blocks white on #161616 and the inline-code rule above then put light boxes behind the white text. Light block, page ink. */
+.bn-block-content[data-content-type='codeBlock'] { background: var(--surface-card); color: var(--ink-doc); border-radius: 10px; }
+.bn-block-content[data-content-type='codeBlock'] > pre { padding: 14px 16px; font-size: 13.5px; line-height: 1.6; }
+.bn-block-content[data-content-type='codeBlock'] > pre code { padding: 0; border-radius: 0; background: none; color: inherit; font-size: inherit; }
+.bn-block-content[data-content-type='codeBlock'] > div > select { color: var(--ink-muted); }
+.bn-editor[contenteditable='true'] .bn-block-content[data-content-type='codeBlock']:hover { background: var(--surface-card); }
+/* BlockNote's gray, red, orange, yellow and blue text fall under 4.5:1 on white or on its own highlight colours; the tint inks pass on all of them. */
+.bn-root [data-text-color='gray'] { color: var(--ink-muted); }
+.bn-root [data-text-color='red'] { color: var(--error-ink); }
+.bn-root [data-text-color='orange'] { color: var(--tint-peach-fg); }
+.bn-root [data-text-color='yellow'] { color: var(--tint-yellow-fg); }
+.bn-root [data-text-color='blue'] { color: var(--tint-sky-fg); }
+
 /* Status (inline) */
 .kf-status { position: relative; display: inline-block; border-radius: var(--r-pill); padding: 0 10px; font-size: 12px; font-weight: 600; line-height: 22px; white-space: nowrap; }
 .kf-status > button { all: unset; cursor: pointer; }
