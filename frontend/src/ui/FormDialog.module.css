@@ -4,6 +4,8 @@
 .label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 500; color: var(--ink-label); }
 .input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--input-border); border-radius: var(--r-lg); background: var(--canvas); color: var(--ink); font-size: 14px; }
 .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
+.noteLabel { margin-top: 16px; }
+.note { height: auto; padding: 10px 12px; font: inherit; font-size: 14px; line-height: 1.45; resize: vertical; }
 .error { margin: 8px 0 0; font-size: 13px; color: var(--error-text); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .body { margin: -6px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-doc); text-wrap: pretty; }

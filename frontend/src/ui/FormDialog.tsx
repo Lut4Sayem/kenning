@@ -8,17 +8,20 @@ export interface FormDialogProps {
   maxLength?: number
   /** Starting text (e.g. the current name when renaming); it is selected when the dialog opens. */
   initial?: string
+  /** An optional second, free-text field under the first (e.g. a space's description); its trimmed text is onSubmit's second argument. */
+  noteLabel?: string
   /** Resolves when done (the caller closes the dialog); a rejection shows its message under the field. */
-  onSubmit: (value: string) => Promise<unknown>
+  onSubmit: (value: string, note: string) => Promise<unknown>
   onClose: () => void
 }
 
 /** A one-field modal (white, radius 20, max 480; DESIGN.md section 6): "New team", "New space". */
-export default function FormDialog({ title, label, submitLabel, maxLength = 100, initial = '', onSubmit, onClose }: FormDialogProps) {
+export default function FormDialog({ title, label, submitLabel, maxLength = 100, initial = '', noteLabel, onSubmit, onClose }: FormDialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const id = useId()
   const [value, setValue] = useState(initial)
+  const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -40,7 +43,7 @@ export default function FormDialog({ title, label, submitLabel, maxLength = 100,
     setBusy(true)
     setError('')
     try {
-      await onSubmit(value.trim())
+      await onSubmit(value.trim(), note.trim())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setBusy(false)
@@ -55,6 +58,10 @@ export default function FormDialog({ title, label, submitLabel, maxLength = 100,
         <input id={`${id}-f`} ref={input} className={s.input} value={value} maxLength={maxLength} autoComplete="off"
           onChange={(e) => setValue(e.target.value)} aria-describedby={error ? `${id}-e` : undefined} aria-invalid={error ? true : undefined} />
         {error && <p id={`${id}-e`} className={s.error} role="alert">{error}</p>}
+        {noteLabel && <>
+          <label htmlFor={`${id}-n`} className={`${s.label} ${s.noteLabel}`}>{noteLabel}</label>
+          <textarea id={`${id}-n`} className={`${s.input} ${s.note}`} rows={3} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
+        </>}
         <div className={s.actions}>
           <button type="button" className={s.ghost} onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className={s.primary} disabled={!value.trim() || busy}>{submitLabel}</button>

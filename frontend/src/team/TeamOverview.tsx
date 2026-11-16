@@ -33,8 +33,8 @@ export default function TeamOverview() {
     return () => setDetailsOpen(false)
   }, [setDetailsOpen])
 
-  async function addSpace(name: string) {
-    await createTeamSpace(teamId, name, '')
+  async function addSpace(name: string, description: string) {
+    await createTeamSpace(teamId, name, description)
     await Promise.all(['team-spaces', 'team-summary', 'team-pages', 'spaces'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
     setNewSpace(false)
   }
@@ -99,7 +99,7 @@ export default function TeamOverview() {
           )}
       </section>
 
-      {newSpace && <FormDialog title="New space" label="Space name" submitLabel="Create space" onSubmit={addSpace} onClose={() => setNewSpace(false)} />}
+      {newSpace && <FormDialog title="New space" label="Space name" noteLabel="What is this space for? (optional)" submitLabel="Create space" onSubmit={addSpace} onClose={() => setNewSpace(false)} />}
       {detailsOpen && <DetailsPanel><TeamDetails teamId={teamId} onClose={() => { savePref(false); setDetailsOpen(false) }} /></DetailsPanel>}
     </div>
   )
