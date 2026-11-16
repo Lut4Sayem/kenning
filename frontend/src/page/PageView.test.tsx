@@ -48,14 +48,14 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-function mount() {
+function mount(entry: string | { pathname: string; state: unknown } = '/p/n1') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const topbar = document.body.appendChild(document.createElement('header'))
   const view = render(
     <StrictMode>{/* like main.tsx: effects run, clean up and run again on mount */}
     <QueryClientProvider client={qc}>
       <SlotsContext.Provider value={{ topbar, details: null, detailsOpen: false, setDetailsOpen: () => {} }}>
-        <MemoryRouter initialEntries={['/p/n1']}>
+        <MemoryRouter initialEntries={[entry]}>
           <ToastHost />
           <ConfirmHost />
           <Routes>
@@ -189,6 +189,21 @@ describe('page title', () => {
     expect(titleField().value).toBe('Transformers')
     await waitFor(() => expect(nodesApi.updateNode).toHaveBeenLastCalledWith('n1', { title: 'Transformers' }), { timeout: 3000 })
   }, 15_000)
+})
+
+// QA-16: a page just made with New page opens with the caret in its title.
+describe('a new page', () => {
+  it('focusesTheTitle', async () => {
+    mount({ pathname: '/p/n1', state: { isNew: true } })
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Page title')))
+  })
+
+  it('anExistingPageDoesNotTakeFocus', async () => {
+    mount()
+    await screen.findByLabelText('Page title')
+    await act(() => new Promise((r) => setTimeout(r, 300)))
+    expect(document.activeElement).not.toBe(screen.getByLabelText('Page title'))
+  })
 })
 
 // QA-26: Publish says what happened, with Undo.

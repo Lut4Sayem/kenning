@@ -40,7 +40,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
     try {
       const created = await createNode(priv.id, { parentId: null })
       await qc.invalidateQueries({ queryKey: ['tree', priv.id] })
-      navigate(`/p/${created.id}`)
+      navigate(`/p/${created.id}`, { state: { isNew: true } }) // QA-16: the page puts the caret in its title
     } catch {
       // the space row's own + shows the server message; this shortcut stays quiet
     }

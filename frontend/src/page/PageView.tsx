@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { getNode, getTrashed, publishNode, restoreBranch, unpublishNode, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
 import { getVersion, listVersions, restoreVersion } from '../api/versions'
@@ -148,6 +148,13 @@ export default function PageView() {
     synced.current = { id: nodeId, title: server }
     if (node.data?.id === nodeId) loaded.current.add(nodeId)
   }, [node.data?.title, node.data?.id, nodeId])
+
+  // QA-16: a page just made with New page opens with the caret in its title.
+  const isNew = (useLocation().state as { isNew?: boolean } | null)?.isNew === true
+  const titleReady = node.data?.id === nodeId && canEditNode
+  useEffect(() => {
+    if (isNew && titleReady) titleBox.current?.focus()
+  }, [isNew, titleReady, nodeId])
 
   // QA-11: the title saves like the content: ~1 s after typing stops, at once on blur/Enter, and when the page is left.
   const titleDirty = typedIn === nodeId && node.data?.access === 'EDIT' && title.trim() !== node.data.title

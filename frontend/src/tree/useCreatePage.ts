@@ -15,7 +15,7 @@ export function useCreatePage(spaceId: string) {
       const created = await createNode(spaceId, { parentId })
       onCreated?.()
       await qc.invalidateQueries({ queryKey: ['tree', spaceId] })
-      navigate(`/p/${created.id}`)
+      navigate(`/p/${created.id}`, { state: { isNew: true } }) // QA-16: the page puts the caret in its title
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Could not create the page')
     }
