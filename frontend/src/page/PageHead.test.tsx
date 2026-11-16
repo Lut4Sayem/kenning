@@ -179,7 +179,10 @@ describe('the details panel', () => {
     expect(within(panel).getByRole('tab', { name: /Comments/ }).textContent).toContain('1')
     await userEvent.click(within(panel).getByRole('tab', { name: /Files/ }))
     expect(await within(panel).findByRole('link', { name: 'notes.pdf' })).toBeTruthy()
-    expect(within(panel).getByText('2 KB')).toBeTruthy()
+    // QA-29: two files with the same name differ by when they were uploaded (full date on hover)
+    const meta = within(panel).getByText(/^2 KB/)
+    expect(meta.textContent).toMatch(/^2 KB · (just now|\d+m ago|\d+h ago)$/)
+    expect(meta.querySelector('time')?.getAttribute('title')).toMatch(/\d{4}/)
     expect(within(panel).getByRole('link', { name: 'Spec' }).getAttribute('target')).toBe('_blank')
     expect(within(panel).getByRole('button', { name: 'Upload a file' })).toBeTruthy() // editors upload
     await userEvent.click(within(panel).getByRole('tab', { name: 'Summary' }))

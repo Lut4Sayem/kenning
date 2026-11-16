@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addComment, ask, deleteComment, getComments, summarize } from '../api/pageExtras'
-import { getMe } from '../api/spaces'
+import { getMe, getMySpaces } from '../api/spaces'
 import Avatar from '../ui/Avatar'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import Icon from '../ui/Icon'
@@ -103,14 +103,16 @@ function Summarize({ nodeId }: { nodeId: string }) {
   )
 }
 
-/** Ask a question across the pages of the project (space) this page is in. */
+/** Ask a question across the pages of the space this page is in. */
 export function AskPanel({ spaceId }: { spaceId: string }) {
   const [q, setQ] = useState('')
   const run = useMutation({ mutationFn: () => ask(spaceId, q.trim()) })
+  // QA-30: it reads the whole space, not just this page, so it names the space.
+  const space = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces }).data?.find((x) => x.id === spaceId)
   if (run.error && NOT_CONFIGURED.test(run.error.message)) return null
   return (
     <section aria-label="Ask" className={s.block}>
-      <h3 className={`ui-label ${s.blockHead}`}>Ask this project</h3>
+      <h3 className={`ui-label ${s.blockHead}`}>{!space ? 'Ask this space' : space.ownerType === 'USER' ? 'Ask your private pages' : `Ask ${space.name}`}</h3>
       <form className={s.askRow} onSubmit={(e) => { e.preventDefault(); if (q.trim()) run.mutate() }}>
         <input className={s.field} aria-label="Question" placeholder="What do you want to know?" value={q} onChange={(e) => setQ(e.target.value)} maxLength={500} />
         <button type="submit" className={s.quiet} disabled={!q.trim() || run.isPending}>{run.isPending ? 'Asking…' : 'Ask'}</button>
@@ -119,7 +121,7 @@ export function AskPanel({ spaceId }: { spaceId: string }) {
         <>
           <Markdown className={s.answer} text={run.data.answer} sources={run.data.sources} />
           {run.data.sources.length > 0 && (
-            <ol className={s.sources}>{run.data.sources.map((src) => <li key={src.id} value={src.n}><Link to={`/p/${src.id}`} className={s.link}>{src.title}</Link></li>)}</ol>
+            <ol className={s.sources} aria-label="Pages used">{run.data.sources.map((src) => <li key={src.id} value={src.n}><Link to={`/p/${src.id}`} className={s.link}>{src.title}</Link></li>)}</ol>
           )}
         </>
       )}

@@ -5,6 +5,7 @@ import { deleteAttachment, getAttachments, type PageFile } from '../api/pageExtr
 import { safeHttpUrl } from '../editor/BookmarkBlock'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import Icon from '../ui/Icon'
+import { timeShort } from '../ui/timeAgo'
 import s from './Panel.module.css'
 
 const size = (b: number | null) => (b == null ? '' : b < 1024 ? `${b} B` : b < 1024 * 1024 ? `${Math.round(b / 1024)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`)
@@ -45,7 +46,10 @@ export function Files({ nodeId, canEdit }: { nodeId: string; canEdit: boolean })
                 <span className={s.tile} style={{ background: `var(--tint-${tint}-bg)`, color: `var(--tint-${tint}-fg)` }}><Icon name={f.url ? 'link' : 'file'} /></span>
                 <span className={s.fileText}>
                   {href ? <a className={s.fileName} href={href} {...(f.url ? { target: '_blank', rel: 'noopener noreferrer' } : { download: '' })}>{f.originalName}</a> : <span className={s.fileName}>{f.originalName}</span>}
-                  <span className={s.fileMeta}>{f.url ? 'Link' : size(f.size)}</span>
+                  {/* QA-29: when it was uploaded tells two files with the same name apart */}
+                  <span className={s.fileMeta}>
+                    {f.url ? 'Link' : size(f.size)} · <time dateTime={f.uploadedAt} title={new Date(f.uploadedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}>{timeShort(f.uploadedAt)}</time>
+                  </span>
                 </span>
                 {canEdit && <button type="button" className={s.iconBtn} aria-label={`Delete ${f.originalName}`} onClick={() => void remove(f)}><Icon name="close" /></button>}
               </li>

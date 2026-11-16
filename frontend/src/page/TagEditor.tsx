@@ -22,10 +22,11 @@ export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit
     }
   }
 
-  function add() {
-    const tag = draft.trim().replace(/^#/, '').toLowerCase()
+  // QA-24: Enter/comma keeps the field open for the next tag; leaving it closes it.
+  function add(close: boolean) {
+    const tag = draft.trim().replace(/^#/, '')
     setDraft('')
-    setAdding(false)
+    if (close) setAdding(false)
     if (tag && !node.tags.includes(tag)) void save([...node.tags, tag])
   }
 
@@ -51,12 +52,12 @@ export default function TagEditor({ node, canEdit }: { node: NodeDetail; canEdit
               maxLength={40}
               autoFocus
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => setDraft(e.target.value.toLowerCase())} // tags are stored in lowercase: show it while typing
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() }
+                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(false) }
                 else if (e.key === 'Escape') { setDraft(''); setAdding(false) }
               }}
-              onBlur={add}
+              onBlur={() => add(true)}
             />
           </li>
         ) : (

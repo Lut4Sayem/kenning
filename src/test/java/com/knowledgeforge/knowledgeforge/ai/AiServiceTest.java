@@ -493,6 +493,18 @@ class AiServiceTest {
     }
 
     @Test
+    void anAnswerWithoutCitationMarksStillListsThePagesItWasGiven() {
+        // QA-57: usedDocuments was 2 but sources was [], so the answer linked to none of the pages it used
+        spaceHas(List.of(page("a", "Vacation", "x", 1), page("b", "Vacation policy", "y", 2)), "b", "a");
+        when(client.chat(anyString(), anyString(), anyInt()))
+                .thenReturn(new AiClient.Result("Everyone gets 20 days (Document 1).", 10, 5, 15));
+
+        AskResponse r = service.ask(SPACE_ID, "vacation policy");
+
+        assertEquals(List.of(new SourceDTO(1, "b", "Vacation policy"), new SourceDTO(2, "a", "Vacation")), r.sources());
+    }
+
+    @Test
     void fullWidthCitationMarksAreNormalisedAndMapped() {
         // QA-28: the model wrote 【2】 (and 【1†L3-L5】), so no source was found and the mark showed as is
         spaceHas(List.of(page("a", "Vacation", "x", 1), page("b", "Vacation policy", "y", 2)), "b", "a");

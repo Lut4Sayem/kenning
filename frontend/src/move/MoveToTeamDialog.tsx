@@ -145,7 +145,7 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
                   <p className={s.w}><Icon name="check" size={14} />Content, files, tags and comments come along.</p>
                   <p className={s.w}><Icon name="check" size={14} />Everyone who can see “{parentTitle}” can see it.</p>
                   <p className={s.w}><Icon name="check" size={14} />Your earlier versions stay private. The team's history starts at “Published to team”.</p>
-                  <p className={`${s.w} ${s.no}`}><Icon name="info" size={14} />It can't be moved back to your private space later. You can copy it instead.</p>
+                  <p className={`${s.w} ${s.no}`}><Icon name="info" size={14} />It can't be moved back to your private space later.</p>
                 </>
               )}
             </section>

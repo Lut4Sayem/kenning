@@ -11,6 +11,7 @@ import {
 } from '../api/nodes'
 import MoveToTeamDialog from '../move/MoveToTeamDialog'
 import Icon from '../ui/Icon'
+import { toast } from '../ui/Toast'
 import { dotColour, PAGE_COLOURS } from '../ui/pageColour'
 import m from './PageMenu.module.css'
 import { useTrashPage } from './useTrashPage'
@@ -31,10 +32,24 @@ interface Item {
   blocked?: string
 }
 
+/** Unarchives the page and refreshes it; returns a notice when it had to move to the top level. Also the archived banner's button. */
+export function useUnarchive(node: Pick<NodeDetail, 'id' | 'spaceId'>) {
+  const qc = useQueryClient()
+  return async () => {
+    const { movedToTop } = await unarchiveNode(node.id)
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ['node', node.id] }),
+      qc.invalidateQueries({ queryKey: ['tree', node.spaceId] }),
+    ])
+    return movedToTop ? 'This page was moved to the top level of its space, because its parent was deleted or is in the trash.' : ''
+  }
+}
+
 /** The "..." menu of a page (wireframe Main). Only for page editors, even when the page is locked or archived. */
 export default function PageMenu({ node, unsaved, personal }: Props) {
   const qc = useQueryClient()
   const trash = useTrashPage(node)
+  const unarchive = useUnarchive(node)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -64,14 +79,7 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
 
   const items: Item[] = []
   if (node.status === 'ARCHIVED') {
-    items.push({
-      label: 'Unarchive',
-      run: async () => {
-        const { movedToTop } = await unarchiveNode(node.id)
-        await refresh()
-        if (movedToTop) return 'This page was moved to the top level of its space, because its parent was deleted or is in the trash.'
-      },
-    })
+    items.push({ label: 'Unarchive', run: unarchive })
   } else {
     if (node.publishState === 'PUBLISHED') {
       items.push({ label: 'Unpublish', blocked: lockedNote, run: async () => (await unpublishNode(node.id), await refresh()) })
@@ -81,7 +89,15 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
         ? { label: 'Unlock page', run: async () => (await unlockNode(node.id), await refresh()) }
         : { label: 'Lock page', blocked: savingNote, run: async () => (await lockNode(node.id), await refresh()) },
     )
-    items.push({ label: 'Archive', blocked: lockedNote ?? savingNote, run: async () => (await archiveNode(node.id), await refresh()) })
+    items.push({
+      label: 'Archive',
+      blocked: lockedNote ?? savingNote,
+      run: async () => {
+        await archiveNode(node.id)
+        await refresh()
+        toast(`Archived “${node.title || 'Untitled'}”. It’s read-only until someone unarchives it.`) // QA-35
+      },
+    })
     if (personal) {
       items.push({ label: 'Move to team', blocked: lockedNote ?? savingNote, run: async () => setMoving('team') })
     } else {

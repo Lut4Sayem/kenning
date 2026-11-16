@@ -117,7 +117,9 @@ export default function TrashPage() {
   const groups: { key: string; label: string; items: Row[] }[] = teamId
     ? (active.data ?? []).map((g) => ({ key: g.spaceId, label: g.spaceName, items: items.filter((b) => b.spaceId === g.spaceId) }))
     : tab === 'trash'
-      ? [{ key: 'soon', label: 'Gone for good this week', items: items.filter(urgent) }, { key: 'later', label: 'Later', items: items.filter((b) => !urgent(b)) }]
+      ? items.some(urgent)
+        ? [{ key: 'soon', label: 'Gone for good this week', items: items.filter(urgent) }, { key: 'later', label: 'Later', items: items.filter((b) => !urgent(b)) }]
+        : [{ key: 'later', label: '', items }] // QA-36: "Later" on its own reads oddly
       : [{ key: 'all', label: '', items }]
   const switchTab = (t: Tab) => { setParams(t === 'trash' ? {} : { tab: t }); setShown(PAGE); setNotice(''); setError('') }
 
@@ -141,7 +143,7 @@ export default function TrashPage() {
         </span>
         {tab === 'trash' && b.purgeAt && (
           <span className={`${s.left} ${soon ? s.leftSoon : ''}`} title="Deleted for good after 30 days in the trash">
-            {daysLeft(b.purgeAt, now)}{soon ? ' left' : ''}
+            {`${daysLeft(b.purgeAt, now)} left`}
           </span>
         )}
         <span className={s.actions}>
@@ -206,7 +208,7 @@ export default function TrashPage() {
           </p>
         )}
         {groups.filter((g) => g.items.length > 0).map((g) => (
-          <section key={g.key} className={s.group} aria-labelledby={g.label ? `tg-${g.key}` : undefined} aria-label={g.label ? undefined : 'Archived pages'}>
+          <section key={g.key} className={s.group} aria-labelledby={g.label ? `tg-${g.key}` : undefined} aria-label={g.label ? undefined : tab === 'trash' ? 'Pages in the trash' : 'Archived pages'}>
             {g.label && (
               <h2 id={`tg-${g.key}`} className={s.groupHead}>
                 {!teamId && <span className={g.key === 'soon' ? s.clockSoon : s.clock}><Icon name="clock" size={14} /></span>}

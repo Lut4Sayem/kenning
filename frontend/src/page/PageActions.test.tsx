@@ -156,6 +156,15 @@ describe('page menu', () => {
     expect(screen.queryByText(/^This page was moved/)).toBeNull()
   })
 
+  // QA-35: archiving said nothing.
+  it('archiveSaysSoInAToast', async () => {
+    api.archiveNode.mockResolvedValue({})
+    mount(NODE)
+    await openMenu()
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Archive' }))
+    expect(await screen.findByText('Archived “Methodology”. It’s read-only until someone unarchives it.')).toBeTruthy()
+  })
+
   it('aRefusedActionShowsTheServersMessage', async () => {
     api.archiveNode.mockRejectedValue(new Error('This page is locked and read-only'))
     mount(NODE)

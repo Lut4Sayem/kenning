@@ -67,7 +67,14 @@ function docFrom(...states: string[]): Y.Doc {
  */
 export async function openContent(nodeId: string, canEdit: boolean, userId: string): Promise<Opened> {
   const store = pendingFor(userId, nodeId)
-  const [server, slots] = await Promise.all([getContent(nodeId), canEdit ? store.all() : ({} as Slots)])
+  const [server, slots] = await Promise.all([
+    // QA-53: unreachable (not refused) with edit access: the copy kept on this device may still open the page.
+    getContent(nodeId).catch((e: unknown) => {
+      if (e instanceof ApiError || !canEdit) throw e
+      return null
+    }),
+    canEdit ? store.all() : ({} as Slots),
+  ])
   const slot = Math.random().toString(36).slice(2)
   const release = canEdit ? await holdSlot(lockName(store, slot)) : () => {}
   const mine = { store, slot, release }
@@ -77,7 +84,7 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
     if (await isHeld(lockName(store, id))) continue // belongs to a tab that is still open: not ours to touch
     // The server already has exactly this copy (the flush on tab close worked). That is the ONLY reason a copy
     // is removed without being sent: however old it is, it is merged or kept as a private version below.
-    if (pending.state === server.state) {
+    if (server && pending.state === server.state) {
       await store.clear(id)
       continue
     }
@@ -86,6 +93,21 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
       orphans.push({ id, pending })
     } catch {
       await store.quarantine(id) // one broken copy must not make the page impossible to open
+    }
+  }
+
+  if (!server) {
+    // Offline: open the newest kept copy (merged with others of its epoch) as unsaved; the autosave sends it once online,
+    // and a 409 then merges in whatever the server got meanwhile.
+    const newest = orphans.reduce<(typeof orphans)[number] | undefined>((a, o) => (!a || o.pending.at > a.pending.at ? o : a), undefined)
+    if (!newest) {
+      release()
+      throw new Error('Offline, and no copy of this page is kept on this device.')
+    }
+    const same = orphans.filter((o) => o.pending.epoch === newest.pending.epoch)
+    return {
+      ...mine, ydoc: docFrom(...same.map((o) => o.pending.state)), revision: newest.pending.baseRevision, epoch: newest.pending.epoch,
+      recover: false, state: 'offline', text: newest.pending.text, adopt: same.map((o) => o.id),
     }
   }
 

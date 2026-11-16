@@ -66,13 +66,13 @@ export default function TeamMembers() {
                       <span className={s.email}>{m.email}</span>
                     </span>
                     {admin && !self ? (
-                      <Popover label={`Role of ${m.fullName}`} trigger={(p) => (
+                      <Popover menu label={`Role of ${m.fullName}`} trigger={(p) => (
                         <button type="button" className={`${s.roleBtn} ${s[m.role]}`} aria-label={`Role of ${m.fullName}: ${roleLabel(m.role)}`} {...p}>
                           {roleLabel(m.role)}<Icon name="chevron-down" />
                         </button>
                       )}>
                         {(close) => ROLES.map((r) => (
-                          <button key={r} type="button" className={s.option} aria-pressed={r === m.role} onClick={() => { close(); void changeRole(m, r) }}>
+                          <button key={r} type="button" role="menuitemradio" className={s.option} aria-checked={r === m.role} onClick={() => { close(); void changeRole(m, r) }}>
                             <span className={s.tick}>{r === m.role && <Icon name="check" />}</span>{roleLabel(r)}
                           </button>
                         ))}

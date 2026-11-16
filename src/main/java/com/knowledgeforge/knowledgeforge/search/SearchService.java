@@ -202,14 +202,55 @@ public class SearchService {
                 n.getUpdatedAt(), n.getUpdatedBy() == null ? null : n.getUpdatedBy().getName(), n.getColor());
     }
 
-    /** First text highlight with hits wrapped in mark, else the plain start of the text. Everything is HTML-escaped. */
+    static final int SNIPPET_LEAD = 50;
+    static final int SNIPPET_MAX = 180;
+
+    /**
+     * First text highlight with hits wrapped in mark, else the plain start of the text. Everything is HTML-escaped.
+     * QA-31: Atlas returns the whole passage, so it is cut to a window that starts shortly before the first hit.
+     */
     static String snippet(List<Document> highlights, String head) {
         for (Document h : highlights) {
             if (!"text".equals(h.getString("path"))) continue;
-            StringBuilder sb = new StringBuilder();
-            for (Document t : h.getList("texts", Document.class, List.of())) {
-                String v = HtmlUtils.htmlEscape(t.getString("value"));
-                sb.append("hit".equals(t.getString("type")) ? "<mark>" + v + "</mark>" : v);
+            List<Document> texts = h.getList("texts", Document.class, List.of());
+            int before = 0;
+            for (Document t : texts) {
+                if ("hit".equals(t.getString("type"))) break;
+                before += t.getString("value").length();
+            }
+            int skip = 0;
+            if (before > SNIPPET_LEAD) {
+                skip = before - SNIPPET_LEAD;
+                String all = texts.stream().map(t -> t.getString("value")).collect(Collectors.joining());
+                int space = all.indexOf(' ', skip);
+                if (space >= 0 && space < before) skip = space + 1; // start on a word
+            }
+            StringBuilder sb = new StringBuilder(skip > 0 ? "…" : "");
+            int pos = 0;
+            int budget = SNIPPET_MAX;
+            for (Document t : texts) {
+                String v = t.getString("value");
+                boolean hit = "hit".equals(t.getString("type"));
+                int from = Math.max(0, Math.min(v.length(), skip - pos));
+                pos += v.length();
+                v = v.substring(from);
+                if (v.isEmpty()) continue;
+                if (budget <= 0) {
+                    sb.append("…");
+                    break;
+                }
+                boolean cut = !hit && v.length() > budget;
+                if (cut) {
+                    int space = v.lastIndexOf(' ', budget);
+                    v = v.substring(0, space > 0 ? space : budget);
+                }
+                String e = HtmlUtils.htmlEscape(v);
+                sb.append(hit ? "<mark>" + e + "</mark>" : e);
+                budget -= v.length();
+                if (cut) {
+                    sb.append("…");
+                    break;
+                }
             }
             return sb.toString();
         }

@@ -65,5 +65,9 @@
 .kf-bookmark:hover { background: var(--surface-card); }
 .kf-bookmark-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
 .kf-bookmark-text span, .kf-bookmark-text small { color: var(--ink-muted); font-size: 13px; }
+/* QA-25: the card is a link, but only its title underlines (on hover); the description stops after two lines */
+.bn-editor a.kf-bookmark { color: inherit; text-decoration: none; }
+.bn-editor a.kf-bookmark:hover strong { text-decoration: underline; text-underline-offset: 2px; }
+.kf-bookmark-text span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .kf-bookmark img { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; }
 .kf-offer { margin: 8px 0; font-size: 14px; color: var(--ink-muted); }

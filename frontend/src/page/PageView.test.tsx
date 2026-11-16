@@ -20,7 +20,7 @@ document.elementsFromPoint ??= () => []
 
 const nodesApi = vi.hoisted(() => ({
   getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), unpublishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn(),
-  getSubtreeCount: vi.fn(), trashNode: vi.fn(),
+  getSubtreeCount: vi.fn(), trashNode: vi.fn(), unarchiveNode: vi.fn(),
 }))
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
@@ -48,14 +48,14 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-function mount() {
+function mount(entry: string | { pathname: string; state: unknown } = '/p/n1') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const topbar = document.body.appendChild(document.createElement('header'))
   const view = render(
     <StrictMode>{/* like main.tsx: effects run, clean up and run again on mount */}
     <QueryClientProvider client={qc}>
       <SlotsContext.Provider value={{ topbar, details: null, detailsOpen: false, setDetailsOpen: () => {} }}>
-        <MemoryRouter initialEntries={['/p/n1']}>
+        <MemoryRouter initialEntries={[entry]}>
           <ToastHost />
           <ConfirmHost />
           <Routes>
@@ -97,6 +97,37 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect(editorDom(view.container)).not.toBeNull()
     expect(Object.values(await pendingFor('u1', 'n1').all()).length).toBeGreaterThan(0)
   }, 20_000)
+
+  // QA-53: no manual Try again needed once the connection is back.
+  it('contentThatFailedOfflineLoadsByItselfWhenBackOnline', async () => {
+    await clearPendingOf('u1')
+    contentApi.getContent.mockRejectedValue(new TypeError('Failed to fetch'))
+    const { view } = mount()
+    expect((await screen.findByRole('alert')).textContent).toContain("Could not load this page's content")
+    contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
+    act(() => void window.dispatchEvent(new Event('online')))
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+  })
+
+  // QA-35: one banner, with Unarchive right there for people who can.
+  it('anArchivedPageSaysSoOnceWithUnarchive', async () => {
+    nodesApi.getNode.mockResolvedValueOnce({ ...NODE, status: 'ARCHIVED', access: 'VIEW' }).mockResolvedValue(NODE)
+    nodesApi.unarchiveNode.mockResolvedValue({ movedToTop: false })
+    mount()
+    expect(await screen.findByRole('button', { name: 'Unarchive' })).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('.bn-editor')).not.toBeNull(), { timeout: 5000 })
+    expect(screen.getAllByText(/archived and read-only/)).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Unarchive' }))
+    await waitFor(() => expect(nodesApi.unarchiveNode).toHaveBeenCalledWith('n1'))
+    await waitFor(() => expect(screen.queryByText(/archived and read-only/)).toBeNull())
+  })
+
+  it('aViewerOfAnArchivedPageGetsNoUnarchive', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, status: 'ARCHIVED', access: 'VIEW', canManage: false })
+    mount()
+    expect(await screen.findByText(/archived and read-only/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Unarchive' })).toBeNull()
+  })
 
   it('aPageThatNeverLoadedShowsOnlyTheError', async () => {
     nodesApi.getNode.mockRejectedValue(new ApiError(404, 'Page not found'))
@@ -180,6 +211,21 @@ describe('page title', () => {
   }, 15_000)
 })
 
+// QA-16: a page just made with New page opens with the caret in its title.
+describe('a new page', () => {
+  it('focusesTheTitle', async () => {
+    mount({ pathname: '/p/n1', state: { isNew: true } })
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Page title')))
+  })
+
+  it('anExistingPageDoesNotTakeFocus', async () => {
+    mount()
+    await screen.findByLabelText('Page title')
+    await act(() => new Promise((r) => setTimeout(r, 300)))
+    expect(document.activeElement).not.toBe(screen.getByLabelText('Page title'))
+  })
+})
+
 // QA-26: Publish says what happened, with Undo.
 describe('publish', () => {
   it('showsAToastNamingTheTeamWithUndo', async () => {
@@ -214,6 +260,32 @@ describe('title autosave', () => {
     await waitFor(() => expect((screen.getByLabelText('Page title') as HTMLTextAreaElement).value).toBe('Plan'))
     await act(() => new Promise((r) => setTimeout(r, 1500))) // past the 1 s title debounce
     expect(nodesApi.updateNode).not.toHaveBeenCalled()
+  })
+
+  // QA-65: a remount mid-edit (a dev hot reload) once saved "" over the real title.
+  it('remountingAfterATitleEditOnlyEverSendsTheTypedTitle', async () => {
+    nodesApi.updateNode.mockImplementation(async (id: string, body: { title: string }) => ({ ...NODE, id, title: body.title }))
+    let answer!: (n: NodeDetail) => void
+    const first = mount()
+    const field = () => screen.getByLabelText('Page title') as HTMLTextAreaElement
+    await waitFor(() => expect(field().value).toBe('Plan'))
+    fireEvent.change(field(), { target: { value: 'Transformers' } })
+    nodesApi.getNode.mockImplementation(() => new Promise((r) => (answer = r))) // the next mount waits for the server
+    first.view.unmount()
+    mount()
+    await act(() => new Promise((r) => setTimeout(r, 1500)))
+    await act(async () => answer({ ...NODE, title: 'Transformers' }))
+    await act(() => new Promise((r) => setTimeout(r, 1500)))
+    expect(nodesApi.updateNode.mock.calls).toEqual([['n1', { title: 'Transformers' }]])
+  }, 15_000)
+
+  it('aTitleTheUserEmptiedIsSaved', async () => {
+    nodesApi.updateNode.mockImplementation(async (id: string, body: { title: string }) => ({ ...NODE, id, title: body.title }))
+    mount()
+    const field = () => screen.getByLabelText('Page title') as HTMLTextAreaElement
+    await waitFor(() => expect(field().value).toBe('Plan'))
+    fireEvent.change(field(), { target: { value: '' } })
+    await waitFor(() => expect(nodesApi.updateNode).toHaveBeenCalledWith('n1', { title: '' }), { timeout: 3000 })
   })
 
   it('aPageOpenedFromTheCacheDoesNotSaveItsTitle', async () => {

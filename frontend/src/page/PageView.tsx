@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { getNode, getTrashed, publishNode, restoreBranch, unpublishNode, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
 import { getVersion, listVersions, restoreVersion } from '../api/versions'
@@ -26,7 +26,7 @@ import { timeAgo } from '../ui/timeAgo'
 import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
-import PageMenu from './PageMenu'
+import PageMenu, { useUnarchive } from './PageMenu'
 import { trashBlocked, useTrashPage } from './useTrashPage'
 import Properties from './Properties'
 
@@ -137,17 +137,33 @@ export default function PageView() {
 
   // The field follows the server's title, but never drops what is being typed (a save answering mid-word).
   const synced = useRef({ id: '', title: '' })
+  // QA-65: a title is only sent for a page whose server title reached the field in this mount, and "" only when the user
+  // emptied the field in this mount (a remount mid-edit, e.g. a dev hot reload, once saved "" over a real title).
+  const loaded = useRef(new Set<string>())
+  const cleared = useRef(new Set<string>())
   useEffect(() => {
     const server = node.data?.title ?? ''
     const prev = synced.current
     setTitle((t) => (prev.id !== nodeId || t === prev.title ? server : t))
     synced.current = { id: nodeId, title: server }
-  }, [node.data?.title, nodeId])
+    if (node.data?.id === nodeId) loaded.current.add(nodeId)
+  }, [node.data?.title, node.data?.id, nodeId])
+
+  // QA-16: a page just made with New page opens with the caret in its title.
+  const isNew = (useLocation().state as { isNew?: boolean } | null)?.isNew === true
+  const titleReady = node.data?.id === nodeId && canEditNode
+  useEffect(() => {
+    if (isNew && titleReady) titleBox.current?.focus()
+  }, [isNew, titleReady, nodeId])
 
   // QA-11: the title saves like the content: ~1 s after typing stops, at once on blur/Enter, and when the page is left.
   const titleDirty = typedIn === nodeId && node.data?.access === 'EDIT' && title.trim() !== node.data.title
   const titleSaving = titleDirty || rename.isPending
-  const saveTitle = rename.mutate
+  const mutateTitle = rename.mutate
+  const saveTitle = useCallback((v: { id: string; title: string }) => {
+    if (!loaded.current.has(v.id) || (!v.title.trim() && !cleared.current.has(v.id))) return
+    mutateTitle(v)
+  }, [mutateTitle])
   useEffect(() => {
     if (!titleDirty) return
     const timer = setTimeout(() => saveTitle({ id: nodeId, title }), 1000)
@@ -289,17 +305,24 @@ export default function PageView() {
           maxLength={200}
           value={title}
           readOnly={!canEdit}
-          onChange={(e) => { setTypedIn(n.id); setTitle(e.target.value.replace(/\s*\n\s*/g, ' ')) }}
-          onBlur={() => titleDirty && rename.mutate({ id: n.id, title })}
+          onChange={(e) => {
+            const v = e.target.value.replace(/\s*\n\s*/g, ' ')
+            if (v.trim()) cleared.current.delete(n.id)
+            else cleared.current.add(n.id)
+            setTypedIn(n.id)
+            setTitle(v)
+          }}
+          onBlur={() => titleDirty && saveTitle({ id: n.id, title })}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
         />
         {rename.error && <p role="alert" className={s.error}>{rename.error.message}</p>}
-        {n.status === 'ARCHIVED' && <p className={s.note} role="status">This page is archived and read-only.</p>}
+        {n.status === 'ARCHIVED' && <ArchivedNote node={n} />}
         {n.access === 'TITLE_ONLY' ? (
           <p className={s.note}>You can see this page's title but not its content.</p>
         ) : (
           <>
-            <Properties node={n} canEdit={canEdit} changes={changes} canCompare={editing && !!lastPublished} onCompare={() => void compare()} />
+            {/* QA-22: the properties are the current page's, not the version's */}
+            {!viewing && <Properties node={n} canEdit={canEdit} changes={changes} canCompare={editing && !!lastPublished} onCompare={() => void compare()} />}
             {viewing && <DiffView state={viewing.state} previousState={viewing.previousState} authors={viewing.version.authors} />}
             {me.data ? (
               /* hidden, not unmounted: the editor keeps saving what was typed */
@@ -388,6 +411,29 @@ function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
 }
 
 /** Loads the content (server copy + this user's unconfirmed local copies), then shows the editor. */
+/** QA-35: the one archived message, with Unarchive right there for people who can. */
+function ArchivedNote({ node }: { node: NodeDetail }) {
+  const unarchive = useUnarchive(node)
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    setBusy(true)
+    try {
+      const notice = await unarchive()
+      if (notice) toast(notice)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not unarchive the page.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <p className={s.note} role="status">
+      This page is archived and read-only.{' '}
+      {node.canManage && <button type="button" className={s.link} disabled={busy} onClick={() => void run()}>Unarchive</button>}
+    </p>
+  )
+}
+
 function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, titleSaving }: {
   node: NodeDetail
   userId: string
@@ -415,6 +461,13 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
       live = false
     }
   }, [node.id, canEdit, userId, reloads])
+  // QA-53: a load that failed offline tries again by itself once the connection is back.
+  useEffect(() => {
+    if (!failed) return
+    const retry = () => setReloads((r) => r + 1)
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [failed])
 
   if (failed) {
     return (
@@ -467,7 +520,11 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
   const lock = useEditLock(node.id, canEdit)
   const editable = canEdit && lock.mode === 'editing'
   const [uploadError, setUploadError] = useState('')
-  const files = useMemo(() => ({ nodeId: node.id, onError: setUploadError }), [node.id])
+  const qc = useQueryClient()
+  const files = useMemo(
+    () => ({ nodeId: node.id, onError: setUploadError, onUploaded: () => void qc.invalidateQueries({ queryKey: ['files', node.id] }) }),
+    [node.id, qc],
+  )
   const editor = useKfEditor(opened.ydoc, 'Me', editable, files)
   useEndSessionOnLeave(node.id, canEdit)
   const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit)
@@ -508,7 +565,7 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
         <TakenOverBanner holder={lock.holder} saved={save.state === 'saved' || save.state === 'recovered'} onReload={onReload} onTakeBack={lock.editAnyway} />,
         slots.banners,
       )}
-      {!canEdit && <p className={s.note}>{node.status === 'ARCHIVED' ? 'This page is archived and read-only.' : node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
+      {!canEdit && node.status !== 'ARCHIVED' && <p className={s.note}>{node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
       {lock.mode === 'readonly' && <p className={s.note}>Opened read-only: {lock.holder} is editing this page.</p>}
       {lock.mode === 'denied' && <p className={s.error} role="alert">You can no longer edit this page{lock.reason ? `: ${lock.reason}` : '.'}</p>}
       <Editor editor={editor} editable={editable} />

@@ -114,10 +114,10 @@ export default function HistoryPanel({ nodeId, canEdit, viewing, onView, getCurr
     <button key={v.id} type="button" className={s.version} aria-current={v.id === viewing?.version.id} onClick={() => void select(v)}>
       <Avatar name={v.authors[0]?.name ?? '?'} size={26} />
       <span className={s.vtext}>
-        <span className={s.vname}>{names(v) || 'Unknown'}</span>
+        {/* QA-22: the pill sits on the name line, so the kind text gets the full width */}
+        <span className={s.vtop}><span className={s.vname}>{names(v) || 'Unknown'}</span>{v.id === currentId && <span className={s.current}>Current</span>}</span>
         <span className={s.vkind}>{kind(v)}</span>
       </span>
-      {v.id === currentId && <span className={s.current}>Current</span>}
       <time className={s.vtime} dateTime={v.createdAt}>{time(v.createdAt)}</time>
     </button>
   )

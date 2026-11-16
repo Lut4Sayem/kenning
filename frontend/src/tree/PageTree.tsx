@@ -192,7 +192,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabSto
         {canEdit && (
           <>
             <button type="button" tabIndex={tab} className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
-            <button type="button" className={cx(s.btn, s.grip)} aria-label={`Move ${title}`}
+            <button type="button" className={cx(s.btn, s.grip)} aria-label={`Drag to move ${title}`} title="Drag to move"
               {...drag.listeners} {...drag.attributes} tabIndex={tab}><Icon name="grip" /></button>
           </>
         )}

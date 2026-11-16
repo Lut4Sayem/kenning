@@ -451,6 +451,37 @@ describe('autosave', () => {
     expect(pending()).toBeUndefined()
   })
 
+  // QA-53: opening a page while offline showed "Could not load this page's content" although a copy was on the device.
+  it('openingOfflineShowsTheKeptCopyAndSendsItOnceOnline', async () => {
+    const mine = serverDoc()
+    type(mine, 'typed offline earlier')
+    leftover({ state: stateOf(mine), text: 'base typed offline earlier' })
+    setOnline(false)
+    contentApi.getContent.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    contentApi.saveContent.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    const { a, doc } = await openTab()
+    expect(textOf(doc)).toBe('base typed offline earlier')
+    expect(a.state).toBe('offline')
+    await tick(1000)
+    expect(a.state).toBe('offline')
+
+    setOnline(true)
+    window.dispatchEvent(new Event('online'))
+    await tick(0)
+    expect(a.state).toBe('saved')
+    expect(server.state).toBe(stateOf(doc))
+    expect(pending()).toBeUndefined()
+  })
+
+  it('openingOfflineWithNothingKeptStillFails', async () => {
+    contentApi.getContent.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await expect(openContent(NODE, true, USER)).rejects.toThrow()
+    contentApi.getContent.mockRejectedValueOnce(new ApiError(404, 'Page not found'))
+    leftover({ state: server.state, text: 'x' }) // a refusal is not "offline": never opened from the device
+    await expect(openContent(NODE, true, USER)).rejects.toThrow('Page not found')
+  })
+
   it('offlineWithoutALocalCopyDoesNotClaimOne', async () => {
     const { a, doc, seen } = await openTab()
     idb.broken = true // IndexedDB blocked or full
