@@ -47,6 +47,13 @@ describe('MoveToTeamDialog', () => {
     expect(await screen.findByText('+ 3 sub-pages')).toBeTruthy()
   })
 
+  // QA-13: there is no copy or duplicate yet, so the dialog must not offer one.
+  it('doesNotPromiseACopy', async () => {
+    mount()
+    expect(await screen.findByText(/can't be moved back to your private space/)).toBeTruthy()
+    expect(screen.queryByText(/copy it/i)).toBeNull()
+  })
+
   it('movesUnderTheChosenParent', async () => {
     const onClose = mount()
     await userEvent.click(await screen.findByRole('radio', { name: 'Overview' }))
