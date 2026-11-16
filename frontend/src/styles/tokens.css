@@ -5,13 +5,13 @@
   --canvas: #ffffff;
   --surface-card: #f7f6f3;
   --surface-card-hover: #f3f2ee;
-  --hover: #e4e3df;
+  --hover: #e6e5e1;
   --ink: #1c1b17;
   --ink-doc: #2f2d28;
   --ink-label: #3d3b36;
   --ink-muted: #66635c;
-  --line: rgb(28 27 23 / 0.09);
-  --line-soft: rgb(28 27 23 / 0.06);
+  --line: rgb(28 27 23 / 0.12);
+  --line-soft: rgb(28 27 23 / 0.08);
   --input-border: #8f8b84;
 
   /* Brand and actions */
@@ -61,30 +61,30 @@
   --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-14: 56px; --space-16: 64px;
 
   /* Radius */
-  --r-chip: 4px; --r-tag: 5px; --r-row: 8px; --r-lg: 12px; --r-card: 14px; --r-panel: 18px; --r-dialog: 20px; --r-pill: 999px;
+  --r-chip: 4px; --r-tag: 5px; --r-row: 6px; --r-lg: 8px; --r-card: 8px; --r-panel: 10px; --r-dialog: 20px; --r-pill: 999px;
 
   /* Depth */
   --shadow-1: 0 1px 2px rgb(20 20 15 / 0.08);
-  --shadow-2: 0 1px 3px rgb(20 20 15 / 0.06), 0 8px 24px -12px rgb(20 20 15 / 0.10);
+  --shadow-2: none; /* Ledger: the page panel has a hairline edge, not a shadow */
   --shadow-3: 0 12px 32px -12px rgb(20 20 15 / 0.18), 0 0 0 1px rgb(28 27 23 / 0.06);
 
   /* Motion */
-  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --dur-fast: 120ms;
-  --dur: 180ms;
+  --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --dur-fast: 90ms;
+  --dur: 140ms;
 
   /* Layout */
-  --sidebar-width: 264px;
+  --sidebar-width: 248px;
   --details-width: 288px;
-  --topbar-height: 56px;
-  --panel-inset: 10px;
+  --topbar-height: 48px;
+  --panel-inset: 8px;
   --content-max: 1080px;
   --reading-max: 740px;
 
 }
 
-/* Neutral Draft pill used in lists (Home, Recent); the yellow --draft-pill is for the page's properties block. */
-:root { --pill-bg: #efeeea; --pill-ink: #4a4843; }
+/* Draft pill (lists and the page's properties block). Drafts are the one thing in yellow: they need you. */
+:root { --pill-bg: #ffefb0; --pill-ink: #5a4500; }
 :root { --surface-row-hover: #faf9f7; }
 
 /* Group C (palette, search, trash, profile): search marks, soft row hover, danger states */

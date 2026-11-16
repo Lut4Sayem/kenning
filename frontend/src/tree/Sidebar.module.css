@@ -12,7 +12,7 @@
 .menuItem { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); text-decoration: none; cursor: pointer; text-align: left; }
 .menuItem:hover, .menuItem:focus-visible { background: var(--hover); }
 .menuDanger { color: var(--error-text); }
-.search { display: flex; align-items: center; gap: var(--space-2); width: 100%; height: 32px; margin: 0 0 var(--space-2); padding: 0 10px; border: 0; border-radius: var(--r-lg); background: var(--canvas); box-shadow: 0 1px 2px rgb(20 20 15 / 0.06); color: var(--ink-muted); cursor: pointer; text-align: left; }
+.search { display: flex; align-items: center; gap: var(--space-2); width: 100%; height: 32px; margin: 0 0 var(--space-2); padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--canvas); color: var(--ink-muted); cursor: pointer; text-align: left; }
 @media (hover: hover) { .search:hover { background: var(--surface-card); } }
 .search svg { flex: none; }
 .search span { flex: 1; }
@@ -21,11 +21,11 @@
 .navLink { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border-radius: var(--r-row); color: var(--ink-label); text-decoration: none; }
 .navLink svg { color: var(--ink-muted); }
 @media (hover: hover) { .navLink:hover { background: var(--hover); } }
-.navLink.active { background: var(--canvas); box-shadow: var(--shadow-1); font-weight: 500; color: var(--ink); }
+.navLink.active { background: var(--hover); font-weight: 500; color: var(--ink); }
 .labelRow { display: flex; align-items: center; padding-right: var(--space-1); }
 .labelRow .label { flex: 1; }
 .labelRow:hover .rowBtn, .labelRow:focus-within .rowBtn { opacity: 1; }
-.label { margin: 0; padding: 14px 10px 4px; font-family: var(--font-sans); color: var(--ink-muted); font-size: 12px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
+.label { margin: 0; padding: 16px 10px 4px; font-family: var(--font-sans); color: var(--ink-muted); font-size: 12px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .group { display: flex; flex-direction: column; gap: 2px; }
 .groupRow { display: flex; align-items: center; gap: 2px; height: 32px; padding-right: var(--space-1); border-radius: var(--r-row); }
 @media (hover: hover) { .groupRow:hover { background: var(--hover); } }

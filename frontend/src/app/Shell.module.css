@@ -6,11 +6,11 @@
 .panel {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
   margin: var(--panel-inset) var(--panel-inset) var(--panel-inset) 0;
-  background: var(--canvas); border-radius: var(--r-panel); box-shadow: var(--shadow-2); overflow: hidden;
+  background: var(--canvas); border-radius: var(--r-panel); box-shadow: 0 0 0 1px var(--line); overflow: hidden;
 }
 .topbar {
   flex: none; display: flex; align-items: center; gap: var(--space-2); height: var(--topbar-height);
-  padding: 0 14px 0 var(--space-5); border-bottom: 1px solid var(--line-soft); font-size: 13px;
+  padding: 0 14px 0 var(--space-5); border-bottom: 1px solid var(--line); font-size: 13px;
 }
 .topbar:has(.slot:empty):not(:has(.menuBtn)) { display: none; }
 .slot { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: var(--space-2); }
