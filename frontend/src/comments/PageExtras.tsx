@@ -6,6 +6,7 @@ import { getMe } from '../api/spaces'
 import Avatar from '../ui/Avatar'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import Icon from '../ui/Icon'
+import Markdown from '../ui/Markdown'
 import { timeAgo } from '../ui/timeAgo'
 import s from './Panel.module.css'
 
@@ -96,7 +97,7 @@ function Summarize({ nodeId }: { nodeId: string }) {
     <section aria-label="Summary" className={s.block}>
       <button type="button" className={s.quiet} onClick={() => run.mutate()} disabled={run.isPending}>{run.isPending ? 'Summarizing…' : 'Summarize this page'}</button>
       {run.isPending && <div aria-hidden="true"><span className={`${s.skel} ${s.skelLine}`} /><span className={`${s.skel} ${s.skelLine}`} /></div>}
-      {run.data && <p className={s.answer}>{run.data.summary}{run.data.trimmed && <em className={s.muted}> (only the start of the page was used)</em>}</p>}
+      {run.data && <div className={s.answer}><Markdown text={run.data.summary} />{run.data.trimmed && <p><em className={s.muted}>Only the start of the page was used.</em></p>}</div>}
       {run.error && <p role="alert" className={s.error}>{run.error.message}</p>}
     </section>
   )
@@ -116,9 +117,9 @@ export function AskPanel({ spaceId }: { spaceId: string }) {
       </form>
       {run.data && (
         <>
-          <p className={s.answer}>{run.data.answer}</p>
+          <Markdown className={s.answer} text={run.data.answer} sources={run.data.sources} />
           {run.data.sources.length > 0 && (
-            <ol className={s.sources}>{run.data.sources.map((src) => <li key={src.id}><Link to={`/p/${src.id}`} className={s.link}>{src.title}</Link></li>)}</ol>
+            <ol className={s.sources}>{run.data.sources.map((src) => <li key={src.id} value={src.n}><Link to={`/p/${src.id}`} className={s.link}>{src.title}</Link></li>)}</ol>
           )}
         </>
       )}

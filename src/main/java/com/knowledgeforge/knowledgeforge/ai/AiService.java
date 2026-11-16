@@ -56,6 +56,9 @@ public class AiService {
 
     private static final Pattern CITATION = Pattern.compile("\\[([\\d,\\s]{1,20})]");
     private static final Pattern NUMBER = Pattern.compile("\\d{1,2}");
+    // Some models cite with full-width brackets, sometimes with a locator after a dagger, e.g. U+3010 2 U+3011 (QA-28)
+    private static final Pattern WIDE_CITATION =
+            Pattern.compile("[\\u3010\\uFF3B]\\s*([\\d,\\s]{1,20}?)\\s*(?:\\u2020[^\\u3011\\uFF3D]{0,40})?[\\u3011\\uFF3D]");
 
     private final AiUsageRepository usageRepository;
     private final AiSummaryRepository summaryRepository;
@@ -214,12 +217,13 @@ public class AiService {
 
         recordUsage(user.getId(), space.getTeamId(), "ASK", result);
 
-        List<SourceDTO> sources = sourcesCited(result.text(), top);
+        String answer = result.text() == null ? null : WIDE_CITATION.matcher(result.text()).replaceAll("[$1]");
+        List<SourceDTO> sources = sourcesCited(answer, top);
         AiAnswer saved = cached != null ? cached : new AiAnswer();
         saved.setSpaceId(spaceId);
         saved.setQuestionKey(questionKey);
         saved.setFingerprint(fingerprint);
-        saved.setAnswer(result.text());
+        saved.setAnswer(answer);
         saved.setSources(sources);
         saved.setUsedDocuments(top.size());
         saved.setTrimmed(trimmed);
@@ -230,7 +234,7 @@ public class AiService {
             // two identical questions raced; the other one already saved, our answer is still valid
         }
 
-        return new AskResponse(result.text(), sources, top.size(), trimmed, false);
+        return new AskResponse(answer, sources, top.size(), trimmed, false);
     }
 
     private static boolean hasText(NodeContent c) {
