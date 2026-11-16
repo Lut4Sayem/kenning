@@ -133,6 +133,10 @@ function InviteBox() {
     setBusy(false)
   }
   const create = () => change(async () => qc.setQueryData(['invite', teamId], await createInvite(teamId)), 'Could not create the link')
+  async function replace() {
+    if (!(await confirmDialog({ title: 'Create a new invite link?', body: 'People with the old link can no longer ask to join.', confirmLabel: 'Create new link', danger: true }))) return
+    await create()
+  }
   async function turnOff() {
     if (!(await confirmDialog({ title: 'Turn off the invite link?', body: 'People who have it can no longer ask to join. You can create a new link later.', confirmLabel: 'Turn off', danger: true }))) return
     await change(async () => { await turnOffInvite(teamId); qc.setQueryData(['invite', teamId], null) }, 'Could not turn off the link')
@@ -163,7 +167,7 @@ function InviteBox() {
           )}
           <p className={s.note}>A new link replaces this one. The old link stops working.</p>
           <div className={s.linkActions}>
-            <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void create()}>Create a new link</button>
+            <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void replace()}>Create a new link</button>
             <button type="button" className={t.linkBtn} disabled={busy} onClick={() => void turnOff()}>Turn off link</button>
           </div>
         </>

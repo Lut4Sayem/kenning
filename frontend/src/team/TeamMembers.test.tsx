@@ -152,6 +152,18 @@ describe('team members', () => {
     expect(screen.queryByRole('textbox', { name: 'Invite link address' })).toBeNull()
   })
 
+  // QA-55: replacing the link kills the old one, so it asks first like Turn off link does.
+  it('createANewLinkAsksFirstBecauseTheOldLinkStopsWorking', async () => {
+    teams.getInvite.mockResolvedValue({ inviteCode: 'old', createdAt: new Date().toISOString(), createdByName: 'Ada' })
+    teams.createInvite.mockResolvedValue({ inviteCode: 'new', createdAt: new Date().toISOString(), createdByName: 'Me' })
+    setup('u1')
+    await userEvent.click(await screen.findByRole('button', { name: 'Create a new link' }))
+    expect(await screen.findByText('People with the old link can no longer ask to join.')).toBeTruthy()
+    expect(teams.createInvite).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Create new link' }))
+    expect(teams.createInvite).toHaveBeenCalledWith('t1')
+  })
+
   it('declineHappensAtOnceAndCanBeUndoneFromTheToast', async () => { // QA-06
     setup('u1')
     await userEvent.click(await screen.findByRole('button', { name: 'Decline Cy' }))
