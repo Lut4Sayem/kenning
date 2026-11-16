@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
+import * as Y from 'yjs'
 import { useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { getNode, publishNode, updateNode, type NodeDetail } from '../api/nodes'
@@ -8,6 +9,7 @@ import { getVersion, listVersions, restoreVersion } from '../api/versions'
 import { getMe, getMySpaces } from '../api/spaces'
 import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
+import { toBase64 } from '../editor/base64'
 import { openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
 import Editor, { useKfEditor } from '../editor/Editor'
 import { extractText } from '../editor/extractText'
@@ -62,7 +64,7 @@ export default function PageView() {
   const [viewing, setViewing] = useState<Viewing | null>(null)
   const [contentKey, setContentKey] = useState(0) // bumped after a restore: the editor opens again on the server's state
   const [compareError, setCompareError] = useState('')
-  const currentText = useRef<() => string>(() => '') // the open editor's text, for "Compare with current"
+  const currentState = useRef<() => string>(() => '') // the open page's state, for "Compare with current"
 
   // Optimistic while loading, so the column does not jump when the panel appears; a failed load or a title-only page has none.
   const allowPanel = node.data ? node.data.access !== 'TITLE_ONLY' : !node.isError
@@ -205,7 +207,7 @@ export default function PageView() {
     setDetailsOpen(true)
     try {
       const old = await getVersion(lastPublished.id)
-      setViewing({ version: lastPublished, number: null, previousNumber: null, text: currentText.current(), previousText: old.text, canRestore: false, against: 'current' })
+      setViewing({ version: lastPublished, number: null, previousNumber: null, state: currentState.current(), previousState: old.state, canRestore: false, against: 'current' })
     } catch (e) {
       setCompareError(e instanceof Error ? e.message : 'Could not open the published version.')
     }
@@ -269,13 +271,13 @@ export default function PageView() {
         ) : (
           <>
             <Properties node={n} canEdit={canEdit} changes={changes} canCompare={editing && !!lastPublished} onCompare={() => void compare()} />
-            {viewing && <DiffView text={viewing.text} previousText={viewing.previousText} authors={viewing.version.authors} />}
+            {viewing && <DiffView state={viewing.state} previousState={viewing.previousState} authors={viewing.version.authors} />}
             {me.data ? (
               /* hidden, not unmounted: the editor keeps saving what was typed */
               <div hidden={!!viewing}>
                 <PageContent
                   key={`${n.id}:${contentKey}`} node={n} userId={me.data.id} slots={{ head, banners }}
-                  onSaveState={setSaveState} onLock={setLockMode} textRef={currentText} titleSaving={titleSaving}
+                  onSaveState={setSaveState} onLock={setLockMode} stateRef={currentState} titleSaving={titleSaving}
                 />
               </div>
             ) : (
@@ -295,7 +297,7 @@ export default function PageView() {
               canEdit={editing}
               viewing={viewing}
               onView={setViewing}
-              getCurrentText={() => currentText.current()}
+              getCurrentState={() => currentState.current()}
               restoring={restore.isPending}
               restoreError={restore.error?.message ?? ''}
               onRestore={(id) => restore.mutate(id)}
@@ -311,14 +313,14 @@ export default function PageView() {
 }
 
 /** Loads the content (server copy + this user's unconfirmed local copies), then shows the editor. */
-function PageContent({ node, userId, slots, onSaveState, onLock, textRef, titleSaving }: {
+function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, titleSaving }: {
   node: NodeDetail
   userId: string
   slots: Slots
   titleSaving: boolean
   onSaveState: (s: SaveState) => void
   onLock: (m: LockMode) => void
-  textRef: MutableRefObject<() => string>
+  stateRef: MutableRefObject<() => string>
 }) {
   const canEdit = node.access === 'EDIT'
   const [opened, setOpened] = useState<Opened>()
@@ -356,7 +358,7 @@ function PageContent({ node, userId, slots, onSaveState, onLock, textRef, titleS
           slots={slots}
           onSaveState={onSaveState}
           onLock={onLock}
-          textRef={textRef}
+          stateRef={stateRef}
           titleSaving={titleSaving}
           onReload={() => setReloads((r) => r + 1)}
           // The local copy is now a private version: say so and load what the server has.
@@ -374,7 +376,7 @@ function PageContent({ node, userId, slots, onSaveState, onLock, textRef, titleS
   )
 }
 
-function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, onLock, textRef, titleSaving }: {
+function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, onLock, stateRef, titleSaving }: {
   node: NodeDetail
   opened: Opened
   slots: Slots
@@ -384,7 +386,7 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
   onReload: () => void
   onSaveState: (s: SaveState) => void
   onLock: (m: LockMode) => void
-  textRef: MutableRefObject<() => string>
+  stateRef: MutableRefObject<() => string>
 }) {
   const canEdit = node.access === 'EDIT'
   const lock = useEditLock(node.id, canEdit)
@@ -397,9 +399,9 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
   const problem = save.state === 'failed' ? `Not saved: ${save.message}` : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined
 
   useEffect(() => {
-    textRef.current = () => extractText(editor.document)
-    return () => { textRef.current = () => '' }
-  }, [editor, textRef])
+    stateRef.current = () => toBase64(Y.encodeStateAsUpdate(opened.ydoc))
+    return () => { stateRef.current = () => '' }
+  }, [opened.ydoc, stateRef])
 
   useEffect(() => {
     onSaveState(save.state)

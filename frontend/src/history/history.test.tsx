@@ -1,13 +1,22 @@
+import { BlockNoteEditor, type PartialBlock } from '@blocknote/core'
+import { blocksToYDoc } from '@blocknote/core/yjs'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import * as Y from 'yjs'
 import type { VersionSummary } from '../api/versions'
+import { toBase64 } from '../editor/base64'
+import { FRAGMENT, kfSchema } from '../editor/schema'
 import { useEndSessionOnLeave } from '../editor/session'
 import DiffView from './DiffView'
 import HistoryPanel, { type Viewing } from './HistoryPanel'
 import { groupVersions } from './groupVersions'
+
+// jsdom has no matchMedia (Mantine) or layout (BlockNote's side menu).
+window.matchMedia ??= ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
+document.elementsFromPoint ??= () => []
 
 afterEach(() => {
   cleanup()
@@ -31,14 +40,14 @@ function renderPanel(versions: VersionSummary[], canEdit: boolean, onView = vi.f
     const u = String(input)
     if (u === '/api/nodes/n1/versions') return json(versions)
     const m = u.match(/^\/api\/versions\/(\w+)$/)
-    if (m) return json({ ...versions.find((x) => x.id === m[1]), state: '', text: 'text of ' + m[1] })
+    if (m) return json({ ...versions.find((x) => x.id === m[1]), state: 'state of ' + m[1], text: 'text of ' + m[1] })
     return json({})
   })
   vi.stubGlobal('fetch', fetchMock)
   const wrap = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
   const onRestore = vi.fn()
   render(
-    <HistoryPanel nodeId="n1" canEdit={canEdit} viewing={viewing} onView={onView} getCurrentText={() => 'current text'} restoring={false} restoreError="" onRestore={onRestore} onClose={() => {}} now={NOW} />,
+    <HistoryPanel nodeId="n1" canEdit={canEdit} viewing={viewing} onView={onView} getCurrentState={() => 'current state'} restoring={false} restoreError="" onRestore={onRestore} onClose={() => {}} now={NOW} />,
     { wrapper: wrap },
   )
   return { onView, onRestore, fetchMock }
@@ -84,7 +93,7 @@ describe('groupVersions', () => {
 describe('history panel', () => {
   const list = [v('n1', 'NAMED', at(12, 11), { name: 'Before submission' }), v('a1', 'AUTO', at(12, 9))]
   const viewing = (id: string, extra: Partial<Viewing> = {}): Viewing => ({
-    version: list.find((x) => x.id === id)!, number: 1, previousNumber: null, text: 'old', previousText: '', canRestore: true, against: 'previous', ...extra,
+    version: list.find((x) => x.id === id)!, number: 1, previousNumber: null, state: 'old', previousState: '', canRestore: true, against: 'previous', ...extra,
   })
 
   it('showsAuthorKindTimeAndACurrentPillOnTheNewestOnly', async () => {
@@ -108,7 +117,7 @@ describe('history panel', () => {
     const { onView } = renderPanel(list, true)
     await userEvent.click(await screen.findByText('Before submission'))
     await waitFor(() => expect(onView).toHaveBeenCalled())
-    expect(onView.mock.calls[0][0]).toMatchObject({ version: { id: 'n1' }, number: 2, previousNumber: 1, text: 'text of n1', previousText: 'text of a1', against: 'previous' })
+    expect(onView.mock.calls[0][0]).toMatchObject({ version: { id: 'n1' }, number: 2, previousNumber: 1, state: 'state of n1', previousState: 'state of a1', against: 'previous' })
   })
 
   it('restoreHiddenForViewers', async () => {
@@ -126,7 +135,7 @@ describe('history panel', () => {
     expect(older.onRestore).toHaveBeenCalledWith('a1')
     await userEvent.click(screen.getByRole('button', { name: 'Compare with current' }))
     await waitFor(() => expect(older.onView).toHaveBeenCalled())
-    expect(older.onView.mock.calls[0][0]).toMatchObject({ against: 'current', text: 'current text', previousText: 'text of a1' })
+    expect(older.onView.mock.calls[0][0]).toMatchObject({ against: 'current', state: 'current state', previousState: 'state of a1' })
     cleanup()
     renderPanel(list, true, vi.fn(), viewing('n1', { number: 2 }))
     await screen.findByText('Before submission')
@@ -146,17 +155,40 @@ describe('history panel', () => {
 })
 
 describe('DiffView', () => {
-  it('diffMarksInsertAndDelete', () => {
-    const { container } = render(
-      <DiffView text="Collect 120 students" previousText="Collect 100 students" authors={[rafi]} />,
-    )
-    expect(container.querySelector('del')!.textContent).toBe('100')
-    expect(container.querySelector('ins')!.textContent).toBe('120')
+  // A saved page state (base64 Yjs update), as the server stores versions.
+  const stateOf = (blocks: PartialBlock<typeof kfSchema.blockSchema, typeof kfSchema.inlineContentSchema, typeof kfSchema.styleSchema>[]) =>
+    toBase64(Y.encodeStateAsUpdate(blocksToYDoc(BlockNoteEditor.create({ schema: kfSchema }), blocks, FRAGMENT)))
+  const img = { id: 'img', type: 'image', props: { url: '/api/attachments/f1/download', name: 'bleu.png' } } as const
+  const before = stateOf([
+    { id: 'p1', type: 'paragraph', content: 'Collect 100 students' },
+    img,
+    { id: 'p2', type: 'paragraph', content: 'An old line' },
+  ])
+  const after = stateOf([
+    { id: 'p1', type: 'paragraph', content: 'Collect 120 students' },
+    { id: 'h1', type: 'heading', props: { level: 2 }, content: 'Key ideas' },
+    img,
+  ])
+  const outer = (c: HTMLElement, id: string) => c.querySelector(`[data-node-type="blockOuter"][data-id="${id}"]`)
+
+  it('diffMarksInsertAndDelete', async () => {
+    // QA-21: the version used to be flattened to plain text; headings, images and files were lost
+    const { container } = render(<DiffView state={after} previousState={before} authors={[rafi]} />)
+    await waitFor(() => expect(container.querySelector('.bn-editor')).toBeTruthy())
+    expect(container.querySelector('.bn-editor')!.getAttribute('contenteditable')).toBe('false')
+    expect(container.querySelector('[data-content-type="heading"]')!.textContent).toBe('Key ideas')
+    expect(container.querySelector('[data-content-type="image"]')).toBeTruthy()
+    expect(container.querySelector('[data-value="kf-ins"]')!.textContent).toBe('120')
+    expect(container.querySelector('[data-value="kf-del"]')!.textContent).toBe('100')
+    await waitFor(() => expect(outer(container, 'h1')!.getAttribute('data-diff')).toBe('added'))
+    expect(outer(container, 'p2')!.getAttribute('data-diff')).toBe('removed') // still shown where it was, struck through
+    expect(outer(container, 'p2')!.textContent).toBe('An old line')
+    expect(outer(container, 'img')!.getAttribute('data-diff')).toBeNull()
     expect(screen.getByText("Rafi's changes")).toBeTruthy()
   })
 
   it('manyAuthorsShareOneColourAndAllNamesAreListed', () => {
-    render(<DiffView text="a b" previousText="a" authors={[rafi, sayem]} />)
+    render(<DiffView state={after} previousState="" authors={[rafi, sayem]} />)
     expect(screen.getByText("Rafi, Sayem's changes")).toBeTruthy()
   })
 })

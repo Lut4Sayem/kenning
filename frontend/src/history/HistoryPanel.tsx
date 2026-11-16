@@ -13,8 +13,9 @@ export interface Viewing {
   /** "Version 11": the version's place in this reader's list, oldest = 1 (null when not from the list). */
   number: number | null
   previousNumber: number | null
-  text: string
-  previousText: string
+  /** The version's saved page state and the one it is compared with (base64 Yjs updates; '' = empty page). */
+  state: string
+  previousState: string
   canRestore: boolean
   /** 'previous': diff against the version before it; 'current': this version against the page as it is now. */
   against: 'previous' | 'current'
@@ -34,12 +35,12 @@ function kind(v: VersionSummary): string {
   }
 }
 
-export default function HistoryPanel({ nodeId, canEdit, viewing, onView, getCurrentText, restoring, restoreError, onRestore, onClose, now }: {
+export default function HistoryPanel({ nodeId, canEdit, viewing, onView, getCurrentState, restoring, restoreError, onRestore, onClose, now }: {
   nodeId: string
   canEdit: boolean
   viewing: Viewing | null
   onView: (v: Viewing | null) => void
-  getCurrentText: () => string
+  getCurrentState: () => string
   restoring: boolean
   restoreError: string
   onRestore: (versionId: string) => void
@@ -72,7 +73,7 @@ export default function HistoryPanel({ nodeId, canEdit, viewing, onView, getCurr
     try {
       const before = all[all.findIndex((x) => x.id === v.id) + 1] // the version before, even when the filter hides it
       const [cur, prev] = await Promise.all([getVersion(v.id), before ? getVersion(before.id) : Promise.resolve(null)])
-      onView({ version: v, number: number(v), previousNumber: before ? number(before) : null, text: cur.text, previousText: prev?.text ?? '', canRestore: canEdit, against: 'previous' })
+      onView({ version: v, number: number(v), previousNumber: before ? number(before) : null, state: cur.state, previousState: prev?.state ?? '', canRestore: canEdit, against: 'previous' })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not open this version')
     }
@@ -83,7 +84,7 @@ export default function HistoryPanel({ nodeId, canEdit, viewing, onView, getCurr
     setError('')
     try {
       const old = await getVersion(viewing.version.id)
-      onView({ ...viewing, text: getCurrentText(), previousText: old.text, against: 'current' })
+      onView({ ...viewing, state: getCurrentState(), previousState: old.state, against: 'current' })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not compare this version')
     }
