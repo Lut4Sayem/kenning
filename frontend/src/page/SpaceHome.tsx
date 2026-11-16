@@ -32,9 +32,6 @@ function EmptySpace({ spaceId }: { spaceId: string }) {
   const { create, message } = useCreatePage(spaceId)
   const editable = !!space && canEditSpace(space)
   const who = space?.teamName ?? 'the team'
-  const newPage = (cls: string) => (
-    <button type="button" className={cls} onClick={() => void create(null)}><Icon name="plus" />New page</button>
-  )
   return (
     <div className={s.wrap} data-bleed>
       <TopBar>
@@ -42,7 +39,6 @@ function EmptySpace({ spaceId }: { spaceId: string }) {
           {space?.teamId && <><Link to={`/teams/${space.teamId}`}>{space.teamName}</Link><span aria-hidden="true">/</span></>}
           <span className={s.here} aria-current="page">{space?.name ?? 'Space'}</span>
         </nav>
-        {editable && newPage(s.topBtn)}
       </TopBar>
       <h1 className={s.title}>{space?.name ?? 'Space'}</h1>
       <p className={s.help}>
@@ -52,7 +48,7 @@ function EmptySpace({ spaceId }: { spaceId: string }) {
             ? `No pages yet. Write the first one; everyone in ${who} can read it.`
             : `No pages yet. An editor of ${who} can write the first one.`}
       </p>
-      {editable && newPage(s.mainBtn)}
+      {editable && <button type="button" className={s.mainBtn} onClick={() => void create(null)}><Icon name="plus" />New page</button>}
       {message && <p role="alert" className={s.error}>{message}</p>}
     </div>
   )

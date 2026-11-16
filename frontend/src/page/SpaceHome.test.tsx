@@ -46,6 +46,7 @@ describe('space home', () => {
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toContain('Thesis Group')
     expect(screen.getByText(/No pages yet\. Write the first one/)).toBeTruthy()
     const buttons = screen.getAllByRole('button', { name: 'New page' })
+    expect(buttons).toHaveLength(1) // QA-62: only the one in the body
     await userEvent.click(buttons[0])
     await waitFor(() => expect(nodes.createNode).toHaveBeenCalledWith('s1', { parentId: null }))
     expect(await screen.findByText('opened page')).toBeTruthy()
