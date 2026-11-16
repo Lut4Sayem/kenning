@@ -7,7 +7,7 @@ import { ConfirmHost } from '../ui/ConfirmDialog'
 import { AskPanel, Comments, Summary } from './PageExtras'
 
 const x = vi.hoisted(() => ({ getComments: vi.fn(), addComment: vi.fn(), deleteComment: vi.fn(), summarize: vi.fn(), ask: vi.fn() }))
-const spaces = vi.hoisted(() => ({ getMe: vi.fn() }))
+const spaces = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/pageExtras', () => x)
 vi.mock('../api/spaces', () => spaces)
 
@@ -91,11 +91,15 @@ describe('AI controls', () => {
 
   it('askShowsAnswerWithSourceLinksAndHidesWhenNotConfigured', async () => {
     x.ask.mockResolvedValueOnce({ answer: 'Use Atlas', sources: [{ n: 1, id: 'p9', title: 'Search' }], usedDocuments: 1, trimmed: false, cached: false })
+    spaces.getMySpaces.mockResolvedValue([{ id: 's1', name: 'Literature Review', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis', myRole: 'EDITOR' }])
     wrap(<AskPanel spaceId="s1" />)
+    // QA-30: it asks the whole space, so it says which one, and names the pages the answer used
+    expect(await screen.findByRole('heading', { name: 'Ask Literature Review' })).toBeTruthy()
     await userEvent.type(screen.getByLabelText('Question'), 'how?')
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }))
     expect(await screen.findByText('Use Atlas')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Search' }).getAttribute('href')).toBe('/p/p9')
+    expect(screen.getByRole('list', { name: 'Pages used' })).toBeTruthy()
     x.ask.mockRejectedValueOnce(new Error('AI is not configured on this server'))
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }))
     await vi.waitFor(() => expect(screen.queryByLabelText('Question')).toBeNull())
