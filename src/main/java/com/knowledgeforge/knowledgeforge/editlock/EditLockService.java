@@ -36,7 +36,7 @@ public class EditLockService {
     public LockDTO acquire(String nodeId, boolean force) {
         access.requireEdit(nodeId);
         User user = access.currentUser();
-        UserRef me = new UserRef(user.getId(), user.getFullName(), user.getProfilePicture());
+        UserRef me = new UserRef(user.getId(), user.getDisplayName(), user.getProfilePicture());
         Date now = new Date();
         Date expires = new Date(now.getTime() + TTL_MS);
 

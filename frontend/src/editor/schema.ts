@@ -37,8 +37,28 @@ const codeBlock = {
   ),
 }
 
+/** QA-51: BlockNote's to-do checkbox has no accessible name; it gets "To-do" plus the item's text. */
+const checkList = defaultBlockSpecs.checkListItem
+const checkListItem = {
+  ...checkList,
+  implementation: {
+    ...checkList.implementation,
+    render(...args: Parameters<NonNullable<typeof checkList.implementation.render>>) {
+      const out = checkList.implementation.render!.apply(this as never, args)
+      const box = 'querySelector' in out.dom ? out.dom.querySelector('input') : null
+      if (box && out.contentDOM) {
+        box.id = `kf-todo-${args[0].id}`
+        out.contentDOM.id = `kf-todo-text-${args[0].id}`
+        box.setAttribute('aria-label', 'To-do')
+        box.setAttribute('aria-labelledby', `${box.id} ${out.contentDOM.id}`) // "To-do Read the paper"; an empty item is still "To-do"
+      }
+      return out
+    },
+  },
+}
+
 export const kfSchema = BlockNoteSchema.create({
-  blockSpecs: { ...defaultBlockSpecs, codeBlock, bookmark: bookmarkBlock() },
+  blockSpecs: { ...defaultBlockSpecs, codeBlock, checkListItem, bookmark: bookmarkBlock() },
   inlineContentSpecs: { ...defaultInlineContentSpecs, status: statusInline },
 })
 

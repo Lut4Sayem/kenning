@@ -82,7 +82,7 @@ public class DashboardService {
             if (t != null) dto.setTeamName(t.getName());
 
             userRepository.findById(log.getUserId()).ifPresent(u -> {
-                dto.setActorFullName(u.getFullName());
+                dto.setActorFullName(u.getDisplayName());
                 dto.setActorEmail(u.getEmail());
             });
 

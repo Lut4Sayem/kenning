@@ -163,7 +163,7 @@ function Row({ hit, q }: { hit: SearchHit; q: string }) {
       <div className={s.body}>
         <span className={s.titleRow}>
           {/* The title link covers the whole row (::after); tag links sit above it. */}
-          <Link to={to} className={s.title}>{markWords(title, q)}</Link>
+          <Link to={to} className={s.title} title={title}>{markWords(title, q)}</Link>
           {hit.publishState === 'DRAFT' && <span className={s.pill}>Draft</span>}
           {hit.publishState === 'PUBLISHED' && <span className={`${s.pill} ${s.published}`}>Published</span>}
           {hit.archived && <span className={s.pill}>Archived</span>}

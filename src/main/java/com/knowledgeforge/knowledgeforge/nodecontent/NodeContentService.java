@@ -77,7 +77,7 @@ public class NodeContentService {
             throw new StaleRevisionException(current.getRevision());
         }
         mongo.updateFirst(Query.query(Criteria.where("id").is(nodeId)),
-                new Update().set("updatedBy", new UserRef(user.getId(), user.getFullName(), user.getProfilePicture()))
+                new Update().set("updatedBy", new UserRef(user.getId(), user.getDisplayName(), user.getProfilePicture()))
                         .set("contentUpdatedAt", now).set("updatedAt", now), Node.class);
         return new SavedDTO(((Number) saved.get("revision")).longValue(), now);
     }

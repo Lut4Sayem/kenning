@@ -49,8 +49,14 @@
 .back { flex: none; padding: 0; border: 0; background: none; font-size: 13px; font-weight: 500; color: var(--link); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
 /* The diff: one colour per author, deletions struck through in rose */
-.diffText { margin: 0 0 16px; font-size: 16.5px; line-height: 1.65; color: var(--ink-doc); white-space: pre-wrap; overflow-wrap: anywhere; }
-.diff ins { text-decoration: none; background: var(--ins-bg); border-bottom: 2px solid var(--ins-line); }
-.diff del { color: var(--tint-rose-fg); text-decoration: line-through; }
+.doc { margin: 0 0 16px; }
+/* Words: the BlockNote styles the diff writes (see blockDiff.ts) */
+.diff :global([data-style-type='backgroundColor'][data-value='kf-ins']) { background: var(--ins-bg); border-bottom: 2px solid var(--ins-line); }
+.diff :global([data-style-type='textColor'][data-value='kf-del']) { color: var(--tint-rose-fg); }
+/* Whole blocks: tinted in the author's colour when added (dashed outline when changed); removed ones rose and struck through */
+.diff :global([data-diff] > .bn-block > .bn-block-content) { border-radius: 6px; padding-inline: 8px; background: var(--ins-bg); }
+.diff :global([data-diff='changed'] > .bn-block > .bn-block-content) { outline: 1px dashed var(--ins-line); outline-offset: -1px; }
+.diff :global([data-diff='removed'] > .bn-block > .bn-block-content) { background: var(--tint-rose-bg); color: var(--tint-rose-fg); text-decoration: line-through; }
+.diff :global([data-diff='removed'] img), .diff :global([data-diff='removed'] video) { opacity: 0.5; }
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0; font-size: 12px; color: var(--ink-muted); }
 .swatch { width: 12px; height: 12px; border-radius: 3px; background: var(--ins-bg); border-bottom: 2px solid var(--ins-line); }

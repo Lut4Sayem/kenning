@@ -491,4 +491,17 @@ class AiServiceTest {
         // [2] is cited first, so its page comes first; [9] is dropped; repeats are removed
         assertEquals(List.of(new SourceDTO(2, "a", "Vacation"), new SourceDTO(1, "b", "Vacation policy")), r.sources());
     }
+
+    @Test
+    void fullWidthCitationMarksAreNormalisedAndMapped() {
+        // QA-28: the model wrote 【2】 (and 【1†L3-L5】), so no source was found and the mark showed as is
+        spaceHas(List.of(page("a", "Vacation", "x", 1), page("b", "Vacation policy", "y", 2)), "b", "a");
+        when(client.chat(anyString(), anyString(), anyInt()))
+                .thenReturn(new AiClient.Result("BLEU **28.4**【2】, see also 【1†L3-L5】.", 10, 5, 15));
+
+        AskResponse r = service.ask(SPACE_ID, "vacation policy");
+
+        assertEquals("BLEU **28.4**[2], see also [1].", r.answer());
+        assertEquals(List.of(new SourceDTO(2, "a", "Vacation"), new SourceDTO(1, "b", "Vacation policy")), r.sources());
+    }
 }

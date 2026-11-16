@@ -173,7 +173,7 @@ function Palette({ onClose }: { onClose: () => void }) {
               {cap(pages, 'pages').map((p) => (
                 <Command.Item key={p.id} value={`page-${p.id}`} onSelect={() => open(p.id)} className={s.item}>
                   <span className={s.dot} aria-hidden="true" />
-                  <span className={s.title}>{markPrefix(p.title || 'Untitled', term)}</span>
+                  <span className={s.title} title={p.title || 'Untitled'}>{markPrefix(p.title || 'Untitled', term)}</span>
                   {p.place && <span className={s.chip}>{p.place}</span>}
                   {go}
                 </Command.Item>

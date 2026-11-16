@@ -42,7 +42,7 @@ public class CommentService {
 
             // manual join: user info
             userRepository.findById(c.getCreatedBy()).ifPresent(u -> {
-                dto.setCreatedByFullName(u.getFullName());
+                dto.setCreatedByFullName(u.getDisplayName());
                 dto.setCreatedByEmail(u.getEmail());
             });
 
@@ -82,7 +82,7 @@ public class CommentService {
         dto.setContent(saved.getContent());
         dto.setCreatedAt(saved.getCreatedAt());
         dto.setCreatedByUserId(user.getId());
-        dto.setCreatedByFullName(user.getFullName());
+        dto.setCreatedByFullName(user.getDisplayName());
         dto.setCreatedByEmail(user.getEmail());
         return dto;
     }

@@ -174,7 +174,7 @@ function PageRowT({ p }: { p: TeamPageItem }) {
       <td className={s.cTitle}>
         <Link to={`/p/${p.id}`} className={s.titleLink}>
           <span className={s.dot} aria-hidden="true" />
-          <span className={s.title}>{p.title || 'Untitled'}</span>
+          <span className={s.title} title={p.title || 'Untitled'}>{p.title || 'Untitled'}</span>
           {p.parentTitle && <span className={s.parent}>in {p.parentTitle}</span>}
         </Link>
       </td>

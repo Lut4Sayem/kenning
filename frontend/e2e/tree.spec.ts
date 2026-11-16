@@ -14,14 +14,14 @@ test('create page, create sub-page, drag it to top level, breadcrumbs update', a
   await page.waitForURL(/\/app\/p\//)
   await page.getByLabel('Page title').fill('Parent')
   await page.getByLabel('Page title').blur()
-  await expect(priv.getByRole('link', { name: 'Parent' })).toBeVisible()
+  await expect(priv.getByRole('treeitem', { name: 'Parent' })).toBeVisible()
 
   const parentUrl = page.url()
   await priv.getByRole('button', { name: 'New sub-page under Parent' }).click()
   await page.waitForURL((url) => url.href !== parentUrl)
   await page.getByLabel('Page title').fill('Child')
   await page.getByLabel('Page title').blur()
-  await expect(priv.getByRole('link', { name: 'Child' })).toBeVisible()
+  await expect(priv.getByRole('treeitem', { name: 'Child' })).toBeVisible()
   await expect(crumbs).toContainText('Parent')
 
   // Drag Child (keyboard sensor on its grip) down onto the "top level" drop zone.

@@ -54,7 +54,13 @@ a.fileName:hover { text-decoration: underline; text-underline-offset: 2px; }
 .askRow { display: flex; gap: 8px; }
 .field { flex: 1; min-width: 0; height: 32px; padding: 0 12px; border: 1px solid var(--input-border); border-radius: var(--r-pill); background: var(--canvas); font-size: 13px; color: var(--ink); }
 .field:focus-visible { outline: 0; border-color: var(--ink); box-shadow: 0 0 0 3px var(--ring); }
-.answer { margin: 0; padding: 12px 14px; border-radius: var(--r-card); background: var(--canvas); font-size: 13.5px; line-height: 1.5; color: var(--ink-doc); white-space: pre-wrap; overflow-wrap: anywhere; }
+.answer { margin: 0; padding: 12px 14px; border-radius: var(--r-card); background: var(--canvas); font-size: 13.5px; line-height: 1.5; color: var(--ink-doc); overflow-wrap: anywhere; }
+.answer :is(p, ul, ol) { margin: 0; }
+.answer :is(p, ul, ol) + :is(p, ul, ol) { margin-top: 8px; }
+.answer ul, .answer ol { padding-left: 20px; }
+.answer li + li { margin-top: 2px; }
+.answer code { padding: 1px 4px; border-radius: var(--r-chip); background: var(--surface-card-hover); font-family: var(--font-mono); font-size: 0.92em; }
+.answer sup a { color: var(--link); text-decoration: none; font-weight: 600; }
 .sources { margin: 0; padding: 0 4px 0 22px; font-size: 13px; }
 
 .skel { display: block; border-radius: var(--r-lg); background: var(--hover); animation: pulse 1.4s ease-in-out infinite; }

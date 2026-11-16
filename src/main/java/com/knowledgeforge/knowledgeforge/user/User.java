@@ -56,6 +56,14 @@ public class User {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
+    /** The name other people see: older accounts can have no full name, then the email's local part (QA-52). */
+    public String getDisplayName() {
+        if (fullName != null && !fullName.isBlank()) return fullName;
+        if (email == null) return "";
+        int at = email.indexOf('@');
+        return at < 0 ? email : email.substring(0, at);
+    }
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 

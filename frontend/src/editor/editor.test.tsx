@@ -188,4 +188,12 @@ describe('block editor', () => {
     expect(block.type).toBe('codeBlock')
     expect(extractText([block])).toBe('def f(x):')
   })
+
+  it('toDoCheckboxesAreNamedByTheirText', async () => {
+    // QA-51: BlockNote's to-do checkbox had no accessible name
+    const { editor } = await mountEditor()
+    editor.replaceBlocks(editor.document, [{ type: 'checkListItem', content: 'Read the paper' }, { type: 'checkListItem' }])
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'To-do Read the paper' })).toBeTruthy())
+    expect(screen.getByRole('checkbox', { name: 'To-do' })).toBeTruthy()
+  })
 })

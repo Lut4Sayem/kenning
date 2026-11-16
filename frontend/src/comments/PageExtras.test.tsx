@@ -66,6 +66,22 @@ describe('AI controls', () => {
     expect(await screen.findByText('Short version')).toBeTruthy()
   })
 
+  it('summaryAndAnswerRenderMarkdownAndCitationLinks', async () => {
+    // QA-28: raw "- ", ** and 【2】 were shown as typed
+    x.summarize.mockResolvedValue({ summary: '- **BLEU** 28.4\n- trained on `WMT`', cached: false, trimmed: false, generatedAt: '' })
+    wrap(<Summary nodeId="n1" spaceId="s1" />)
+    const container = document.body
+    await userEvent.click(screen.getByRole('button', { name: 'Summarize this page' }))
+    expect((await screen.findByText('BLEU')).tagName).toBe('STRONG')
+    expect(container.querySelectorAll('section[aria-label="Summary"] li')).toHaveLength(2)
+
+    x.ask.mockResolvedValueOnce({ answer: 'It scored **28.4** [2].', sources: [{ n: 2, id: 'p2', title: 'Attention notes' }], usedDocuments: 2, trimmed: false, cached: false })
+    await userEvent.type(screen.getByLabelText('Question'), 'BLEU?')
+    await userEvent.click(screen.getByRole('button', { name: 'Ask' }))
+    expect((await screen.findByRole('link', { name: 'Source 2: Attention notes' })).getAttribute('href')).toBe('/p/p2')
+    expect(container.textContent).not.toContain('**')
+  })
+
   it('summarizeShowsTheServersMessageOnLimit', async () => {
     x.summarize.mockRejectedValue(new Error("You've used today's 20 AI requests. Resets at 00:00 UTC."))
     wrap(<Summary nodeId="n1" spaceId="s1" />)

@@ -57,7 +57,7 @@ export default function Dashboard() {
               <li key={p.nodeId}>
                 <Link to={`/p/${p.nodeId}`} className={s.card}>
                   <span className={s.cardDot} aria-hidden="true" />
-                  <span className={s.cardTitle}>{p.title || 'Untitled'}</span>
+                  <span className={s.cardTitle} title={p.title || 'Untitled'}>{p.title || 'Untitled'}</span>
                   <span className={s.cardMeta}>
                     <span>{p.teamName == null ? 'Private' : p.spaceName}</span>
                     <time dateTime={p.openedAt ?? undefined}>{timeShort(p.openedAt ?? null)}</time>
