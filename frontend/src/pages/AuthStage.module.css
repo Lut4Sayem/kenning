@@ -1,0 +1,89 @@
+/* Auth stage (DESIGN.md section 7): decoration behind the form card. Scrolls with the page, never catches the pointer. */
+.stage {
+  --st-dot: rgb(34 32 27 / 0.1); --st-shadow: 0 1px 2px rgb(20 20 15 / 0.04), 0 14px 30px -18px rgb(20 20 15 / 0.18);
+  position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; user-select: none; background-color: var(--ground);
+}
+/* the dot grid clears around the form */
+.stage::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--st-dot) 1.1px, transparent 1.6px); background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(ellipse 30% 42% at 50% 50%, transparent 35%, #000 100%);
+  mask-image: radial-gradient(ellipse 30% 42% at 50% 50%, transparent 35%, #000 100%);
+}
+.glow {
+  position: absolute; left: 50%; top: 48%; width: 900px; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
+  animation: breathe 14s ease-in-out infinite alternate;
+}
+
+.lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lines path { fill: none; stroke: var(--ink-muted); stroke-opacity: 0.38; stroke-width: 1.1; }
+.lines circle { fill: var(--canvas); stroke: var(--ink-muted); stroke-opacity: 0.55; stroke-width: 1.1; }
+
+.frag { position: absolute; opacity: 0.9; }
+.card, .note, .code, .files, .version {
+  padding: 14px 16px; border-radius: var(--r-card); background: var(--canvas); box-shadow: var(--st-shadow);
+  color: var(--ink); font-size: 13px; line-height: 1.45;
+}
+.card, .note { width: 240px; }
+.card { left: 6%; top: 13%; }
+.note { right: 5%; top: 11%; }
+.code { left: 8%; bottom: 12%; width: 270px; background: var(--surface-card); font-family: var(--font-mono); font-size: 12px; white-space: pre; color: var(--ink-doc); }
+.code b { font-weight: 400; color: var(--tint-sky-fg); }
+.files { right: 7%; top: 47%; width: 230px; padding: 12px 14px; font-size: 12.5px; }
+.version { left: 3.5%; top: 45%; width: 250px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+
+.title { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-family: var(--font-title); font-size: 17px; font-weight: 500; letter-spacing: -0.01em; }
+.dot { flex: none; width: 9px; height: 9px; border-radius: 3px; background: var(--page-green); }
+.meta { margin: 0 0 10px; color: var(--ink-muted); font-size: 12px; }
+.tags { display: flex; gap: 6px; }
+.tag { padding: 1px 9px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600; background: var(--tint-sky-bg); color: var(--tint-sky-fg); }
+.tag + .tag { background: var(--tint-rose-bg); color: var(--tint-rose-fg); }
+.todo { display: flex; align-items: center; gap: 8px; margin: 5px 0 0; }
+.box { flex: none; display: grid; place-items: center; width: 14px; height: 14px; border: 1.5px solid var(--input-border); border-radius: 4px; }
+.done .box { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.done span:last-child { color: var(--ink-muted); text-decoration: line-through; }
+.todo:not(.done) svg { display: none; }
+
+.row { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; }
+.row span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row small { color: var(--ink-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.ficon { flex: none; display: grid; place-items: end center; width: 22px; height: 26px; padding-bottom: 3px; border-radius: 4px; background: var(--tint-sky-bg); color: var(--tint-sky-fg); font-size: 9px; font-weight: 700; }
+.pdf { background: var(--tint-rose-bg); color: var(--tint-rose-fg); }
+.version > span:nth-child(2) { flex: 1; min-width: 0; line-height: 1.35; }
+.version b { font-weight: 600; }
+.version small { display: block; color: var(--ink-muted); font-size: 11.5px; }
+.vtag { flex: none; padding: 1px 7px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent-ink); font-size: 11px; font-weight: 600; }
+.av { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--who); color: #fff; font-size: 11px; font-weight: 700; }
+
+.pill {
+  right: 15%; bottom: 13%; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 13px; border-radius: var(--r-pill);
+  background: var(--published-bg); color: var(--published-ink); font-size: 13px; font-weight: 600; box-shadow: var(--st-shadow);
+}
+.pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* Named cursors: a slow 60s drift around their spot */
+.ayesha { --who: var(--cursor-a); }
+.rafi { --who: var(--cursor-b); }
+.cursor { position: absolute; display: flex; align-items: flex-start; animation: drift 60s ease-in-out infinite; }
+.cursor.ayesha { left: 21%; top: 31%; }
+.cursor.rafi { right: 22%; top: 70%; animation-delay: -30s; }
+.cursor svg { flex: none; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.2)); }
+.name { display: inline-flex; align-items: center; margin: 14px 0 0 -2px; padding: 2px 8px; border-radius: 6px 999px 999px 999px; background: var(--who); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.cav { display: inline-grid; place-items: center; width: 16px; height: 16px; margin: -1px 5px -1px -4px; border-radius: 50%; background: #fff; color: var(--who); font-size: 9.5px; font-weight: 700; }
+
+@keyframes breathe { to { scale: 1.02; } }
+@keyframes drift { 0%, 100% { translate: 0 0; } 50% { translate: 36px 18px; } }
+
+/* 700-1100: only the API card, the Published pill and the cursors */
+@media (max-width: 1100px) { .extra { display: none; } }
+/* Phone: the Published pill and Ayesha's cursor, in the band above the form card */
+@media (max-width: 700px) {
+  .wide, .lines { display: none; }
+  .pill { right: 16px; bottom: auto; top: 72px; }
+  .cursor.ayesha { left: auto; right: 132px; top: 100px; animation: none; }
+  .glow { width: 520px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow, .cursor { animation: none; }
+}

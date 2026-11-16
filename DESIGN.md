@@ -117,8 +117,8 @@ Fonts load from Google Fonts with `display=swap`.
 |---|---|---|---|---|---|
 | `title-page` | Newsreader | 28 / 1.1 | 500 | -0.01em | Screen titles (`h1`), team name, greeting |
 | `title-doc` | Newsreader | 32 / 1.1 (28 under 640px) | 500 | -0.015em | The page title in the page view |
-| `title-login` | Newsreader | 40 / 1.1 (34 under 480px) | 500 | -0.015em | Auth headings (centred) |
-| `tagline` | Newsreader | 19 / 1.35 | 500 | 0 | The one line above the auth form, `--ink-label`, centred |
+| `title-login` | Newsreader | 40 / 1.1 (34 under 480px) | 400 | -0.015em | Auth headings (centred) |
+| `tagline` | Newsreader | 19 / 1.35 | 400 | 0 | The one line above the auth form, `--ink-label`, centred |
 | `title-section` | Newsreader | 26 / 1.25 | 500 | -0.01em | h2 inside a page |
 | `title-group` | Outfit | 15 / 1.25 | 600 | 0 | Section heads on overview screens ("Recently visited") |
 | `body-doc` | Outfit | 16.5 / 1.65 | 400 | 0 | Page reading text, max 740px column |
@@ -160,7 +160,7 @@ Rules: labels are sentence case, never uppercase or letter-spaced. Headings use 
 
 ## 5. Shapes and depth
 
-Radius (Ledger, 2026-11-17): 4 tiny chips · 5 tags · 6 sidebar rows (`--r-row`) and rectangular buttons (top bar, Home, team screens, danger zone) · 8 cards (`--r-card`), inputs and callouts (`--r-lg`), the 40px page icon tile, danger rows · 10 page panel (`--r-panel`) and the auth form card · 20 dialogs · 999 pills, avatars, the auth submit button.
+Radius (Ledger, 2026-11-17): 4 tiny chips · 5 tags · 6 sidebar rows (`--r-row`) and rectangular buttons (top bar, Home, team screens, danger zone) · 8 cards (`--r-card`), inputs and callouts (`--r-lg`), the 40px page icon tile, danger rows · 10 page panel (`--r-panel`) · 18 the auth form card · 20 dialogs · 999 pills, avatars, the auth submit button.
 
 Borders for structure (list rows, tabs, inputs, cards, the page panel edge), shadows only for things that float (menus, dialogs, toasts). Nested radii: outer = inner + padding.
 
@@ -213,7 +213,7 @@ Borders for structure (list rows, tabs, inputs, cards, the page panel edge), sha
 - **Profile:** two cards: You (88px avatar with camera button, upload/remove, name, read-only email, Save) and My teams (team tile, name, role pill).
 - **Inbox (Release 1b):** segmented Unread · All · Mentions, team filter, notifications grouped Today / Earlier on a `--surface-card` panel, unread rows soft yellow with a dot, a type tile (mention, comment, join request, publish), Mark all read, Load more.
 - **Version history:** opens in the right panel. Versions grouped by day (avatar, name, kind: Autosaved / Published / Restored, time); the current one has a "Current" pill. Selecting one shows a bar above the page ("Viewing version 11 by …") and highlights changes in the page, one colour per author with a legend at the top of the panel. Restore this version (primary) and Compare with current at the bottom.
-- **Login / register / join:** split screen, no sidebar. Left half white: brand top left (the Kenning mark, small version under 32px, plus the live-text wordmark "kenning" in Outfit 600), footer bottom ("© year Kenning" left, "Source on GitHub" right), a 380px left-aligned form column centred vertically: `title-login` heading, one line, 44px inputs, full-width black 46px button, link to the other auth page. Right half `--ground` with a real app preview (shell + page) scaled to 72%, offset 64px from the left and top and bleeding off the edges, level-2 shadow, not interactive. Join leads with the team (52px tile, name, "N members · invited by …"), then who you are signed in as ("Not you?"), Ask to join, and one line on what happens next; it needs `GET /api/team-invites/{code}` and falls back to "Join a team" without it.
+- **Login / register / join:** no sidebar. A decorative stage fills the window (`--ground`, aria-hidden, nothing focusable, never catches the pointer): a 28px dot grid that fades out around the form, a soft yellow glow behind it, six app fragments (a page card, a meeting note with to-dos, an API call, a Files list, a named version, a Published pill) each joined to the form card by a thin curve with small end circles, and two named cursors (Ayesha `--cursor-a`, Rafi `--cursor-b`) on a slow 60s drift. Nothing moves under reduced motion. 700–1100px: only the page card, the Published pill and the cursors. Under 700px: only the Published pill and Ayesha's cursor, in an 84px band under the brand. Brand centred at the top (the small Kenning mark plus the live-text wordmark "kenning", Outfit 600), footer at the bottom ("© year Kenning" left, "Source on GitHub" → github.com/Lut4Sayem/kenning right). The form is one white card centred in the window: max 440px, padding 32 (24/20 under 700px), radius 18, a `--line` edge plus a soft drop shadow. Inside, centred: the `tagline` "Your team’s knowledge, in one place.", the `title-login` heading at weight 400, one muted line; then left-aligned 44px inputs, a full-width black 46px button, and a centred link to the other auth page. Join puts the team (52px tile, name, "N members · invited by …") under the tagline, then who you are signed in as ("Not you?"), Ask to join, and one line on what happens next; it needs `GET /api/team-invites/{code}` and falls back to "Join a team" without it.
 
 ## 8. Bounded lists (non-negotiable)
 

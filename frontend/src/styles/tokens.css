@@ -96,3 +96,6 @@
   --danger-soft: #fff4f2;
   --danger-tile: #fde4e4;
 }
+
+/* Named cursors on the auth stage (white label text on them passes 4.5:1) */
+:root { --cursor-a: #b42d6c; --cursor-b: #1d65a0; }
