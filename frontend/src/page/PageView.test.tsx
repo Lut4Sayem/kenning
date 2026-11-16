@@ -20,7 +20,7 @@ document.elementsFromPoint ??= () => []
 
 const nodesApi = vi.hoisted(() => ({
   getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), unpublishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn(),
-  getSubtreeCount: vi.fn(), trashNode: vi.fn(),
+  getSubtreeCount: vi.fn(), trashNode: vi.fn(), unarchiveNode: vi.fn(),
 }))
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
@@ -107,6 +107,26 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
     act(() => void window.dispatchEvent(new Event('online')))
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+  })
+
+  // QA-35: one banner, with Unarchive right there for people who can.
+  it('anArchivedPageSaysSoOnceWithUnarchive', async () => {
+    nodesApi.getNode.mockResolvedValueOnce({ ...NODE, status: 'ARCHIVED', access: 'VIEW' }).mockResolvedValue(NODE)
+    nodesApi.unarchiveNode.mockResolvedValue({ movedToTop: false })
+    mount()
+    expect(await screen.findByRole('button', { name: 'Unarchive' })).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('.bn-editor')).not.toBeNull(), { timeout: 5000 })
+    expect(screen.getAllByText(/archived and read-only/)).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Unarchive' }))
+    await waitFor(() => expect(nodesApi.unarchiveNode).toHaveBeenCalledWith('n1'))
+    await waitFor(() => expect(screen.queryByText(/archived and read-only/)).toBeNull())
+  })
+
+  it('aViewerOfAnArchivedPageGetsNoUnarchive', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, status: 'ARCHIVED', access: 'VIEW', canManage: false })
+    mount()
+    expect(await screen.findByText(/archived and read-only/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Unarchive' })).toBeNull()
   })
 
   it('aPageThatNeverLoadedShowsOnlyTheError', async () => {

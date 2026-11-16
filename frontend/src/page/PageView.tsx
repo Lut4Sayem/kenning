@@ -26,7 +26,7 @@ import { timeAgo } from '../ui/timeAgo'
 import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
-import PageMenu from './PageMenu'
+import PageMenu, { useUnarchive } from './PageMenu'
 import { trashBlocked, useTrashPage } from './useTrashPage'
 import Properties from './Properties'
 
@@ -316,7 +316,7 @@ export default function PageView() {
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
         />
         {rename.error && <p role="alert" className={s.error}>{rename.error.message}</p>}
-        {n.status === 'ARCHIVED' && <p className={s.note} role="status">This page is archived and read-only.</p>}
+        {n.status === 'ARCHIVED' && <ArchivedNote node={n} />}
         {n.access === 'TITLE_ONLY' ? (
           <p className={s.note}>You can see this page's title but not its content.</p>
         ) : (
@@ -411,6 +411,29 @@ function TrashedPage({ nodeId, t }: { nodeId: string; t: Trashed }) {
 }
 
 /** Loads the content (server copy + this user's unconfirmed local copies), then shows the editor. */
+/** QA-35: the one archived message, with Unarchive right there for people who can. */
+function ArchivedNote({ node }: { node: NodeDetail }) {
+  const unarchive = useUnarchive(node)
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    setBusy(true)
+    try {
+      const notice = await unarchive()
+      if (notice) toast(notice)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not unarchive the page.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <p className={s.note} role="status">
+      This page is archived and read-only.{' '}
+      {node.canManage && <button type="button" className={s.link} disabled={busy} onClick={() => void run()}>Unarchive</button>}
+    </p>
+  )
+}
+
 function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, titleSaving }: {
   node: NodeDetail
   userId: string
@@ -542,7 +565,7 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
         <TakenOverBanner holder={lock.holder} saved={save.state === 'saved' || save.state === 'recovered'} onReload={onReload} onTakeBack={lock.editAnyway} />,
         slots.banners,
       )}
-      {!canEdit && <p className={s.note}>{node.status === 'ARCHIVED' ? 'This page is archived and read-only.' : node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
+      {!canEdit && node.status !== 'ARCHIVED' && <p className={s.note}>{node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
       {lock.mode === 'readonly' && <p className={s.note}>Opened read-only: {lock.holder} is editing this page.</p>}
       {lock.mode === 'denied' && <p className={s.error} role="alert">You can no longer edit this page{lock.reason ? `: ${lock.reason}` : '.'}</p>}
       <Editor editor={editor} editable={editable} />
