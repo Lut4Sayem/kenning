@@ -49,6 +49,9 @@ export default function PageView() {
   const canEditNode = node.data?.access === 'EDIT'
   const versions = useQuery({ queryKey: ['versions', nodeId], queryFn: () => listVersions(nodeId), enabled: canEditNode })
   const [title, setTitle] = useState('')
+  // QA-58: the page whose title the user typed in. Until then the field only mirrors the server and never saves: it starts
+  // empty and gets the title one effect later, which made an empty title look like an edit on a page opened from the cache.
+  const [typedIn, setTypedIn] = useState<string | null>(null)
   // QA-42: the title wraps over as many lines as it needs (a one-line input cut long titles mid-word)
   const titleBox = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
@@ -141,7 +144,7 @@ export default function PageView() {
   }, [node.data?.title, nodeId])
 
   // QA-11: the title saves like the content: ~1 s after typing stops, at once on blur/Enter, and when the page is left.
-  const titleDirty = node.data?.access === 'EDIT' && title.trim() !== node.data.title
+  const titleDirty = typedIn === nodeId && node.data?.access === 'EDIT' && title.trim() !== node.data.title
   const titleSaving = titleDirty || rename.isPending
   const saveTitle = rename.mutate
   useEffect(() => {
@@ -282,7 +285,7 @@ export default function PageView() {
           maxLength={200}
           value={title}
           readOnly={!canEdit}
-          onChange={(e) => setTitle(e.target.value.replace(/\s*\n\s*/g, ' '))}
+          onChange={(e) => { setTypedIn(n.id); setTitle(e.target.value.replace(/\s*\n\s*/g, ' ')) }}
           onBlur={() => titleDirty && rename.mutate({ id: n.id, title })}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
         />

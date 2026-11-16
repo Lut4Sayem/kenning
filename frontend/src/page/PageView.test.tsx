@@ -10,13 +10,18 @@ import { toBase64 } from '../editor/base64'
 import { clearPendingOf, pendingFor } from '../editor/pendingStore'
 import { SlotsContext } from '../app/ShellSlots'
 import { ToastHost } from '../ui/Toast'
+import { ConfirmHost } from '../ui/ConfirmDialog'
+import { StrictMode } from 'react'
 import PageView from './PageView'
 
 // jsdom has no matchMedia; Mantine asks it for the colour scheme. Nor layout; BlockNote's side menu asks on mouse moves.
 window.matchMedia ??= ((query: string) => ({ matches: false, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })) as never
 document.elementsFromPoint ??= () => []
 
-const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), unpublishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn() }))
+const nodesApi = vi.hoisted(() => ({
+  getNode: vi.fn(), updateNode: vi.fn(), publishNode: vi.fn(), unpublishNode: vi.fn(), getTrashed: vi.fn(), restoreBranch: vi.fn(),
+  getSubtreeCount: vi.fn(), trashNode: vi.fn(),
+}))
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
@@ -47,16 +52,20 @@ function mount() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const topbar = document.body.appendChild(document.createElement('header'))
   const view = render(
+    <StrictMode>{/* like main.tsx: effects run, clean up and run again on mount */}
     <QueryClientProvider client={qc}>
       <SlotsContext.Provider value={{ topbar, details: null, detailsOpen: false, setDetailsOpen: () => {} }}>
         <MemoryRouter initialEntries={['/p/n1']}>
           <ToastHost />
+          <ConfirmHost />
           <Routes>
             <Route path="/p/:nodeId" element={<PageView />} />
+            <Route path="/" element={<p>Home</p>} />
           </Routes>
         </MemoryRouter>
       </SlotsContext.Provider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+    </StrictMode>,
   )
   return { qc, view, topbar }
 }
@@ -185,5 +194,33 @@ describe('publish', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(nodesApi.unpublishNode).toHaveBeenCalledWith('n1'))
     expect(await screen.findByRole('button', { name: 'Publish' })).toBeTruthy() // a draft again
+  })
+})
+
+// QA-58: Undo after Move to trash reopened the page from the cache and saved an empty title over the real one.
+describe('title autosave', () => {
+  it('trashThenUndoNeverSendsATitleTheUserDidNotType', async () => {
+    nodesApi.getSubtreeCount.mockResolvedValue({ count: 0 })
+    nodesApi.trashNode.mockResolvedValue({ count: 0 })
+    nodesApi.restoreBranch.mockResolvedValue({ movedToTop: false })
+    nodesApi.updateNode.mockResolvedValue(NODE)
+    mount()
+    fireEvent.click(await screen.findByRole('button', { name: 'Page actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move to trash' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Move to trash' }))
+    expect(await screen.findByText('Home')).toBeTruthy()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect((screen.getByLabelText('Page title') as HTMLTextAreaElement).value).toBe('Plan'))
+    await act(() => new Promise((r) => setTimeout(r, 1500))) // past the 1 s title debounce
+    expect(nodesApi.updateNode).not.toHaveBeenCalled()
+  })
+
+  it('aPageOpenedFromTheCacheDoesNotSaveItsTitle', async () => {
+    nodesApi.updateNode.mockResolvedValue(NODE)
+    mount()
+    await waitFor(() => expect((screen.getByLabelText('Page title') as HTMLTextAreaElement).value).toBe('Plan'))
+    await act(() => new Promise((r) => setTimeout(r, 1500)))
+    expect(nodesApi.updateNode).not.toHaveBeenCalled()
   })
 })
