@@ -276,7 +276,7 @@ export default function PageView() {
           {n.canManage && n.status === 'ACTIVE' && (
             <TrashButton node={n} blocked={trashBlocked(n, saveState !== 'saved' && saveState !== 'recovered')} />
           )}
-          {editing && changes && !readingOnly && (
+          {editing && changes && !readingOnly && !viewing && (
             <button type="button" className={`${s.btn} ${s.primary}`} disabled={publish.isPending} onClick={() => publish.mutate()}>{publish.isPending ? 'Publishing…' : 'Publish'}</button>
           )}
           {published && !changes && <span className={s.publishedText}><Icon name="check" />Published</span>}
