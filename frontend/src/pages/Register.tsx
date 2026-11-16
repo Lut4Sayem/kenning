@@ -52,7 +52,7 @@ export default function Register() {
       const next = safeNext(rawNext)
       if (/^\/app(\/|$)/.test(next)) navigate(next.slice(4) || '/')
       else window.location.assign(next)
-      toast(`Welcome to KnowledgeForge, ${fullName.trim().split(/\s+/)[0]}`)
+      toast(`Welcome to Kenning, ${fullName.trim().split(/\s+/)[0]}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) setErrors({ email: <>That email already has an account. <Link to={loginUrl}>Log in instead</Link></> })
       else setFormError(err instanceof ApiError ? "Couldn’t create your account: " + err.message : "Can’t reach the server. Check your connection and try again.")

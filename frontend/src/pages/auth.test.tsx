@@ -125,6 +125,6 @@ describe('Register', () => {
     await userEvent.type(screen.getByLabelText('Confirm password'), 'secret123')
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByText('join page')).toBeTruthy()
-    expect(screen.getByText('Welcome to KnowledgeForge, Tanvir')).toBeTruthy()
+    expect(screen.getByText('Welcome to Kenning, Tanvir')).toBeTruthy()
   })
 })

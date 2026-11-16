@@ -1,4 +1,4 @@
-# KnowledgeForge: Product Requirements Document (PRD)
+# Kenning: Product Requirements Document (PRD)
 
 Version 1.2 · 2026-11-14 (1.2: US-10 migration dropped by D7; 1.1: concurrent editors 50 -> 100) · Owner: MD. Lutfur Rahman
 Status: APPROVED. Feature priorities come from `MoSCoW (fixed).md`.
@@ -7,7 +7,7 @@ Next phases after approval: domain model & schema -> wireframes -> architecture 
 ---
 
 ## 1. Vision
-**KnowledgeForge is the shared workspace where student project teams write, plan and keep everything about their project in one place: docs, wikis and (later) whiteboards, edited together in real time.**
+**Kenning is the shared workspace where student project teams write, plan and keep everything about their project in one place: docs, wikis and (later) whiteboards, edited together in real time.**
 
 ## 2. Problem
 Student project teams (course projects, thesis groups, study groups) spread their work across WhatsApp, Google Docs,

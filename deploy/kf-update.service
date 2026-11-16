@@ -1,5 +1,5 @@
 [Unit]
-Description=KnowledgeForge pull-and-restart if the image changed
+Description=Kenning pull-and-restart if the image changed
 After=docker.service network-online.target
 
 [Service]

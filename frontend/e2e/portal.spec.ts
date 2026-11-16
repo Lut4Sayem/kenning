@@ -14,7 +14,7 @@ test('register, create team, create space, create page, comment', async ({ page 
 
   // Register signs them in and lands on Home with a welcome (QA-01).
   await expect(page).toHaveURL(/\/app\/?$/)
-  await expect(page.getByText('Welcome to KnowledgeForge, Portal')).toBeVisible()
+  await expect(page.getByText('Welcome to Kenning, Portal')).toBeVisible()
   await page.getByRole('button', { name: 'New team' }).click() // the + beside "Your teams" in the sidebar
   await page.getByLabel('Team name').fill('Portal Team')
   await page.getByRole('button', { name: 'Create team' }).click()

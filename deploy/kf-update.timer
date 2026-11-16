@@ -1,5 +1,5 @@
 [Unit]
-Description=Run KnowledgeForge update every 5 minutes
+Description=Run Kenning update every 5 minutes
 
 [Timer]
 OnBootSec=1min
