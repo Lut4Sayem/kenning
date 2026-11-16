@@ -3,13 +3,14 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ConfirmHost } from '../ui/ConfirmDialog'
 import Sidebar from './Sidebar'
 
 const api = vi.hoisted(() => ({ getMe: vi.fn(), getMyTeams: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', async (orig) => ({ ...(await orig<typeof import('../api/spaces')>()), ...api }))
 const nodes = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodes)
-const teamsApi = vi.hoisted(() => ({ updateTeam: vi.fn() }))
+const teamsApi = vi.hoisted(() => ({ updateTeam: vi.fn(), leaveTeam: vi.fn(), getTeam: vi.fn() }))
 vi.mock('../api/teams', async (orig) => ({ ...(await orig<typeof import('../api/teams')>()), ...teamsApi }))
 
 const space = (id: string, name: string, teamId: string | null) => ({
@@ -21,7 +22,7 @@ const Where = () => <p data-testid="where">{useLocation().pathname}</p>
 function renderSidebar() {
   return render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter><Sidebar onSearch={() => {}} /><Where /></MemoryRouter>
+      <MemoryRouter initialEntries={['/teams/t2']}><Sidebar onSearch={() => {}} /><Where /><ConfirmHost /></MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -40,6 +41,7 @@ afterEach(() => {
   localStorage.clear()
   Object.values(api).forEach((f) => f.mockReset())
   Object.values(nodes).forEach((f) => f.mockReset())
+  Object.values(teamsApi).forEach((f) => f.mockReset())
 })
 
 describe('Sidebar', () => {
@@ -93,12 +95,15 @@ describe('Sidebar', () => {
     expect(screen.queryByRole('button', { name: 'New page' })).toBeNull()
   })
 
-  // QA-63: admins rename a team from its row's menu; other members get no such menu.
+  // QA-63: admins rename a team from its row's menu; other members only get Leave team there (QA-68).
   it('adminsCanRenameATeamFromItsRow', async () => {
     teamsApi.updateTeam.mockResolvedValue({ id: 't1', name: 'Thesis Lab' })
     renderSidebar()
     await screen.findByRole('link', { name: 'Requirements' })
-    expect(screen.queryByRole('button', { name: 'More actions for Robotics Club' })).toBeNull() // EDITOR there
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Robotics Club' })) // EDITOR there
+    expect(screen.queryByRole('menuitem', { name: 'Rename team' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Delete team' })).toBeNull()
+    await userEvent.keyboard('{Escape}')
     await userEvent.click(screen.getByRole('button', { name: 'More actions for Thesis Group' }))
     await userEvent.click(screen.getByRole('menuitem', { name: 'Rename team' }))
     const field = await screen.findByLabelText('Team name') as HTMLInputElement
@@ -107,6 +112,33 @@ describe('Sidebar', () => {
     await userEvent.type(field, 'Thesis Lab')
     await userEvent.click(screen.getByRole('button', { name: 'Rename' }))
     await waitFor(() => expect(teamsApi.updateTeam).toHaveBeenCalledWith('t1', { teamName: 'Thesis Lab' }))
+  })
+
+  // QA-68: any member leaves a team from its row's menu, after a confirm; then Home, and the team is gone.
+  it('editorLeavesATeamFromItsRow', async () => {
+    teamsApi.leaveTeam.mockResolvedValue(undefined)
+    renderSidebar()
+    await screen.findByRole('link', { name: 'Hardware' })
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Robotics Club' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Leave team' }))
+    api.getMyTeams.mockResolvedValue([{ teamId: 't1', teamName: 'Thesis Group', role: 'ADMIN' }])
+    api.getMySpaces.mockResolvedValue([space('s1', 'Requirements', 't1'), space('p1', 'My drafts', null)])
+    await userEvent.click(await screen.findByRole('button', { name: 'Leave team' }))
+    expect(teamsApi.leaveTeam).toHaveBeenCalledWith('t2')
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/'))
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Robotics Club' })).toBeNull())
+  })
+
+  // QA-68: the last admin is told what to do instead of being asked to confirm.
+  it('lastAdminCannotLeave', async () => {
+    teamsApi.getTeam.mockResolvedValue({ team: { id: 't1', name: 'Thesis Group' }, teamMembers: [{ userId: 'u1', role: 'ADMIN' }, { userId: 'u2', role: 'EDITOR' }] })
+    renderSidebar()
+    await screen.findByRole('link', { name: 'Requirements' })
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Thesis Group' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Leave team' }))
+    await waitFor(() => expect(teamsApi.getTeam).toHaveBeenCalledWith('t1'))
+    expect(screen.queryByRole('button', { name: 'Leave team' })).toBeNull()
+    expect(teamsApi.leaveTeam).not.toHaveBeenCalled()
   })
 
   // QA-47: Trash at the bottom of the sidebar: a team's trash or the private one.

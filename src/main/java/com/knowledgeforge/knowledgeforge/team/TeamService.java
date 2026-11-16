@@ -137,6 +137,20 @@ public class TeamService {
         teamRepository.deleteById(teamId);
     }
 
+    /** QA-68: any member leaves (404 for non-members); the last admin must hand over or delete the team. Pages stay. */
+    public void leaveTeam(String teamId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        TeamMember membership = teamMemberRepository.findByTeamIdAndUserId(teamId, currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team Not Found"));
+        if ("ADMIN".equals(membership.getRole())
+                && teamMemberRepository.findByTeamId(teamId).stream().filter(m -> "ADMIN".equals(m.getRole())).count() == 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Make someone else an admin or delete the team first.");
+        }
+        teamMemberRepository.delete(membership);
+    }
+
     public TeamDetailsResponseDTO getTeamDetails(String teamId) {
         Optional<Team> teamOpt = teamRepository.findById(teamId);
         if (teamOpt.isEmpty()){
