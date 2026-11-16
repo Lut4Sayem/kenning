@@ -59,7 +59,7 @@ export default function Profile() {
       </div>
     )
   }
-  const dirty = name.trim() !== me.data.fullName
+  const dirty = name.trim() !== (me.data.fullName ?? '')
   const busyPicture = upload.isPending || remove.isPending
 
   return (
@@ -73,7 +73,7 @@ export default function Profile() {
             <span className={s.avatar}>
               {me.data.profilePicture
                 ? <img src={`/api/users/${me.data.id}/picture?v=${encodeURIComponent(me.data.profilePicture)}`} alt="Your profile picture" width={88} height={88} />
-                : <span aria-hidden="true">{initialsOf(me.data.fullName)}</span>}
+                : <span aria-hidden="true">{initialsOf(me.data.fullName ?? '')}</span>}
               <button type="button" className={s.cam} aria-label="Change picture" title="Change picture" disabled={busyPicture} onClick={() => file.current?.click()}>
                 <Icon name="camera" size={14} />
               </button>

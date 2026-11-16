@@ -69,7 +69,7 @@ export default function PageView() {
     const done = was.current !== 'saved' && saveState === 'saved'
     was.current = saveState
     if (!done || !me.data) return
-    const who = { id: me.data.id, name: me.data.fullName, avatarUrl: me.data.profilePicture ?? null }
+    const who = { id: me.data.id, name: me.data.fullName ?? me.data.email, avatarUrl: me.data.profilePicture ?? null }
     qc.setQueryData<NodeDetail>(['node', nodeId], (n) => n && { ...n, contentUpdatedAt: new Date().toISOString(), updatedBy: who })
   }, [saveState, nodeId, qc, me.data])
 
