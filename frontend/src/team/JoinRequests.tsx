@@ -60,13 +60,15 @@ export default function JoinRequests({ full }: { full?: boolean }) {
                   <span className={s.name}>{r.fullName}</span>
                   <span className={s.email}>asked {timeAgo(r.requestedAt)}</span>
                 </span>
-                <button type="button" className={s.decline} disabled={answering === r.id} aria-label={`Decline ${r.fullName}`} onClick={() => void answer(r, false)}>Decline</button>
-                <select className={s.joinRole} aria-label={`Role for ${r.fullName}`} disabled={answering === r.id}
-                  value={roles[r.id] ?? 'VIEWER'} onChange={(e) => setRoles({ ...roles, [r.id]: e.target.value as Role })}>
-                  <option value="VIEWER">Viewer</option>
-                  <option value="EDITOR">Editor</option>
-                </select>
-                <button type="button" className={s.accept} disabled={answering === r.id} aria-label={`Accept ${r.fullName}`} onClick={() => void answer(r, true)}>Accept</button>
+                <span className={s.reqActions}>
+                  <button type="button" className={s.decline} disabled={answering === r.id} aria-label={`Decline ${r.fullName}`} onClick={() => void answer(r, false)}>Decline</button>
+                  <select className={s.joinRole} aria-label={`Role for ${r.fullName}`} disabled={answering === r.id}
+                    value={roles[r.id] ?? 'VIEWER'} onChange={(e) => setRoles({ ...roles, [r.id]: e.target.value as Role })}>
+                    <option value="VIEWER">Viewer</option>
+                    <option value="EDITOR">Editor</option>
+                  </select>
+                  <button type="button" className={s.accept} disabled={answering === r.id} aria-label={`Accept ${r.fullName}`} onClick={() => void answer(r, true)}>Accept</button>
+                </span>
               </li>
             ))}
           </ul>
