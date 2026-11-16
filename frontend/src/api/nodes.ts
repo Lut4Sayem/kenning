@@ -36,6 +36,8 @@ export interface MoveBody {
   parentId: string | null
   beforeId?: string
   afterId?: string
+  /** Another space of the same team (QA-12); left out = stay in the page's space. */
+  spaceId?: string
 }
 
 export const getTree = (spaceId: string) => api<NodeSummary[]>(`/api/spaces/${spaceId}/tree`)

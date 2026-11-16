@@ -58,6 +58,14 @@ describe('page menu', () => {
     expect(await screen.findByText('Home')).toBeTruthy() // the page is gone, so we leave it
   })
 
+  // QA-12: a team page can be moved to another space; a private page keeps "Move to team".
+  it('teamPagesHaveMoveToAndPrivatePagesMoveToTeam', async () => {
+    mount(NODE)
+    await openMenu()
+    expect(screen.getByRole('menuitem', { name: 'Move to…' })).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: 'Move to team' })).toBeNull()
+  })
+
   // QA-33: trashing says what happened and can be undone.
   it('trashShowsAToastWithUndo', async () => {
     api.restoreBranch.mockResolvedValue({ movedToTop: false })

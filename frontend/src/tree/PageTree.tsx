@@ -1,13 +1,11 @@
-import {
-  DndContext, KeyboardSensor, PointerSensor, closestCenter, useDndContext, useDraggable, useDroppable, useSensor,
-  useSensors, type Announcements, type DragEndEvent,
-} from '@dnd-kit/core'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getTree, moveNode, type MoveBody, type NodeSummary } from '../api/nodes'
+import { getTree, type NodeSummary } from '../api/nodes'
 import Icon from '../ui/Icon'
 import { buildTree, type TreeNode } from './buildTree'
+import TreeDnd, { useTreeDnd } from './TreeDnd'
 import s from './PageTree.module.css'
 import { useCreatePage } from './useCreatePage'
 
@@ -49,17 +47,18 @@ function visibleIds(list: TreeNode[], expanded: Set<string>, out: string[] = [])
   return out
 }
 
-export default function PageTree({ spaceId, activeId, canEdit = true, label = 'Pages' }: Props) {
-  const qc = useQueryClient()
+/** A tree on its own (the private space, tests) gets its own drag area; the trees of one team share one (QA-12). */
+export default function PageTree(props: Props) {
+  return useTreeDnd() ? <Tree {...props} /> : <TreeDnd><Tree {...props} /></TreeDnd>
+}
+
+function Tree({ spaceId, activeId, canEdit = true, label = 'Pages' }: Props) {
+  const dnd = useTreeDnd()
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['tree', spaceId], queryFn: () => getTree(spaceId) })
   const nodes = useMemo<NodeSummary[]>(() => data ?? [], [data])
   const tree = useMemo(() => buildTree(nodes), [nodes])
   const [expanded, setExpanded] = useState(() => loadExpanded(spaceId))
-  const { create, message, setMessage } = useCreatePage(spaceId)
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
-  )
+  const { create, message } = useCreatePage(spaceId)
 
   const expand = (ids: string[]) =>
     setExpanded((prev) => {
@@ -69,6 +68,12 @@ export default function PageTree({ spaceId, activeId, canEdit = true, label = 'P
       saveExpanded(spaceId, next)
       return next
     })
+
+  // A page dropped into a row of this tree opens that row.
+  useEffect(() => {
+    dnd?.onExpand.set(spaceId, expand)
+    return () => { dnd?.onExpand.delete(spaceId) }
+  })
 
   // Open the branch that holds the current page.
   useEffect(() => {
@@ -128,57 +133,11 @@ export default function PageTree({ spaceId, activeId, canEdit = true, label = 'P
 
   const newPage = (parentId: string) => create(parentId, () => expand([parentId])) // top-level pages come from the space row's +
 
-  async function onDragEnd({ active, over }: DragEndEvent) {
-    if (!over) return
-    const id = String(active.id)
-    const [kind, targetId] = String(over.id).split(':')
-    if (targetId === id) return
-    let body: MoveBody
-    if (kind === 'in') {
-      body = { parentId: targetId }
-    } else if (kind === 'after') {
-      body = { parentId: nodes.find((n) => n.id === targetId)?.parentId ?? null, afterId: targetId }
-    } else {
-      body = { parentId: null }
-    }
-    setMessage('')
-    try {
-      await moveNode(id, body)
-      if (kind === 'in') expand([targetId])
-      await qc.invalidateQueries({ queryKey: ['tree', spaceId] })
-      await qc.invalidateQueries({ queryKey: ['node', id] })
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Could not move the page')
-    }
-  }
-
-  // QA-14: dnd-kit's default announcements read database ids; these use the page titles.
-  const titleOf = (id: string | number) => nodes.find((n) => n.id === id)?.title || 'Untitled'
-  const whereTo = (overId: string | number) => {
-    const [kind, targetId] = String(overId).split(':')
-    return kind === 'in' ? `inside ${titleOf(targetId)}` : kind === 'after' ? `below ${titleOf(targetId)}` : 'to the top level'
-  }
-  // dnd-kit announces the first "over" right after the pick-up (the page's own row, whose drop zones only switch off a
-  // moment later), which would replace "Picked up", so that one keeps saying it.
-  const pickedUp = useRef('')
-  const announcements: Announcements = {
-    onDragStart: ({ active }) => (pickedUp.current = `Picked up ${titleOf(active.id)}.`),
-    onDragOver: ({ active, over }) => {
-      if (over && String(over.id).endsWith(`:${active.id}`)) return pickedUp.current
-      const first = pickedUp.current
-      pickedUp.current = ''
-      return `${first ? first + ' ' : ''}${over ? `Move ${titleOf(active.id)} ${whereTo(over.id)}.` : `${titleOf(active.id)} is not over a place to drop.`}`
-    },
-    onDragEnd: ({ active, over }) => over ? `Moved ${titleOf(active.id)} ${whereTo(over.id)}.` : `${titleOf(active.id)} was not moved.`,
-    onDragCancel: ({ active }) => `${titleOf(active.id)} was not moved.`,
-  }
-  const screenReaderInstructions = { draggable: 'Press Space to pick up the page, the arrow keys to move it, Space to drop it, Escape to cancel.' }
-
   if (isLoading) return <div className={s.skelList} aria-busy="true" aria-label="Loading pages">{[70, 55, 62].map((w) => <span key={w} className={s.skel} style={{ width: `${w}%` }} />)}</div>
   if (error) return <p className={s.note} role="alert">Could not load the pages. <button type="button" className={s.retry} onClick={() => void refetch()}>Try again</button></p>
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd} accessibility={{ announcements, screenReaderInstructions }}>
+    <>
       {message && <p className={s.note} role="alert">{message}</p>}
       <ul className={s.tree} role="tree" aria-label={label} onKeyDown={onTreeKey}>
         {tree.map((node) => (
@@ -187,7 +146,7 @@ export default function PageTree({ spaceId, activeId, canEdit = true, label = 'P
         ))}
       </ul>
       <TopLevelDrop spaceId={spaceId} />
-    </DndContext>
+    </>
   )
 }
 

@@ -41,7 +41,7 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [moving, setMoving] = useState(false)
+  const [moving, setMoving] = useState<'team' | 'space' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
 
@@ -86,7 +86,9 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
     )
     items.push({ label: 'Archive', blocked: lockedNote ?? savingNote, run: async () => (await archiveNode(node.id), await refresh()) })
     if (personal) {
-      items.push({ label: 'Move to team', blocked: lockedNote ?? savingNote, run: async () => setMoving(true) })
+      items.push({ label: 'Move to team', blocked: lockedNote ?? savingNote, run: async () => setMoving('team') })
+    } else {
+      items.push({ label: 'Move to…', blocked: lockedNote ?? savingNote, run: async () => setMoving('space') })
     }
     items.push({
       label: 'Move to trash',
@@ -152,7 +154,7 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
           ))}
         </div>
       )}
-      {moving && <MoveToTeamDialog node={node} onClose={() => { setMoving(false); button.current?.focus() }} />}
+      {moving && <MoveToTeamDialog node={node} mode={moving} onClose={() => { setMoving(null); button.current?.focus() }} />}
       {error && <p role="alert" className={m.error}>{error}</p>}
       {notice && <p role="status" className={m.note}>{notice}</p>}
     </div>

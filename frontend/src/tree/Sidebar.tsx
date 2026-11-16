@@ -7,6 +7,7 @@ import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
 import PageTree from './PageTree'
+import TreeDnd, { useSpaceDrop } from './TreeDnd'
 import s from './Sidebar.module.css'
 import NewTeamDialog from '../team/NewTeamDialog'
 import { useRemembered } from '../ui/useRemembered'
@@ -145,7 +146,8 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
       </div>
       {open && (
         <div className={s.nested}>
-          {spaces.map((sp) => <SpaceSection key={sp.id} space={sp} activeId={activeId} />)}
+          {/* one drag area per team: pages can be dragged into another space of the team (QA-12) */}
+          <TreeDnd>{spaces.map((sp) => <SpaceSection key={sp.id} space={sp} activeId={activeId} />)}</TreeDnd>
           {loaded && spaces.length === 0 && <p className={s.note}>No spaces in this team yet.</p>}
         </div>
       )}
@@ -155,9 +157,10 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
 
 function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }) {
   const [open, toggle] = useRemembered(`kf.sidebar.space.${space.id}`)
+  const drop = useSpaceDrop(space.id)
   return (
     <section className={s.group} data-space={space.id} aria-label={space.name}>
-      <div className={s.groupRow}>
+      <div ref={drop.setNodeRef} className={cx(s.groupRow, drop.isOver && s.dropOver)}>
         <button type="button" className={s.chevBtn} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${space.name}`} onClick={toggle}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
