@@ -337,7 +337,7 @@ public class NodeService {
     }
 
     private static UserRef ref(User u) {
-        return new UserRef(u.getId(), u.getFullName(), u.getProfilePicture());
+        return new UserRef(u.getId(), u.getDisplayName(), u.getProfilePicture());
     }
 
     static ResponseStatusException bad(String m) {

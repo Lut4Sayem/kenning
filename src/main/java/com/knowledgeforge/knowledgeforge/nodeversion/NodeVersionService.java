@@ -191,7 +191,7 @@ public class NodeVersionService {
         v.setState(state);
         v.setText(text);
         v.setContentHash(hash);
-        v.setAuthors(List.of(new UserRef(user.getId(), user.getFullName(), user.getProfilePicture())));
+        v.setAuthors(List.of(new UserRef(user.getId(), user.getDisplayName(), user.getProfilePicture())));
         v.setPrivateTo(user.getId());
         v.setBaseEpoch(req.baseEpoch());
         v.setCreatedAt(now);
@@ -254,13 +254,13 @@ public class NodeVersionService {
 
     private List<UserRef> authorsOf(List<String> ids) {
         List<UserRef> out = users.findAllById(ids).stream()
-                .map(u -> new UserRef(u.getId(), u.getFullName(), u.getProfilePicture())).toList();
+                .map(u -> new UserRef(u.getId(), u.getDisplayName(), u.getProfilePicture())).toList();
         return out;
     }
 
     private UserRef me() {
         User u = access.currentUser();
-        return new UserRef(u.getId(), u.getFullName(), u.getProfilePicture());
+        return new UserRef(u.getId(), u.getDisplayName(), u.getProfilePicture());
     }
 
     private static VersionSummaryDTO summary(NodeVersion v) {

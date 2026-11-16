@@ -88,7 +88,7 @@ public class MoveToTeamService {
         // The claim: only one request can move the page out of the personal space (a double submit gets 409).
         Update claim = new Update().set("spaceId", dest.getId()).set("parentId", parentId).set("ancestors", newAncestors)
                 .set("rank", rank).set("restriction", null).set("updatedAt", new Date())
-                .set("updatedBy", new UserRef(user.getId(), user.getFullName(), user.getProfilePicture()));
+                .set("updatedBy", new UserRef(user.getId(), user.getDisplayName(), user.getProfilePicture()));
         if (mongo.updateFirst(Query.query(Criteria.where("id").is(id).and("spaceId").is(node.getSpaceId())), claim, Node.class)
                 .getModifiedCount() == 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This page was already moved");

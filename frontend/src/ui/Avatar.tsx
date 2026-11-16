@@ -2,7 +2,7 @@ import { initialsOf, tintOf } from './tint'
 import s from './Avatar.module.css'
 
 /** Initials on a tint picked by the person's name (DESIGN.md section 6). `me` uses the accent colours instead. */
-export default function Avatar({ name, size = 24, me, className }: { name: string; size?: number; me?: boolean; className?: string }) {
+export default function Avatar({ name, size = 24, me, className }: { name: string | null; size?: number; me?: boolean; className?: string }) {
   const tint = tintOf(name || '?')
   return (
     <span
@@ -16,6 +16,6 @@ export default function Avatar({ name, size = 24, me, className }: { name: strin
 }
 
 /** Overlapping avatars, 24px with a white 2px ring and -5px overlap. */
-export function AvatarStack({ names }: { names: string[] }) {
+export function AvatarStack({ names }: { names: (string | null)[] }) {
   return <span className={s.stack} aria-hidden="true">{names.map((n, i) => <Avatar key={i} name={n} className={s.ring} />)}</span>
 }

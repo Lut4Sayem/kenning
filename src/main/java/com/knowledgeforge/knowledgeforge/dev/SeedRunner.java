@@ -98,7 +98,7 @@ public class SeedRunner implements ApplicationRunner {
         space.setOwnerType(Space.OwnerType.TEAM);
         space = spaces.save(space);
 
-        UserRef by = new UserRef(u.getId(), u.getFullName(), null);
+        UserRef by = new UserRef(u.getId(), u.getDisplayName(), null);
         Random rnd = new Random(42);
         List<Node> nodes = new ArrayList<>();
         List<NodeContent> contents = new ArrayList<>();

@@ -74,7 +74,7 @@ public class TeamService {
             if (userOpt.isPresent()){
                 User user = userOpt.get();
                 TeamMemberDTO MemberDTO = new TeamMemberDTO();
-                MemberDTO.setFullName(user.getFullName());
+                MemberDTO.setFullName(user.getDisplayName());
                 MemberDTO.setEmail(user.getEmail());
                 MemberDTO.setRole(teamMember.getRole());
                 MemberDTO.setUserId(user.getId());

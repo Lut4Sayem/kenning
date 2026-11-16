@@ -91,7 +91,7 @@ public class TeamJoinRequestService {
 
             User requester = userRepository.findById(req.getUserId()).orElse(null);
             if (requester != null) {
-                dto.setFullName(requester.getFullName());
+                dto.setFullName(requester.getDisplayName());
                 dto.setEmail(requester.getEmail());
             } else {
                 dto.setFullName("(unknown)");

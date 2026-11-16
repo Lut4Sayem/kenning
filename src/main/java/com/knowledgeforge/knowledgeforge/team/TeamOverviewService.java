@@ -81,7 +81,7 @@ public class TeamOverviewService {
         Map<String, User> byId = users.findAllById(all.stream().map(TeamMember::getUserId).toList()).stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
         List<FirstMember> first = all.stream().filter(m -> byId.containsKey(m.getUserId())).limit(FIRST_MEMBERS)
-                .map(m -> new FirstMember(m.getUserId(), byId.get(m.getUserId()).getFullName(), m.getRole())).toList();
+                .map(m -> new FirstMember(m.getUserId(), byId.get(m.getUserId()).getDisplayName(), m.getRole())).toList();
         List<Node> pages = v.allPages();
         // Team.updatedAt is only set when the team is created, so "updated" is the newest visible page, else the team.
         Date updated = pages.stream().map(Node::getUpdatedAt).filter(Objects::nonNull).max(Date::compareTo)

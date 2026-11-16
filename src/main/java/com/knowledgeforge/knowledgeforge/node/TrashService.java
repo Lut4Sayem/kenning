@@ -111,7 +111,7 @@ public class TrashService {
             mongo.updateMulti(byIds(chunk), new Update().set("search.status", to), NodeContent.class);
         }
         mongo.updateFirst(byIds(List.of(root.getId())), new Update()
-                .set("updatedBy", new UserRef(user.getId(), user.getFullName(), user.getProfilePicture()))
+                .set("updatedBy", new UserRef(user.getId(), user.getDisplayName(), user.getProfilePicture()))
                 .set("updatedAt", now), Node.class);
         return ids.size() - 1;
     }
@@ -161,7 +161,7 @@ public class TrashService {
             Date at, purgeAt = null;
             if (status == NodeStatus.TRASHED) {
                 User who = actors.get(r.getTrashedBy());
-                by = who == null ? null : new UserRef(who.getId(), who.getFullName(), who.getProfilePicture());
+                by = who == null ? null : new UserRef(who.getId(), who.getDisplayName(), who.getProfilePicture());
                 at = r.getTrashedAt();
                 if (at != null) purgeAt = new Date(at.getTime() + RETENTION.toMillis());
             } else {

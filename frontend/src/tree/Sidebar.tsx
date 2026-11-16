@@ -30,7 +30,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
   const activeId = useMatch('/p/:nodeId')?.params.nodeId
   const [newTeam, setNewTeam] = useState(false)
   const priv = (spaces.data ?? []).find((sp) => sp.ownerType === 'USER')
-  const name = me.data?.fullName ?? ''
+  const name = me.data?.fullName || me.data?.email.split('@')[0] || '' // QA-52: older accounts have no name
 
   async function newPrivatePage() {
     if (!priv) return
