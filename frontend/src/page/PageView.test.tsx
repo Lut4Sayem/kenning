@@ -224,3 +224,40 @@ describe('title autosave', () => {
     expect(nodesApi.updateNode).not.toHaveBeenCalled()
   })
 })
+
+// QA-64: a visible trash button in the top bar runs the same flow as the menu item.
+describe('trash button in the top bar', () => {
+  it('confirmsWithTheSubPageCountThenTrashesWithUndo', async () => {
+    nodesApi.getSubtreeCount.mockResolvedValue({ count: 2 })
+    nodesApi.trashNode.mockResolvedValue({ count: 2 })
+    mount()
+    const topbar = document.querySelector('body > header') as HTMLElement
+    const button = await within(topbar).findByRole('button', { name: 'Move to trash' })
+    expect(button.getAttribute('title')).toBe('Move to trash')
+    fireEvent.click(button)
+    const dialog = await screen.findByRole('dialog', { name: 'Move "Plan" to trash?' })
+    expect(dialog.textContent).toContain('This also moves its 2 sub-pages.')
+    expect(nodesApi.trashNode).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Move to trash' }))
+    await waitFor(() => expect(nodesApi.trashNode).toHaveBeenCalledWith('n1'))
+    expect(await screen.findByText('Moved “Plan” to trash')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy()
+    expect(await screen.findByText('Home')).toBeTruthy()
+  })
+
+  it('isNotThereForPeopleWhoCannotEdit', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW', canManage: false })
+    mount()
+    expect(await screen.findByLabelText('Page title')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Move to trash' })).toBeNull()
+  })
+
+  it('isBlockedWhileThePageIsLocked', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, locked: true, access: 'VIEW' })
+    mount()
+    const topbar = document.querySelector('body > header') as HTMLElement
+    const button = await within(topbar).findByRole('button', { name: 'Move to trash' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(button.title).toBe('Unlock the page first')
+  })
+})

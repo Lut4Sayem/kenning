@@ -27,6 +27,7 @@ import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
 import PageMenu from './PageMenu'
+import { trashBlocked, useTrashPage } from './useTrashPage'
 import Properties from './Properties'
 
 interface Slots {
@@ -255,6 +256,9 @@ export default function PageView() {
               <Icon name="history" />
             </button>
           )}
+          {n.canManage && n.status === 'ACTIVE' && (
+            <TrashButton node={n} blocked={trashBlocked(n, saveState !== 'saved' && saveState !== 'recovered')} />
+          )}
           {editing && changes && !readingOnly && (
             <button type="button" className={`${s.btn} ${s.primary}`} disabled={publish.isPending} onClick={() => publish.mutate()}>{publish.isPending ? 'Publishing…' : 'Publish'}</button>
           )}
@@ -334,6 +338,17 @@ export default function PageView() {
         </DetailsPanel>
       )}
     </div>
+  )
+}
+
+/** QA-64: the visible way to delete a page; the same flow as the menu's Move to trash. */
+function TrashButton({ node, blocked }: { node: NodeDetail; blocked?: string }) {
+  const trash = useTrashPage(node)
+  return (
+    <button type="button" className={s.iconBtn} aria-label="Move to trash" title={blocked ?? 'Move to trash'} disabled={!!blocked}
+      onClick={() => void trash().catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not move the page to the trash.', 'error'))}>
+      <Icon name="trash" />
+    </button>
   )
 }
 
