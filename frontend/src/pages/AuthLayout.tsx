@@ -24,7 +24,7 @@ export function AuthLayout({ title, subtitle, alt, lead, children }: { title: st
         </main>
         <footer className={s.foot}>
           <span>&copy; {new Date().getFullYear()} Kenning</span>
-          <a href="https://github.com/Lut4Sayem/knowledgeforge-ai" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/Lut4Sayem/kenning" target="_blank" rel="noopener noreferrer">
             Source on GitHub
           </a>
         </footer>

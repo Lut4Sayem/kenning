@@ -87,6 +87,11 @@ describe('AuthLayout (D0)', () => {
     expect(stage.getAttribute('aria-hidden')).toBe('true')
     expect(stage.querySelector('a, button, input, [tabindex]')).toBeNull()
   })
+
+  it('footerLinksToTheRenamedRepo', () => {
+    render(<MemoryRouter><Login /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Source on GitHub' }).getAttribute('href')).toBe('https://github.com/Lut4Sayem/kenning')
+  })
 })
 
 describe('Register', () => {
