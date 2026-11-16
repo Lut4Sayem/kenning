@@ -4,7 +4,7 @@ import { getTeam, getTeamActivity, type TeamActivity } from '../api/teams'
 import Avatar from '../ui/Avatar'
 import Icon from '../ui/Icon'
 import RolePill from '../ui/RolePill'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import s from './Details.module.css'
 
 const MEMBERS = 5
@@ -62,7 +62,7 @@ export default function TeamDetails({ teamId, onClose }: { teamId: string; onClo
                       {a.action === 'TRASH_NODE' || a.action === 'RENAME_TEAM' ? <span className={s.target}>{a.targetTitle || 'Untitled'}</span>
                         : <Link to={`/p/${a.targetId}`} className={s.target}>{a.targetTitle || 'Untitled'}</Link>}
                     </p>
-                    <p className={s.time}>{timeAgo(a.createdAt)}</p>
+                    <p className={s.time}><Time iso={a.createdAt} /></p>
                   </div>
                 </li>
               ))}

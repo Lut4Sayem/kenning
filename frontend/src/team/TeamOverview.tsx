@@ -8,7 +8,7 @@ import { AvatarStack } from '../ui/Avatar'
 import FormDialog from '../ui/FormDialog'
 import Icon from '../ui/Icon'
 import RolePill from '../ui/RolePill'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { readPref, savePref } from './detailsPref'
 import TeamDetails from './TeamDetails'
 import TeamTitle from './TeamTitle'
@@ -53,7 +53,7 @@ export default function TeamOverview() {
             <span><span className={s.strong}>{plural(summary.spaceCount, 'space')}</span> · {plural(summary.pageCount, 'page')}</span>
           </span>
           <span className={s.fact}>Your role <RolePill role={summary.myRole} /></span>
-          {summary.updatedAt && <span className={s.fact}><Icon name="clock" />Updated {timeAgo(summary.updatedAt)}</span>}
+          {summary.updatedAt && <span className={s.fact}><Icon name="clock" />Updated <Time iso={summary.updatedAt} /></span>}
         </p>
       </header>
 

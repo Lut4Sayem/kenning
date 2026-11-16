@@ -22,7 +22,7 @@ import VersionBar from '../history/VersionBar'
 import { readPref, savePref } from '../team/detailsPref'
 import Icon from '../ui/Icon'
 import { ActionButton, ActionLink, ScreenMessage } from '../ui/States'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
@@ -392,7 +392,6 @@ function TrashedPage({ nodeId, t, space }: { nodeId: string; t: Trashed; space?:
     },
   })
   const what = t.rootId === nodeId ? 'It was' : `“${t.rootTitle || 'Untitled'}” and its sub-pages were`
-  const when = timeAgo(t.at)
   const name = t.title || 'Untitled'
   return (
     <>
@@ -412,7 +411,7 @@ function TrashedPage({ nodeId, t, space }: { nodeId: string; t: Trashed; space?:
         {restore.error && <p role="alert">{restore.error.message}</p>}
       </>}
     >
-      {what} moved to the trash{t.by ? ` by ${t.by.name}` : ''}{when ? ` ${when}` : ''}. {t.canRestore ? 'Restore it to read and edit it again.' : 'Ask an editor to restore it.'}
+      {what} moved to the trash{t.by ? ` by ${t.by.name}` : ''}{t.at && <> <Time iso={t.at} /></>}. {t.canRestore ? 'Restore it to read and edit it again.' : 'Ask an editor to restore it.'}
     </ScreenMessage>
     </>
   )

@@ -160,7 +160,7 @@ describe('page top bar and properties', () => {
     mount()
     expect(await screen.findByText('Last edited')).toBeTruthy()
     expect(screen.getByText('Rafi Ahmed', { selector: 'span' })).toBeTruthy()
-    expect(screen.getByText('2 hours ago')).toBeTruthy()
+    expect(screen.getByText('2 h ago')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'srs' }).getAttribute('href')).toBe('/tags/srs')
     expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy()
   })
@@ -181,7 +181,7 @@ describe('the details panel', () => {
     expect(await within(panel).findByRole('link', { name: 'notes.pdf' })).toBeTruthy()
     // QA-29: two files with the same name differ by when they were uploaded (full date on hover)
     const meta = within(panel).getByText(/^2 KB/)
-    expect(meta.textContent).toMatch(/^2 KB · (just now|\d+m ago|\d+h ago)$/)
+    expect(meta.textContent).toMatch(/^2 KB · (just now|\d+ min ago|\d+ h ago)$/)
     expect(meta.querySelector('time')?.getAttribute('title')).toMatch(/\d{4}/)
     expect(within(panel).getByRole('link', { name: 'Spec' }).getAttribute('target')).toBe('_blank')
     expect(within(panel).getByRole('button', { name: 'Upload a file' })).toBeTruthy() // editors upload

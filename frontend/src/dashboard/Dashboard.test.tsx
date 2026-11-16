@@ -104,7 +104,7 @@ describe('home', () => {
     expect(links).toHaveLength(6)
     expect(links[0].getAttribute('href')).toBe('/p/n1')
     expect(within(links[0]).getByText('Requirements')).toBeTruthy()
-    expect(within(links[0]).getByText('1h ago')).toBeTruthy()
+    expect(within(links[0]).getByText('1 h ago')).toBeTruthy()
     expect(within(links[1]).getByText('Private')).toBeTruthy() // personal pages say Private, not the space name
   })
 

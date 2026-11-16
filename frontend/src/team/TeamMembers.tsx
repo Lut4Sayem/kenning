@@ -7,7 +7,7 @@ import { confirmDialog } from '../ui/ConfirmDialog'
 import Icon from '../ui/Icon'
 import Popover from '../ui/Popover'
 import RolePill, { roleLabel } from '../ui/RolePill'
-import { timeAgo } from '../ui/timeAgo'
+import Time from '../ui/timeAgo'
 import JoinRequests from './JoinRequests'
 import type { TeamContext } from './TeamLayout'
 import s from './Members.module.css'
@@ -163,7 +163,7 @@ function InviteBox() {
           </div>
           <p className={s.live} aria-live="polite">{copied ? 'Link copied' : ''}</p>
           {invite.data?.createdAt && (
-            <p className={s.note}>Created{invite.data.createdByName ? ` by ${invite.data.createdByName}` : ''} {timeAgo(invite.data.createdAt)}</p>
+            <p className={s.note}>Created{invite.data.createdByName ? ` by ${invite.data.createdByName}` : ''} <Time iso={invite.data.createdAt} /></p>
           )}
           <p className={s.note}>A new link replaces this one. The old link stops working.</p>
           <div className={s.linkActions}>
