@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { createNode } from '../api/nodes'
+import mark from '../assets/brand/kenning-mark-small.svg'
 import { canEditSpace, getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
 import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
@@ -50,6 +51,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
 
   return (
     <nav className={s.sidebar} aria-label="Workspace">
+      <Link to="/" className={s.brand} aria-label="Kenning home"><img src={mark} alt="" width={20} height={20} />kenning</Link>
       <div className={s.top}>
         <AccountMenu name={name} userId={me.data?.id} />
         <button type="button" className={s.iconBtn} aria-label="New private page" title="New page" disabled={!priv} onClick={() => void newPrivatePage()}>

@@ -1,5 +1,7 @@
 .sidebar { display: flex; flex-direction: column; height: 100%; padding: 10px 8px 8px; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--space-1); }
+.brand { align-self: flex-start; display: flex; align-items: center; gap: var(--space-2); height: 32px; margin-bottom: var(--space-1); padding: 0 var(--space-2); border-radius: var(--r-row); font-family: var(--font-sans); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+@media (hover: hover) { .brand:hover { background: var(--hover); } }
 .top { display: flex; align-items: center; gap: var(--space-1); position: relative; }
 .account { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); font-weight: 600; cursor: pointer; text-align: left; }
 .account:hover, .account[aria-expanded='true'] { background: var(--hover); }

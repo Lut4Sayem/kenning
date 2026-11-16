@@ -31,6 +31,7 @@
 .skip:focus { transform: none; }
 .scrim { position: fixed; inset: 0; z-index: 60; background: rgb(28 27 23 / 0.32); animation: fade var(--dur) var(--ease-out); }
 .drawerClose { display: none; }
+.brand { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--r-row); }
 
 /* 640-1023: the details panel floats over the page instead of squeezing it. */
 @media (max-width: 1023.98px) {
@@ -49,7 +50,7 @@
     position: absolute; z-index: 1; top: 10px; right: 8px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0;
     border-radius: var(--r-row); background: var(--canvas); box-shadow: var(--shadow-1); color: var(--ink); cursor: pointer;
   }
-  .shell[data-sidebar='drawer'] .sidebarCol nav > div:first-child { padding-right: 40px; } /* room for the close button */
+  .shell[data-sidebar='drawer'] .sidebarCol nav > :first-child { margin-right: 40px; } /* room for the close button */
   .details { left: 0; width: auto; box-shadow: none; z-index: 70; padding: var(--space-4); }
 }
 @media (pointer: coarse) {
