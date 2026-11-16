@@ -9,6 +9,7 @@ import FormDialog from '../ui/FormDialog'
 import Icon from '../ui/Icon'
 import RolePill from '../ui/RolePill'
 import Time from '../ui/timeAgo'
+import DeleteTeamDialog from './DeleteTeamDialog'
 import { readPref, savePref } from './detailsPref'
 import TeamDetails from './TeamDetails'
 import TeamTitle from './TeamTitle'
@@ -25,6 +26,7 @@ export default function TeamOverview() {
   const { detailsOpen, setDetailsOpen } = useShellSlots()
   const qc = useQueryClient()
   const [newSpace, setNewSpace] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const pages = useQuery({ queryKey: ['team-pages', teamId, 'recent'], queryFn: () => getTeamPages(teamId, { sort: 'updated', size: RECENT }) })
 
   // Open by default, remembered per screen; closed again when leaving so the next screen starts without it.
@@ -99,6 +101,17 @@ export default function TeamOverview() {
           )}
       </section>
 
+      {admin && (
+        <section aria-labelledby="danger-h" className={s.danger}>
+          <div className={s.sectionHead}><h2 id="danger-h" className={s.sectionTitle}>Danger zone</h2></div>
+          <div className={s.dangerRow}>
+            <p className={s.dangerText}><span className={s.strong}>Delete team</span><br />Deletes the team with all its spaces, pages, files and comments. This can’t be undone.</p>
+            <button type="button" className={s.dangerBtn} onClick={() => setDeleting(true)}>Delete team</button>
+          </div>
+        </section>
+      )}
+
+      {deleting && <DeleteTeamDialog teamId={teamId} name={summary.name} onClose={() => setDeleting(false)} />}
       {newSpace && <FormDialog title="New space" label="Space name" noteLabel="What is this space for? (optional)" submitLabel="Create space" onSubmit={addSpace} onClose={() => setNewSpace(false)} />}
       {detailsOpen && <DetailsPanel><TeamDetails teamId={teamId} onClose={() => { savePref(false); setDetailsOpen(false) }} /></DetailsPanel>}
     </div>

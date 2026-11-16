@@ -32,6 +32,15 @@ public class TeamController {
         return teamService.updateTeam(teamId, request);
     }
 
+    public record DeleteTeamRequest(String confirmName) {
+    }
+
+    @DeleteMapping("/{teamId}")
+    public ResponseEntity<Void> deleteTeam(@PathVariable String teamId, @RequestBody DeleteTeamRequest request) {
+        teamService.deleteTeam(teamId, request.confirmName());
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{teamId}/members/{userId}")
     public ResponseEntity<Void> removeMember(@PathVariable String teamId, @PathVariable String userId) {
         teamService.removeMember(teamId, userId);

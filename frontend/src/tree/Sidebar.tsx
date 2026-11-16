@@ -11,6 +11,7 @@ import TreeDnd, { useSpaceDrop } from './TreeDnd'
 import s from './Sidebar.module.css'
 import NewTeamDialog from '../team/NewTeamDialog'
 import { useRenameTeam } from '../team/useRenameTeam'
+import DeleteTeamDialog from '../team/DeleteTeamDialog'
 import FormDialog from '../ui/FormDialog'
 import { useRemembered } from '../ui/useRemembered'
 import { useCreatePage } from './useCreatePage'
@@ -194,10 +195,11 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
   )
 }
 
-/** "..." on a team row, admins only: Rename team (QA-63). */
+/** "..." on a team row, admins only: Rename team (QA-63), Delete team (QA-67). */
 function TeamActions({ team, label }: { team: MyTeam; label: string }) {
   const [open, setOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const rename = useRenameTeam(team.teamId)
   const btn = useRef<HTMLButtonElement>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -218,12 +220,14 @@ function TeamActions({ team, label }: { team: MyTeam; label: string }) {
       {open && (
         <div className={s.menu} role="menu" aria-label={`${label} actions`}>
           <button type="button" role="menuitem" className={s.menuItem} onClick={() => { setOpen(false); setRenaming(true) }}>Rename team</button>
+          <button type="button" role="menuitem" className={cx(s.menuItem, s.menuDanger)} onClick={() => { setOpen(false); setDeleting(true) }}>Delete team</button>
         </div>
       )}
       {renaming && (
         <FormDialog title="Rename team" label="Team name" submitLabel="Rename" maxLength={60} initial={team.teamName}
           onClose={() => setRenaming(false)} onSubmit={async (name) => { await rename(name); setRenaming(false) }} />
       )}
+      {deleting && <DeleteTeamDialog teamId={team.teamId} name={team.teamName} onClose={() => setDeleting(false)} />}
     </div>
   )
 }

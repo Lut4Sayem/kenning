@@ -49,3 +49,5 @@ export const getTeamPages = (id: string, q: TeamPagesQuery) => {
   return api<TeamPages>(`/api/teams/${id}/pages?${u}`)
 }
 export const getTeamActivity = (id: string, limit = 5) => api<TeamActivity[]>(`/api/teams/${id}/activity?limit=${limit}`)
+/** QA-67: admins only; confirmName must equal the team name exactly. */
+export const deleteTeam = (id: string, confirmName: string) => api(`/api/teams/${id}`, json('DELETE', { confirmName }))

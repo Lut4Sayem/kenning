@@ -301,15 +301,26 @@ public class TrashService {
     }
 
     /**
-     * The ONE place that removes a branch and everything it owns. Dependents go first and the pages last, so a
-     * crash in the middle leaves pages that are still trashed and the next run finishes the job.
+     * Removes a trashed branch and everything it owns. Dependents go first and the pages last, so a crash in the
+     * middle leaves pages that are still trashed and the next run finishes the job.
      */
     private void purgeBranch(String rootId) {
         List<Node> branch = mongo.find(Query.query(Criteria.where("trashRootId").is(rootId)
                 .and("status").is(NodeStatus.TRASHED)), Node.class);
         if (branch.isEmpty()) return;
-        String spaceId = branch.get(0).getSpaceId();
-        for (List<String> chunk : chunks(branch.stream().map(Node::getId).toList())) {
+        purgePages(branch.stream().map(Node::getId).toList());
+        answers.deleteBySpaceId(branch.get(0).getSpaceId()); // saved answers may quote the deleted pages
+    }
+
+    /** Team delete (QA-67): every page of the space in any state, everything they own and the space's saved answers. */
+    public void purgeSpace(String spaceId) {
+        purgePages(mongo.find(Query.query(Criteria.where("spaceId").is(spaceId)), Node.class).stream().map(Node::getId).toList());
+        answers.deleteBySpaceId(spaceId);
+    }
+
+    /** The ONE place that removes pages and everything they own. Pages go last, so a repeat run finds what is left. */
+    private void purgePages(List<String> ids) {
+        for (List<String> chunk : chunks(ids)) {
             List<Attachment> files = attachments.findByNodeIdIn(chunk);
             files.forEach(a -> storage.delete(a.getFileId())); // file first: a repeat run still finds the record
             attachments.deleteAll(files);
@@ -317,10 +328,12 @@ public class TrashService {
             summaries.deleteByNodeIdIn(chunk);
             mongo.remove(Query.query(Criteria.where("nodeId").in(chunk)), NodeVersion.class); // every kind, RECOVERED included
             mongo.remove(byIds(chunk), EditLock.class);
+            List<ObjectId> oids = chunk.stream().map(ObjectId::new).toList();
+            mongo.getCollection("users").updateMany(new Document("recentNodes.nodeId", new Document("$in", oids)),
+                    new Document("$pull", new Document("recentNodes", new Document("nodeId", new Document("$in", oids)))));
             mongo.remove(byIds(chunk), NodeContent.class);
             mongo.remove(byIds(chunk), Node.class);
         }
-        answers.deleteBySpaceId(spaceId); // saved answers may quote the deleted pages
     }
 
     // ---------- helpers ----------
