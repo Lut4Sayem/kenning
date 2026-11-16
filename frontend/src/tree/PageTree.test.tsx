@@ -82,8 +82,9 @@ describe('PageTree', () => {
     // QA-14: the live region read "Draggable item 6afa2fb4... was moved over droppable area in:6afa..."
     nodesApi.getTree.mockResolvedValue([page('6afa2fb4d03ff45cfc1c7d67', 'Methodology'), page('b', 'Related work', null, 'W')])
     renderTree()
-    const grip = await screen.findByRole('button', { name: 'Move Methodology' })
+    const grip = await screen.findByRole('button', { name: 'Drag to move Methodology' })
     expect(document.getElementById(grip.getAttribute('aria-describedby')!)?.textContent).toMatch(/Press Space to pick up/)
+    expect(grip.title).toBe('Drag to move') // QA-15: says what it does; Move to… is in the page menu
 
     const said: string[] = []
     const heard = new MutationObserver(() => document.querySelectorAll('[aria-live]').forEach((e) => e.textContent && said.push(e.textContent)))
@@ -126,7 +127,7 @@ describe('PageTree', () => {
     await userEvent.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'New sub-page under Alpha' }))
     await userEvent.tab()
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Move Alpha' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Drag to move Alpha' }))
     await userEvent.tab()
     expect(document.activeElement?.closest('[role="tree"]')).toBeNull()
 

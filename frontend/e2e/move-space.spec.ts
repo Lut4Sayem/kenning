@@ -48,7 +48,7 @@ test('dragging a page onto another space row moves it there', async ({ page }) =
   const from = page.locator(`[data-space="${lit.id}"]`)
   const to = page.locator(`[data-space="${exp.id}"]`)
   await from.getByRole('treeitem', { name: 'Methodology' }).hover()
-  const grip = from.getByRole('button', { name: 'Move Methodology' })
+  const grip = from.getByRole('button', { name: 'Drag to move Methodology' })
   const box = (await grip.boundingBox())!
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
   await page.mouse.down()

@@ -158,12 +158,12 @@ describe('Sidebar', () => {
     expect(await screen.findByText('Page in s1')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'New page in Requirements' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New sub-page under Page in s1' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Move Page in s1' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Drag to move Page in s1' })).toBeNull()
     expect(screen.getByRole('button', { name: 'More actions for Requirements' })).toBeTruthy() // Archived and Trash stay readable
     // editors and the owner of the private space keep them
     await screen.findByText('Page in s2')
     expect(screen.getByRole('button', { name: 'New page in Hardware' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Move Page in p1' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Drag to move Page in p1' })).toBeTruthy()
   })
 
   it('spaceMenuHasArchivedAndTrashAndEscReturnsFocus', async () => {

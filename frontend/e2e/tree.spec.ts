@@ -25,7 +25,7 @@ test('create page, create sub-page, drag it to top level, breadcrumbs update', a
   await expect(crumbs).toContainText('Parent')
 
   // Drag Child (keyboard sensor on its grip) down onto the "top level" drop zone.
-  await priv.getByRole('button', { name: 'Move Child' }).focus()
+  await priv.getByRole('button', { name: 'Drag to move Child' }).focus()
   // How many steps that takes depends on row heights (fonts), so step until the zone lights up.
   await page.keyboard.press('Space')
   const dropZone = priv.getByTestId('top-drop')
