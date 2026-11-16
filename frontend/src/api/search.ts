@@ -21,6 +21,8 @@ export interface SearchHit {
   /** Pages only: when and by whom the page was last edited. */
   updatedAt?: string | null
   updatedByName?: string | null
+  /** Pages only: the page colour, null = gray. */
+  color?: string | null
 }
 
 export interface SearchParams {

@@ -28,6 +28,17 @@ afterEach(() => {
 })
 
 describe('PageTree', () => {
+  it('eachPageShowsItsOwnColourDot', async () => { // QA-47; no colour = the default gray
+    nodesApi.getTree.mockResolvedValue([
+      { id: 'a', parentId: null, rank: 'a', title: 'Green page', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false, color: 'green' },
+      { id: 'b', parentId: null, rank: 'b', title: 'Plain page', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false, color: null },
+    ])
+    renderTree()
+    const dot = async (name: string) => ((await screen.findByRole('treeitem', { name })).previousElementSibling as HTMLElement).style.background
+    expect(await dot('Green page')).toBe('var(--page-green)')
+    expect(await dot('Plain page')).toBe('var(--page-gray)')
+  })
+
   it('subPageButtonCreatesUnderThatPageAndOpensIt', async () => {
     nodesApi.getTree.mockResolvedValue([
       { id: 'a', parentId: null, rank: 'V', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'PUBLISHED', locked: false, titleOnly: false },

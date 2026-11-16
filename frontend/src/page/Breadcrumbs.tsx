@@ -6,7 +6,7 @@ interface Props {
   spaceName?: string
   crumbs: { id: string; title: string }[]
   current: string
-  /** Page colour (a --page-* token name); gray until the colour field exists. */
+  /** Page colour (a --page-* token name). */
   colour?: string
 }
 

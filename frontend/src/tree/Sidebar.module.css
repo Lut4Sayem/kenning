@@ -52,3 +52,6 @@
 .actions .menu { top: 28px; right: 0; left: auto; min-width: 160px; }
 .actions .note { position: absolute; top: 28px; right: 0; width: 200px; background: var(--canvas); box-shadow: var(--shadow-3); border-radius: var(--r-row); z-index: 20; }
 @media (hover: none) { .rowBtn { opacity: 1; } }
+.trash { position: relative; }
+.navBtn { width: 100%; border: 0; background: none; font: inherit; cursor: pointer; text-align: left; }
+.trash .menu { top: auto; bottom: 36px; }

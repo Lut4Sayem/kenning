@@ -8,6 +8,7 @@ export interface Draft {
   /** null = a page in my personal space */
   teamName: string | null
   updatedAt: string
+  color?: string | null
 }
 
 export const getDrafts = (limit = 5) => api<{ items: Draft[]; total: number }>(`/api/me/drafts?limit=${limit}`)

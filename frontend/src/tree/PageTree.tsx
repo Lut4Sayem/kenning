@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getTree, type NodeSummary } from '../api/nodes'
 import Icon from '../ui/Icon'
+import { dotColour } from '../ui/pageColour'
 import { buildTree, type TreeNode } from './buildTree'
 import TreeDnd, { useTreeDnd } from './TreeDnd'
 import s from './PageTree.module.css'
@@ -182,8 +183,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabSto
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
-        {/* shortcut: page colour field comes later, every page shows the gray dot */}
-        <span className={s.dot} aria-hidden="true" />
+        <span className={s.dot} style={{ background: dotColour(node.color) }} aria-hidden="true" />
         <Link to={`/p/${node.id}`} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined}
           role="treeitem" data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
           onFocus={() => onFocusRow(node.id)}>

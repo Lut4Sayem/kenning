@@ -229,6 +229,7 @@ export default function PageView() {
           spaceName={space?.name}
           crumbs={n.breadcrumbs}
           current={n.title}
+          colour={n.color ?? 'gray'}
         />
         <span className={s.actions}>
           <span ref={setHead} />

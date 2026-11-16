@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -56,6 +56,18 @@ describe('page menu', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Move to trash' }))
     await waitFor(() => expect(api.trashNode).toHaveBeenCalledWith('n1'))
     expect(await screen.findByText('Home')).toBeTruthy() // the page is gone, so we leave it
+  })
+
+  // QA-47: the page colour is picked from the DESIGN.md palette in the page menu.
+  it('pickingAColourSavesItAndMarksTheCurrentOne', async () => {
+    api.updateNode.mockResolvedValue({ ...NODE, color: 'green' })
+    mount({ ...NODE, color: 'blue' })
+    await openMenu()
+    const colours = screen.getByRole('group', { name: 'Page colour' })
+    expect(within(colours).getAllByRole('menuitemradio')).toHaveLength(9)
+    expect(within(colours).getByRole('menuitemradio', { name: 'Blue' }).getAttribute('aria-checked')).toBe('true')
+    await userEvent.click(within(colours).getByRole('menuitemradio', { name: 'Green' }))
+    await waitFor(() => expect(api.updateNode).toHaveBeenCalledWith('n1', { color: 'green' }))
   })
 
   // QA-12: a team page can be moved to another space; a private page keeps "Move to team".

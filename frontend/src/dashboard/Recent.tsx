@@ -33,7 +33,7 @@ export default function Recent() {
                 <h2 id={`g-${g.label}`} className={s.groupLabel}>{g.label}</h2>
                 <ul className={s.list}>
                   {g.items.map((p) => (
-                    <PageRow key={p.nodeId} id={p.nodeId!} title={p.title} location={locationOf(p.teamName, p.spaceName)}
+                    <PageRow key={p.nodeId} id={p.nodeId!} title={p.title} color={p.color} location={locationOf(p.teamName, p.spaceName)}
                       status={p.publishState} when={p.openedAt ?? null} />
                   ))}
                 </ul>

@@ -10,6 +10,8 @@ export interface NodeSummary {
   publishState: 'DRAFT' | 'PUBLISHED'
   locked: boolean
   titleOnly: boolean
+  /** A DESIGN.md page colour; null = gray (QA-47). */
+  color?: string | null
 }
 
 export interface NodeDetail {
@@ -30,6 +32,7 @@ export interface NodeDetail {
   createdBy: { id: string; name: string; avatarUrl: string | null } | null
   updatedBy: { id: string; name: string; avatarUrl: string | null } | null
   contentUpdatedAt: string
+  color?: string | null
 }
 
 export interface MoveBody {
@@ -47,7 +50,7 @@ export const createNode = (spaceId: string, body: { parentId?: string | null; ti
 
 export const getNode = (id: string) => api<NodeDetail>(`/api/nodes/${id}`)
 
-export const updateNode = (id: string, body: { title?: string; icon?: string; tags?: string[] }) =>
+export const updateNode = (id: string, body: { title?: string; icon?: string; tags?: string[]; color?: string }) =>
   api<NodeDetail>(`/api/nodes/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
 
 export const moveNode = (id: string, body: MoveBody) =>
@@ -72,6 +75,7 @@ export interface TaggedNode {
   icon: string | null
   tags: string[]
   publishState: 'DRAFT' | 'PUBLISHED'
+  color?: string | null
 }
 export const getTagged = (tag: string) => api<TaggedNode[]>(`/api/tags/${encodeURIComponent(tag)}/nodes`)
 

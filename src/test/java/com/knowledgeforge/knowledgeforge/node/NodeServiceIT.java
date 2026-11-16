@@ -263,6 +263,16 @@ class NodeServiceIT extends IntegrationTest {
     }
 
     @Test
+    void pageColourIsOneOfThePaletteAndShowsInTheTree() {
+        NodeDTO a = create(null, "A");
+        assertNull(a.color()); // no colour = the default gray dot
+        assertEquals("green", nodeService.update(a.id(), new UpdateNodeRequest(null, null, null, "green")).color());
+        assertEquals("green", nodeService.tree(space.getId()).get(0).color());
+        assertEquals(400, statusOf(() -> nodeService.update(a.id(), new UpdateNodeRequest(null, null, null, "#ff0000"))));
+        assertNull(nodeService.update(a.id(), new UpdateNodeRequest(null, null, null, "gray")).color());
+    }
+
+    @Test
     void recentNodesCappedAt20() {
         List<String> ids = new ArrayList<>();
         for (int i = 0; i < 25; i++) ids.add(create(null, "P" + i).id());

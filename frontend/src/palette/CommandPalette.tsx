@@ -8,6 +8,7 @@ import { canEditSpace, getMySpaces } from '../api/spaces'
 import Icon, { type IconName } from '../ui/Icon'
 import s from './CommandPalette.module.css'
 import { toast } from '../ui/Toast'
+import { dotColour } from '../ui/pageColour'
 import Snippet from './Snippet'
 
 const DEBOUNCE_MS = 200
@@ -95,9 +96,9 @@ function Palette({ onClose }: { onClose: () => void }) {
   const pages = term
     ? local.map((n) => {
       const sp = all.find((x) => x.id === n.spaceId)
-      return { id: n.id, title: n.title, place: sp ? placeOf(sp.teamName, sp.name) : '' }
+      return { id: n.id, title: n.title, color: n.color, place: sp ? placeOf(sp.teamName, sp.name) : '' }
     })
-    : (recent.data ?? []).map((h) => ({ id: h.nodeId!, title: h.title, place: placeOf(h.teamName, h.spaceName) }))
+    : (recent.data ?? []).map((h) => ({ id: h.nodeId!, title: h.title, color: h.color, place: placeOf(h.teamName, h.spaceName) }))
   const inContent = content.filter((h) => h.nodeId && !localIds.has(h.nodeId))
 
   // "Current project" = the space whose tree holds the open page, else the private space, else the first one.
@@ -172,7 +173,7 @@ function Palette({ onClose }: { onClose: () => void }) {
             <Command.Group heading={head('file', s.tMint, term ? 'Pages' : 'Recent', pages.length)} className={s.group}>
               {cap(pages, 'pages').map((p) => (
                 <Command.Item key={p.id} value={`page-${p.id}`} onSelect={() => open(p.id)} className={s.item}>
-                  <span className={s.dot} aria-hidden="true" />
+                  <span className={s.dot} style={{ background: dotColour(p.color) }} aria-hidden="true" />
                   <span className={s.title} title={p.title || 'Untitled'}>{markPrefix(p.title || 'Untitled', term)}</span>
                   {p.place && <span className={s.chip}>{p.place}</span>}
                   {go}
@@ -184,7 +185,7 @@ function Palette({ onClose }: { onClose: () => void }) {
             <Command.Group heading={head('text-lines', s.tSky, 'Found inside pages', inContent.length)} className={s.group}>
               {cap(inContent, 'content').map((h) => (
                 <Command.Item key={h.nodeId} value={`content-${h.nodeId}`} onSelect={() => open(h.nodeId!)} className={s.item}>
-                  <span className={s.dot} aria-hidden="true" />
+                  <span className={s.dot} style={{ background: dotColour(h.color) }} aria-hidden="true" />
                   <span className={s.two}>
                     <span className={s.snip}>{h.snippetHtml ? <Snippet html={h.snippetHtml} /> : h.title || 'Untitled'}</span>
                     <span className={s.from}>in {h.title || 'Untitled'}</span>

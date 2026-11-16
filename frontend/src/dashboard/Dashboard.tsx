@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { dotColour } from '../ui/pageColour'
 import { Link } from 'react-router-dom'
 import { getDrafts } from '../api/home'
 import { getRecent } from '../api/search'
@@ -56,7 +57,7 @@ export default function Dashboard() {
             {cards.map((p) => (
               <li key={p.nodeId}>
                 <Link to={`/p/${p.nodeId}`} className={s.card}>
-                  <span className={s.cardDot} aria-hidden="true" />
+                  <span className={s.cardDot} style={{ background: dotColour(p.color) }} aria-hidden="true" />
                   <span className={s.cardTitle} title={p.title || 'Untitled'}>{p.title || 'Untitled'}</span>
                   <span className={s.cardMeta}>
                     <span>{p.teamName == null ? 'Private' : p.spaceName}</span>
@@ -79,7 +80,7 @@ export default function Dashboard() {
             <>
               <ul className={s.list}>
                 {drafts.data.items.map((d) => (
-                  <PageRow key={d.nodeId} id={d.nodeId} title={d.title} location={locationOf(d.teamName, d.spaceName)}
+                  <PageRow key={d.nodeId} id={d.nodeId} title={d.title} color={d.color} location={locationOf(d.teamName, d.spaceName)}
                     status="DRAFT" avatar={{ name: me.data?.fullName ?? '', me: true }} when={d.updatedAt} />
                 ))}
               </ul>

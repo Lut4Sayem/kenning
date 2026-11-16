@@ -140,7 +140,7 @@ Rules: labels are sentence case, never uppercase or letter-spaced. Headings use 
   4. Favourites
   5. Your teams: team row (initial on a tint) → spaces → page tree
   6. Private
-  7. (space) Trash · Settings · you + Help. Separated by space, no line.
+  7. (space) Trash (opens a picker: each team's trash, or Private) · you + Help. Separated by space, no line. No Settings: the app has no settings screen; Profile is in the account menu.
   Rows are 32px, radius 8px. Active row: white background + soft shadow. Hovering a tree row shows `…` and `+` on the right.
 - **Top bar** (56px, inside the panel, bottom line `--line-soft`): breadcrumbs left; right side in this order: save state, avatars of people here, icon buttons (history, bookmark), the one primary button, `…`, then the details-panel toggle (last, far right). No Share button in Release 1a (sharing is 1b).
 - **Team sub-navigation:** on team screens a slim row (44px) under the top bar: Overview · Pages · Members · Requests (count) · Trash. Active tab = `--surface-card-hover` pill. Only Overview repeats the team name as a big title.

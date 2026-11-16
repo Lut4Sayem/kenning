@@ -88,11 +88,47 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
       {newTeam && <NewTeamDialog onClose={() => setNewTeam(false)} />}
 
       <div className={s.foot}>
+        <TrashPicker teams={teams.data ?? []} priv={priv} />
         {me.data && (
           <Link to="/profile" className={s.me}><span className={s.avatar} aria-hidden="true">{initialsOf(name)}</span>{name}</Link>
         )}
       </div>
     </nav>
+  )
+}
+
+/** QA-47: Trash at the bottom (DESIGN.md sidebar item 7): a team's trash (all its spaces) or the private one. */
+function TrashPicker({ teams, priv }: { teams: MyTeam[]; priv?: MySpace }) {
+  const [open, setOpen] = useState(false)
+  const btn = useRef<HTMLButtonElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+
+  useEffect(() => setOpen(false), [pathname])
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const places = [
+    ...teams.map((t) => ({ key: t.teamId, label: t.teamName || 'Untitled team', to: `/teams/${t.teamId}/trash` })),
+    ...(priv ? [{ key: priv.id, label: 'Private', to: `/s/${priv.id}/trash` }] : []),
+  ]
+  if (places.length === 0) return null
+  if (places.length === 1) return <Link to={places[0].to} className={s.navLink}><Icon name="trash" />Trash</Link>
+  return (
+    <div ref={box} className={s.trash} onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); btn.current?.focus() } }}>
+      <button ref={btn} type="button" className={cx(s.navLink, s.navBtn)} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="trash" />Trash
+      </button>
+      {open && (
+        <div className={s.menu} role="menu" aria-label="Open the trash of">
+          {places.map((p) => <Link key={p.key} to={p.to} role="menuitem" className={s.menuItem}>{p.label}</Link>)}
+        </div>
+      )}
+    </div>
   )
 }
 

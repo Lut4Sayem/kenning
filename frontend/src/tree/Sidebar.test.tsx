@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -89,6 +89,18 @@ describe('Sidebar', () => {
     expect(screen.queryByRole('link', { name: 'Archived' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Trash' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New page' })).toBeNull()
+  })
+
+  // QA-47: Trash at the bottom of the sidebar: a team's trash or the private one.
+  it('bottomTrashOpensAPickerOfEveryTeamAndPrivate', async () => {
+    renderSidebar()
+    await screen.findByRole('link', { name: 'Requirements' })
+    await userEvent.click(screen.getByRole('button', { name: 'Trash' }))
+    const menu = screen.getByRole('menu', { name: 'Open the trash of' })
+    expect(within(menu).getByRole('menuitem', { name: 'Thesis Group' }).getAttribute('href')).toBe('/teams/t1/trash')
+    expect(within(menu).getByRole('menuitem', { name: 'Robotics Club' }).getAttribute('href')).toBe('/teams/t2/trash')
+    expect(within(menu).getByRole('menuitem', { name: 'Private' }).getAttribute('href')).toBe('/s/p1/trash')
+    expect(screen.queryByRole('link', { name: /Settings/ })).toBeNull()
   })
 
   it('doesNotShowInboxFavouritesOrBookmarksInRelease1a', async () => {

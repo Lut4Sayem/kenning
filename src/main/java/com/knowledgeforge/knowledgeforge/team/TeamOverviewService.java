@@ -133,7 +133,7 @@ public class TeamOverviewService {
         List<PageItem> items = matches.subList(from, Math.min(from + pageSize, matches.size())).stream().map(n -> new PageItem(
                 n.getId(), n.getTitle(), n.getSpaceId(), spaceById.get(n.getSpaceId()).getName(), n.getPublishState(),
                 n.getUpdatedBy() == null ? null : n.getUpdatedBy().getName(), n.getUpdatedBy() == null ? null : n.getUpdatedBy().getUserId(),
-                n.getUpdatedAt(), n.getParentId() == null ? null : titleById.get(n.getParentId()))).toList();
+                n.getUpdatedAt(), n.getParentId() == null ? null : titleById.get(n.getParentId()), n.getColor())).toList();
         return new TeamOverviewDTO.Pages(items, matches.size());
     }
 

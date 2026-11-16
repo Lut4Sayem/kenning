@@ -4,6 +4,7 @@ import { getSubtreeCount, getTree, moveNode, moveToTeam, type NodeDetail } from 
 import { getMySpaces } from '../api/spaces'
 import { buildTree, type TreeNode } from '../tree/buildTree'
 import Icon from '../ui/Icon'
+import { dotColour } from '../ui/pageColour'
 import TeamTile from '../ui/TeamTile'
 import s from './MoveToTeam.module.css'
 
@@ -126,7 +127,7 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
                 {rows.map(({ n, depth }) => (
                   <label key={n.id} className={s.opt} style={{ paddingLeft: 10 + 24 * depth }}>
                     <input type="radio" name={`${id}-p`} checked={parentId === n.id} disabled={n.titleOnly} onChange={() => setParentId(n.id)} />
-                    <span className={s.radio} aria-hidden="true" /><span className={s.dot} aria-hidden="true" />
+                    <span className={s.radio} aria-hidden="true" /><span className={s.dot} style={{ background: dotColour(n.color) }} aria-hidden="true" />
                     <span className={s.optText}>{n.title || 'Untitled'}{n.titleOnly && " (you can't edit here)"}</span>
                   </label>
                 ))}
