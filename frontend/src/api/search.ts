@@ -29,6 +29,7 @@ export interface SearchParams {
   q?: string
   tag?: string
   publishState?: string
+  spaceId?: string
   limit?: number
 }
 

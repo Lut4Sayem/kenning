@@ -8,6 +8,11 @@ import Search from './Search'
 
 const api = vi.hoisted(() => ({ searchAll: vi.fn() }))
 vi.mock('../api/search', () => api)
+const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn(async () => [
+  { id: 's1', name: 'Literature Review', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis', myRole: 'EDITOR' },
+  { id: 'me', name: 'Private', icon: null, ownerType: 'USER', teamId: null, teamName: null, myRole: null },
+]) }))
+vi.mock('../api/spaces', () => spaces)
 
 const page = (over: Partial<SearchHit>): SearchHit => ({
   type: 'PAGE', nodeId: 'p1', teamId: null, spaceId: 's1', spaceName: 'Docs', title: 'Runbook', path: '',
@@ -38,8 +43,25 @@ describe('search page', () => {
     api.searchAll.mockResolvedValue([page({})])
     setup('/search?tag=ops&status=DRAFT')
     expect(await screen.findByRole('link', { name: 'Runbook' })).toBeTruthy()
-    expect(api.searchAll).toHaveBeenCalledWith({ q: '', tag: 'ops', publishState: 'DRAFT', limit: 50 })
+    expect(api.searchAll).toHaveBeenCalledWith({ q: '', tag: 'ops', publishState: 'DRAFT', spaceId: '', limit: 50 })
     expect(screen.getByText('Draft', { selector: 'span' })).toBeTruthy()
+  })
+
+  // QA-32: a Space filter, one place for tags, and no big title on a list view.
+  it('spaceFilterGoesToTheServer', async () => {
+    api.searchAll.mockResolvedValue([page({})])
+    setup('/search?q=runbook')
+    await screen.findByRole('link', { name: 'Runbook' })
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Space' }), 'Thesis · Literature Review')
+    expect(api.searchAll).toHaveBeenLastCalledWith({ q: 'runbook', tag: '', publishState: '', spaceId: 's1', limit: 50 })
+    expect(screen.getByRole('option', { name: 'Private pages' })).toBeTruthy()
+  })
+
+  it('tagChipsOpenTheTagPageLikeEverywhereElse', async () => {
+    api.searchAll.mockResolvedValue([page({})])
+    setup('/search?q=runbook')
+    expect((await screen.findByRole('link', { name: '#ops' })).getAttribute('href')).toBe('/tags/ops')
+    expect(screen.getByRole('heading', { level: 1, name: 'Search' }).className).toBe('sr-only')
   })
 
   it('snippetKeepsMarkAndEscapesTheRest', async () => {
@@ -55,7 +77,7 @@ describe('search page', () => {
     setup('/search?q=runbook&tag=ops')
     await userEvent.click(await screen.findByRole('button', { name: 'Remove tag filter ops' }))
     expect(screen.queryByRole('button', { name: 'Remove tag filter ops' })).toBeNull()
-    expect(api.searchAll).toHaveBeenLastCalledWith({ q: 'runbook', tag: '', publishState: '', limit: 50 })
+    expect(api.searchAll).toHaveBeenLastCalledWith({ q: 'runbook', tag: '', publishState: '', spaceId: '', limit: 50 })
   })
 
   it('noMatchOffersClearFilters', async () => {

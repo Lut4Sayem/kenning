@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { searchAll, type SearchHit } from '../api/search'
+import { getMySpaces } from '../api/spaces'
 import { TopBar } from '../app/ShellSlots'
 import { placeOf } from '../palette/CommandPalette'
 import Snippet from '../palette/Snippet'
@@ -20,7 +21,7 @@ const TYPES = ['PAGE', 'SPACE', 'TEAM'] as const
 type Type = (typeof TYPES)[number]
 const LABEL: Record<Type, string> = { PAGE: 'Pages', SPACE: 'Spaces', TEAM: 'Teams' }
 
-/** /app/search?q=&tag=&status=&type=: grouped results on /api/search (mockup search). */
+/** /app/search?q=&tag=&status=&space=&type=: grouped results on /api/search (mockup search). */
 export default function Search() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
@@ -28,6 +29,8 @@ export default function Search() {
   // Old bookmarks wrote ?status=draft and ?type=document: accept them, ignore anything else.
   const rawStatus = (params.get('status') ?? '').toUpperCase()
   const status = ['DRAFT', 'PUBLISHED'].includes(rawStatus) ? rawStatus : ''
+  const space = params.get('space') ?? '' // QA-32
+  const spaces = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces })
   const rawType = (params.get('type') ?? '').toUpperCase().replace('DOCUMENT', 'PAGE')
   const type = TYPES.find((t) => t === rawType) // anything else = all
   const [text, setText] = useState(q)
@@ -52,14 +55,15 @@ export default function Search() {
   }, [text])
 
   const active = q.trim() !== '' || tag !== ''
+  const filtered = !!(tag || status || space)
   const hits = useQuery({
-    queryKey: ['search', q.trim(), tag, status],
-    queryFn: () => searchAll({ q: q.trim(), tag, publishState: status, limit: LIMIT }),
+    queryKey: ['search', q.trim(), tag, status, space],
+    queryFn: () => searchAll({ q: q.trim(), tag, publishState: status, spaceId: space, limit: LIMIT }),
     enabled: active,
     retry: false,
   })
   // A page filter rules out spaces and teams, which have neither tags nor a publish state.
-  const all = (hits.data ?? []).filter((h) => h.type === 'PAGE' || (!tag && !status))
+  const all = (hits.data ?? []).filter((h) => h.type === 'PAGE' || !filtered)
   const counts = Object.fromEntries(TYPES.map((t) => [t, all.filter((h) => h.type === t).length])) as Record<Type, number>
   const shown = type ? [type] : TYPES.filter((t) => counts[t] > 0)
 
@@ -68,7 +72,7 @@ export default function Search() {
       <TopBar>
         <nav className={s.crumbs} aria-label="Breadcrumb"><span className={s.here}><Icon name="search" />Search</span></nav>
       </TopBar>
-      <h1>Search</h1>
+      <h1 className="sr-only">Search</h1>{/* QA-32: list views have no big title (DESIGN.md) */}
 
       <div className={s.controls}>
         <form role="search" className={s.big} onSubmit={(e) => { e.preventDefault(); set({ q: text.trim() }) }}>
@@ -84,6 +88,14 @@ export default function Search() {
               <option value="">Any</option>
               <option value="DRAFT">Draft</option>
               <option value="PUBLISHED">Published</option>
+            </select>
+            <Icon name="chevron-down" size={14} />
+          </label>
+          <label className={s.fpill}>
+            <span>Space:</span>
+            <select aria-label="Space" value={space} onChange={(e) => set({ space: e.target.value })}>
+              <option value="">Any</option>
+              {(spaces.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.ownerType === 'USER' ? 'Private pages' : `${x.teamName} · ${x.name}`}</option>)}
             </select>
             <Icon name="chevron-down" size={14} />
           </label>
@@ -120,8 +132,8 @@ export default function Search() {
             {all.length === 0 ? (
               <div className={s.empty}>
                 <h2 className={s.emptyTitle}>Nothing matches “{q.trim() || `#${tag}`}”</h2>
-                <p>{tag || status ? 'Try removing a filter.' : 'Check the spelling or try a shorter word.'}</p>
-                {(tag || status) && <button type="button" className={s.ghost} onClick={() => set({ tag: undefined, status: undefined })}>Clear filters</button>}
+                <p>{filtered ? 'Try removing a filter.' : 'Check the spelling or try a shorter word.'}</p>
+                {filtered && <button type="button" className={s.ghost} onClick={() => set({ tag: undefined, status: undefined, space: undefined })}>Clear filters</button>}
               </div>
             ) : shown.map((t) => {
               const rows = all.filter((h) => h.type === t)
@@ -137,7 +149,7 @@ export default function Search() {
                     )}
                   </div>
                   {rows.length === 0
-                    ? <p className={s.none}>No {LABEL[t].toLowerCase()} match “{q.trim() || `#${tag}`}”{tag || status ? ' with these filters' : ''}.</p>
+                    ? <p className={s.none}>No {LABEL[t].toLowerCase()} match “{q.trim() || `#${tag}`}”{filtered ? ' with these filters' : ''}.</p>
                     : <ul className={s.list}>{part.map((h) => <Row key={h.nodeId ?? h.spaceId ?? h.teamId} hit={h} q={q} />)}</ul>}
                 </section>
               )
@@ -177,7 +189,7 @@ function Row({ hit, q }: { hit: SearchHit; q: string }) {
             {hit.updatedByName && <span className={s.editor}><Avatar name={hit.updatedByName} /><span className="sr-only">Last edited by {hit.updatedByName}</span></span>}
             {hit.updatedAt && <time dateTime={hit.updatedAt}>{timeAgo(hit.updatedAt)}</time>}
             {hit.tags.map((t) => (
-              <Link key={t} className={s.tag} to={`/search?tag=${encodeURIComponent(t)}${q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ''}`}>#{t}</Link>
+              <Link key={t} className={s.tag} to={`/tags/${encodeURIComponent(t)}`}>#{t}</Link>
             ))}
           </span>
         )}
