@@ -63,4 +63,26 @@ describe('PageTree', () => {
     await screen.findByRole('link', { name: 'Alpha' })
     expect(screen.queryByText('Draft')).toBeNull()
   })
+
+  const page = (id: string, title: string, parentId: string | null = null, rank = 'V') =>
+    ({ id, parentId, rank, title, icon: null, type: 'PAGE', publishState: 'PUBLISHED', locked: false, titleOnly: false })
+
+  it('dragAnnouncementsUseTitlesNotIds', async () => {
+    // QA-14: the live region read "Draggable item 6afa2fb4... was moved over droppable area in:6afa..."
+    nodesApi.getTree.mockResolvedValue([page('6afa2fb4d03ff45cfc1c7d67', 'Methodology'), page('b', 'Related work', null, 'W')])
+    renderTree()
+    const grip = await screen.findByRole('button', { name: 'Move Methodology' })
+    expect(document.getElementById(grip.getAttribute('aria-describedby')!)?.textContent).toMatch(/Press Space to pick up/)
+
+    const said: string[] = []
+    const heard = new MutationObserver(() => document.querySelectorAll('[aria-live]').forEach((e) => e.textContent && said.push(e.textContent)))
+    heard.observe(document.body, { subtree: true, childList: true, characterData: true })
+    grip.focus()
+    await userEvent.keyboard(' ')
+    await waitFor(() => expect(said.join(' | ')).toContain('Picked up Methodology.'))
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(said.join(' | ')).toContain('Methodology was not moved.'))
+    heard.disconnect()
+    expect(said.join(' | ')).not.toMatch(/6afa2fb4|inside Methodology/)
+  })
 })
