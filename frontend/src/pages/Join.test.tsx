@@ -94,6 +94,15 @@ describe('Join', () => {
     expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
   })
 
+  // QA-41: a member who opens the team's link is not asked to join it.
+  it('aMemberIsToldSoAndCanOpenTheTeam', async () => {
+    backend({ preview: { ...PREVIEW, hasPendingRequest: false, isMember: true, teamId: 't1' } })
+    renderJoin()
+    await h1Is('You’re already in this team')
+    expect(screen.getByRole('link', { name: 'Open team' }).getAttribute('href')).toBe('/teams/t1')
+    expect(screen.queryByRole('button', { name: 'Ask to join' })).toBeNull()
+  })
+
   it('alreadyAMemberRedirectsAfterTheMessage', async () => {
     backend({ join: new ApiError(409, 'You are already a member of this team') })
     renderJoin()

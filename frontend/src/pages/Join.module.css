@@ -20,6 +20,9 @@
 .switch:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 .action > button { margin-top: 20px; }
+.open { display: flex; align-items: center; justify-content: center; height: 46px; margin-top: 20px; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 500; text-decoration: none; transition: scale 150ms ease-out, background-color 150ms ease-out; }
+.open:hover { background: var(--ink-label); }
+.open:active { scale: 0.96; }
 .notice { margin-top: 20px; padding: var(--space-3) var(--space-4); border-radius: var(--r-lg); background: var(--published-bg); color: var(--published-ink); font-size: 14px; line-height: 1.5; }
 
 .after { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); }

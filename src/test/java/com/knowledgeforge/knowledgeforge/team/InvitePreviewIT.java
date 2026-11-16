@@ -87,7 +87,7 @@ class InvitePreviewIT extends NodeIntegrationTest {
         assertFalse(body.contains("@"), body);
         assertFalse(body.contains(admin.getId()), body);
         assertFalse(body.contains(team.getId()), body);
-        assertEquals(4, ((java.util.Map<?, ?>) com.jayway.jsonpath.JsonPath.read(body, "$")).size(), body);
+        assertEquals(6, ((java.util.Map<?, ?>) com.jayway.jsonpath.JsonPath.read(body, "$")).size(), body);
     }
 
     @Autowired TeamJoinRequestRepository joinRequests;
@@ -114,6 +114,21 @@ class InvitePreviewIT extends NodeIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.hasPendingRequest").value(false));
         mvc.perform(get("/api/team-invites/" + code).with(user(fresh.getEmail())).with(from("10.8.0.11")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.hasPendingRequest").value(false));
+    }
+
+    /** QA-41: a member who opens the link is told so, with the team to open; others still see no id. */
+    @Test
+    void previewSaysWhetherIAmAlreadyAMember() throws Exception {
+        code = invite();
+        User member = newMember("EDITOR");
+        mvc.perform(get("/api/team-invites/" + code).with(user(member.getEmail())).with(from("10.8.0.12")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isMember").value(true))
+                .andExpect(jsonPath("$.teamId").value(team.getId()));
+        mvc.perform(get("/api/team-invites/" + code).with(user(newUser().getEmail())).with(from("10.8.0.13")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isMember").value(false))
+                .andExpect(jsonPath("$.teamId").doesNotExist());
     }
 
     @Test

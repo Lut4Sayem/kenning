@@ -38,7 +38,9 @@ public class TeamJoinRequestService {
                 : userRepository.findById(invite.getCreatedBy()).map(User::getFullName).orElse(null);
         String userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
         boolean pending = userId != null && teamJoinRequestRepository.existsByTeamIdAndUserIdAndStatus(team.getId(), userId, "PENDING");
-        return new InvitePreviewDTO(team.getName(), teamMemberRepository.countByTeamId(team.getId()), by, pending);
+        boolean member = userId != null && teamMemberRepository.existsByTeamIdAndUserId(team.getId(), userId);
+        return new InvitePreviewDTO(team.getName(), teamMemberRepository.countByTeamId(team.getId()), by, pending,
+                member, member ? team.getId() : null);
     }
 
     public TeamJoinRequest requestToJoin(String inviteCode) {

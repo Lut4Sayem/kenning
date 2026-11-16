@@ -7,7 +7,7 @@ import { AuthLayout, FormError, SubmitButton } from './AuthLayout'
 import s from './Join.module.css'
 import { DEFAULT_NEXT } from './safeNext'
 
-type Preview = { teamName: string; memberCount: number; invitedByName: string | null; hasPendingRequest?: boolean }
+type Preview = { teamName: string; memberCount: number; invitedByName: string | null; hasPendingRequest?: boolean; isMember?: boolean; teamId?: string | null }
 type Me = { fullName?: string; email?: string }
 type Problem = { title: string; message: string; home?: boolean }
 
@@ -95,13 +95,14 @@ export default function Join() {
   }
 
   const name = me?.fullName || me?.email || ''
-  const title = problem ? problem.title : loading || preview ? 'Join this team' : 'Join a team'
+  const memberOf = preview?.isMember && preview.teamId ? preview.teamId : null // QA-41
+  const title = problem ? problem.title : memberOf ? 'You’re already in this team' : loading || preview ? 'Join this team' : 'Join a team'
   const logoutUrl = '/logout?next=' + encodeURIComponent('/app/join/' + encodeURIComponent(code))
 
   return (
     <AuthLayout
       title={title}
-      subtitle={problem ? undefined : 'You’ll see its spaces and pages once an admin lets you in.'}
+      subtitle={problem || memberOf ? undefined : 'You’ll see its spaces and pages once an admin lets you in.'}
       lead={loading ? <TeamSkeleton /> : preview && !problem ? <TeamBlock preview={preview} /> : undefined}
     >
       {problem && (
@@ -117,15 +118,21 @@ export default function Join() {
             <span className={s.who}><b>{name}</b>{me?.fullName && me.email ? me.email : ''}</span>
             <Link to={logoutUrl} className={s.switch}>Not you?</Link>
           </div>
-          <form onSubmit={join} className={s.action}>
-            <FormError message={formError} />
-            <div role="status">{notice && <div className={s.notice}>{notice}</div>}</div>
-            {!notice && <SubmitButton busy={busy} label="Ask to join" busyLabel="Sending…" />}
-          </form>
-          <p className={s.after}>
-            <Icon name="info" />
-            <span>An admin approves each request. When they do, the team appears in your sidebar.</span>
-          </p>
+          {memberOf ? (
+            <Link to={`/teams/${memberOf}`} className={s.open}>Open team</Link>
+          ) : (
+            <>
+              <form onSubmit={join} className={s.action}>
+                <FormError message={formError} />
+                <div role="status">{notice && <div className={s.notice}>{notice}</div>}</div>
+                {!notice && <SubmitButton busy={busy} label="Ask to join" busyLabel="Sending…" />}
+              </form>
+              <p className={s.after}>
+                <Icon name="info" />
+                <span>An admin approves each request. When they do, the team appears in your sidebar.</span>
+              </p>
+            </>
+          )}
         </>
       )}
     </AuthLayout>
