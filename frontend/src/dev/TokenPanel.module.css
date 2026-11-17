@@ -1,5 +1,5 @@
-.fab { position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 200; height: 32px; padding: 0 var(--space-3); border: 0; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-3); }
-.panel { position: fixed; right: var(--space-4); bottom: 56px; z-index: 200; width: 320px; max-height: 70dvh; overflow-y: auto; padding: var(--space-4); border-radius: var(--r-card); background: var(--canvas); box-shadow: var(--shadow-3); }
+.fab { position: fixed; right: var(--space-4); bottom: 64px; /* above page footers and toasts */ z-index: 200; height: 32px; padding: 0 var(--space-3); border: 0; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-weight: 500; cursor: pointer; box-shadow: var(--shadow-3); }
+.panel { position: fixed; right: var(--space-4); bottom: 104px; z-index: 200; width: 320px; max-height: 70dvh; overflow-y: auto; padding: var(--space-4); border-radius: var(--r-card); background: var(--canvas); box-shadow: var(--shadow-3); }
 .panel h2 { margin: 0 0 var(--space-3); font-size: 14px; color: var(--ink); }
 .row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 32px; font-size: 13px; color: var(--ink-label); }
 .row code { font-family: var(--font-mono); font-size: 12px; }

@@ -1,7 +1,7 @@
 .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
 .row { position: relative; display: flex; align-items: center; gap: 2px; height: 32px; padding-right: 4px; border-radius: var(--r-row); color: var(--ink); }
 @media (hover: hover) { .row:hover { background: var(--hover); } }
-.row.active { background: var(--canvas); box-shadow: var(--shadow-1); }
+.row.active { background: var(--hover); }
 .row.active .link { font-weight: 500; color: var(--ink); }
 .row.over { outline: 2px solid var(--primary); }
 .toggle, .btn {

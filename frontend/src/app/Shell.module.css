@@ -6,11 +6,11 @@
 .panel {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
   margin: var(--panel-inset) var(--panel-inset) var(--panel-inset) 0;
-  background: var(--canvas); border-radius: var(--r-panel); box-shadow: var(--shadow-2); overflow: hidden;
+  background: var(--canvas); border-radius: var(--r-panel); box-shadow: 0 0 0 1px var(--line); overflow: hidden;
 }
 .topbar {
   flex: none; display: flex; align-items: center; gap: var(--space-2); height: var(--topbar-height);
-  padding: 0 14px 0 var(--space-5); border-bottom: 1px solid var(--line-soft); font-size: 13px;
+  padding: 0 14px 0 var(--space-5); border-bottom: 1px solid var(--line); font-size: 13px;
 }
 .topbar:has(.slot:empty):not(:has(.menuBtn)) { display: none; }
 .slot { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: var(--space-2); }
@@ -31,6 +31,7 @@
 .skip:focus { transform: none; }
 .scrim { position: fixed; inset: 0; z-index: 60; background: rgb(28 27 23 / 0.32); animation: fade var(--dur) var(--ease-out); }
 .drawerClose { display: none; }
+.brand { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--r-row); }
 
 /* 640-1023: the details panel floats over the page instead of squeezing it. */
 @media (max-width: 1023.98px) {
@@ -49,7 +50,7 @@
     position: absolute; z-index: 1; top: 10px; right: 8px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0;
     border-radius: var(--r-row); background: var(--canvas); box-shadow: var(--shadow-1); color: var(--ink); cursor: pointer;
   }
-  .shell[data-sidebar='drawer'] .sidebarCol nav > div:first-child { padding-right: 40px; } /* room for the close button */
+  .shell[data-sidebar='drawer'] .sidebarCol nav > :first-child { margin-right: 40px; } /* room for the close button */
   .details { left: 0; width: auto; box-shadow: none; z-index: 70; padding: var(--space-4); }
 }
 @media (pointer: coarse) {

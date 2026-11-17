@@ -3,7 +3,7 @@
 .crumbName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .actions { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
 
-.primaryBtn, .ghostBtn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid transparent; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
+.primaryBtn, .ghostBtn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid transparent; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
 .primaryBtn { background: var(--primary); color: var(--on-primary); }
 @media (hover: hover) { .primaryBtn:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
 .ghostBtn { background: transparent; border-color: var(--line); color: var(--ink); }
@@ -20,7 +20,7 @@
 .tab.active { background: var(--surface-card-hover); color: var(--ink); }
 .count { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 5px; border-radius: var(--r-pill); background: var(--primary); color: var(--on-primary); font-size: 11px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 
-.column { max-width: 1080px; margin: 0 auto; padding: 40px 40px 64px; display: flex; flex-direction: column; gap: 28px; }
+.column { max-width: 1080px; margin: 0 auto; padding: 32px 40px 64px; display: flex; flex-direction: column; gap: 32px; }
 .state { max-width: 560px; margin: 0 auto; padding: 56px 40px; color: var(--ink-label); }
 .link, .linkBtn { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
 .linkBtn { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; }

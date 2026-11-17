@@ -1,18 +1,21 @@
-import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
-import preview from '../assets/auth-preview.webp'
+import { useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react'
 import mark from '../assets/brand/kenning-mark-small.svg'
 import Icon from '../ui/Icon'
+import AuthStage from './AuthStage'
 import s from './AuthLayout.module.css'
 
 export function AuthLayout({ title, subtitle, alt, lead, children }: { title: string; subtitle?: string; alt?: ReactNode; lead?: ReactNode; children: ReactNode }) {
+  const form = useRef<HTMLElement>(null)
   return (
     <div className={s.split}>
+      <AuthStage form={form} />
       <div className={s.left}>
         <header className={s.brand}>
           <img className={s.logo} src={mark} alt="" width={30} height={30} />
           kenning
         </header>
-        <main className={s.formcol}>
+        <main ref={form} className={s.formcol}>
+          <p className={s.tagline}>Your team’s knowledge, in one place.</p>
           {lead}
           <h1 className={s.title}>{title}</h1>
           {subtitle && <p className={s.sub}>{subtitle}</p>}
@@ -21,13 +24,10 @@ export function AuthLayout({ title, subtitle, alt, lead, children }: { title: st
         </main>
         <footer className={s.foot}>
           <span>&copy; {new Date().getFullYear()} Kenning</span>
-          <a href="https://github.com/Lut4Sayem/knowledgeforge-ai" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/Lut4Sayem/kenning" target="_blank" rel="noopener noreferrer">
             Source on GitHub
           </a>
         </footer>
-      </div>
-      <div className={s.right} aria-hidden="true">
-        <img className={s.shot} src={preview} alt="" width={1180} height={1300} />
       </div>
     </div>
   )

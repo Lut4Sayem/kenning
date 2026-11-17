@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { getMe } from '../api/spaces'
+import mark from '../assets/brand/kenning-mark-small.svg'
 import { useSendPendingWhenOnline } from '../editor/sendWhenOnline'
 import CommandPalette from '../palette/CommandPalette'
 import Sidebar from '../tree/Sidebar'
@@ -123,6 +124,7 @@ export default function Shell() {
                 <Icon name="menu" />
               </button>
             )}
+            {phone && <Link to="/" className={s.brand} aria-label="Kenning home"><img src={mark} alt="" width={24} height={24} /></Link>}
             <div ref={setTopbar} className={s.slot} />
           </header>
           <main id="main" tabIndex={-1} className={s.main}>

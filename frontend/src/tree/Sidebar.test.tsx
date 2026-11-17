@@ -45,6 +45,13 @@ afterEach(() => {
 })
 
 describe('Sidebar', () => {
+  it('brandAtTheTopLinksHome', async () => {
+    renderSidebar()
+    const home = await screen.findByRole('link', { name: 'Kenning home' })
+    expect(home.getAttribute('href')).toBe('/')
+    expect(screen.getByRole('navigation').firstElementChild).toBe(home) // above the account switcher
+  })
+
   it('searchButtonIsNamedSearchWithTheShortcutAsAHint', async () => {
     renderSidebar()
     // QA-51: the shortcut text made the name "Search Ctrl K"

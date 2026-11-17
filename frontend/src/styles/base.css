@@ -4,7 +4,7 @@ html, body { overflow-x: clip; }
 body { margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.5; color: var(--ink); background: var(--ground); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; }
 h1, h2, h3 { margin: 0; font-family: var(--font-title); font-weight: 500; text-wrap: balance; }
-h1 { font-size: 44px; line-height: 1.1; letter-spacing: -0.015em; }
+h1 { font-size: 28px; line-height: 1.1; letter-spacing: -0.01em; }
 h2 { font-size: 26px; line-height: 1.25; letter-spacing: -0.01em; }
 h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
 /* A heading that labels a block (panel section head), not a title: stays in the UI font. */

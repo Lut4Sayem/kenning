@@ -13,6 +13,7 @@ If code and this file disagree, this file wins. Change this file first, then the
 
 | Topic | Decision |
 |---|---|
+| Look | (2026-11-17, D0) **Ledger**: the page panel has a hairline edge instead of a shadow, radii 6–10px, 28px titles (32px page title), Outfit 600 section heads, quicker motion (90–140ms). Yellow only on drafts and the selection. |
 | Structure | Linear: left sidebar with fixed sections, a white page panel, an optional right details panel. Every feature has one obvious home. |
 | Palette | Warm grey ground, white page panel, near-black primary, one yellow accent. |
 | Body / UI font | **Outfit** 400/500/600/700 (Google Fonts). |
@@ -21,11 +22,16 @@ If code and this file disagree, this file wins. Change this file first, then the
 | Page tree | Indentation only. **No guide lines** (the 2026-11-09 wireframe idea is dropped). |
 | Page colour | Each page can carry one colour dot, picked by the user from the page palette (section 2). |
 | Page icons | **No emoji anywhere.** Until the custom vector icon set exists, a page icon is a line glyph in a soft tint tile (section 6). |
-| Auth screens | Split screen: form on the left (white, no card), a real product preview on the right (ground colour, bleeding off the edge). |
+| Auth screens | (2026-11-17, D0) One centred form card on a decorative stage: dot grid that fades out around the form, six app fragments joined to the card by thin curves, two named cursors, a Newsreader tagline above the form. Replaces the split screen with the product preview. |
 | Page view | Notion-style properties block under the title (Status, Tags, Last edited). No full-width draft bar. Comments, Files and Summary live in the right panel. |
 | List views | Linear-style: no big title, slim view tabs + filter/display icons, icon column headers, compact rows, grouped with header rows. |
 | Right panel | Details (members, activity, history) live in a right panel the user opens and closes from the top bar. Never stacked under the main content. |
 | Lists | Every list on an overview screen has a hard cap and a "View all" link (section 8). Nothing grows with team size. |
+
+**Tokens changed by Ledger (2026-11-17)**, old → new: `--hover` #e4e3df → #e6e5e1 · `--line` .09 → .12 · `--line-soft` .06 → .08 ·
+`--pill-bg` #efeeea → #ffefb0 · `--pill-ink` #4a4843 → #5a4500 · `--r-row` 8 → 6 · `--r-lg` 12 → 8 · `--r-card` 14 → 8 · `--r-panel` 18 → 10 ·
+`--shadow-2` (panel shadow) → none · `--dur-fast` 120ms → 90ms · `--dur` 180ms → 140ms · `--ease-out` cubic-bezier(0.2, 0.8, 0.2, 1) → cubic-bezier(0.2, 0.9, 0.3, 1) ·
+`--panel-inset` 10 → 8 · `--topbar-height` 56 → 48 · `--sidebar-width` 264 → 248.
 
 ## 1. Principles
 
@@ -47,13 +53,13 @@ All colours go through these CSS variables. No raw colour values in components.
 | `--canvas` | `#ffffff` | The page panel, cards on it, inputs, dialogs |
 | `--surface-card` | `#f7f6f3` | Cards and tiles inside the white panel (recently visited, spaces) |
 | `--surface-card-hover` | `#f3f2ee` | Hover on those cards |
-| `--hover` | `#e4e3df` | Hover on sidebar rows and ghost buttons |
+| `--hover` | `#e6e5e1` | Hover on sidebar rows and ghost buttons |
 | `--ink` | `#1c1b17` | Headings, primary text |
 | `--ink-doc` | `#2f2d28` | Long reading text in pages |
 | `--ink-label` | `#3d3b36` | Form labels |
 | `--ink-muted` | `#66635c` | Meta text, counts, placeholders, icons (5.3:1 on ground) |
-| `--line` | `rgb(28 27 23 / .09)` | Input borders are NOT this (see inputs); dividers that must show |
-| `--line-soft` | `rgb(28 27 23 / .06)` | Row separators, top bar bottom, tabs |
+| `--line` | `rgb(28 27 23 / .12)` | Input borders are NOT this (see inputs); the page panel edge, the top bar bottom, card edges, the search field |
+| `--line-soft` | `rgb(28 27 23 / .08)` | Row separators, tabs |
 
 ### Brand and actions
 | Token | Value | Use |
@@ -70,7 +76,8 @@ All colours go through these CSS variables. No raw colour values in components.
 ### State
 | Token | Value | Use |
 |---|---|---|
-| `--draft-bg` / `--draft-pill` / `--draft-ink` | `#fffbea` / `#ffe48a` / `#4d3a00` | Draft pill, unread rows |
+| `--pill-bg` / `--pill-ink` | `#ffefb0` / `#5a4500` | Draft pill everywhere (lists and the properties block). Drafts are the one thing in yellow besides the selection. |
+| `--draft-bg` / `--draft-pill` / `--draft-ink` | `#fffbea` / `#ffe48a` / `#4d3a00` | Unread rows |
 | `--published-bg` / `--published-ink` | `#d9f3e1` / `#136c27` | Published pill |
 | `--callout` | `#fff6d6` | Callout blocks |
 | `--success-text` / `--warning-text` / `--error-text` | `#136c27` / `#92400e` / `#b42318` | Semantic colour as text |
@@ -108,10 +115,12 @@ Fonts load from Google Fonts with `display=swap`.
 
 | Token | Font | Size / line | Weight | Tracking | Use |
 |---|---|---|---|---|---|
-| `title-page` | Newsreader | 44 / 1.1 | 500 | -0.015em | Page title, team name, greeting |
-| `title-login` | Newsreader | 40 / 1.1 | 500 | -0.015em | Auth headings (left-aligned) |
+| `title-page` | Newsreader | 28 / 1.1 | 500 | -0.01em | Screen titles (`h1`), team name, greeting |
+| `title-doc` | Newsreader | 32 / 1.1 (28 under 640px) | 500 | -0.015em | The page title in the page view |
+| `title-login` | Newsreader | 40 / 1.1 (34 under 480px) | 400 | -0.015em | Auth headings (centred) |
+| `tagline` | Newsreader | 19 / 1.35 | 400 | 0 | The one line above the auth form, `--ink-label`, centred |
 | `title-section` | Newsreader | 26 / 1.25 | 500 | -0.01em | h2 inside a page |
-| `title-group` | Newsreader | 22 / 1.25 | 500 | -0.01em | Section heads on overview screens ("Recently visited") |
+| `title-group` | Outfit | 15 / 1.25 | 600 | 0 | Section heads on overview screens ("Recently visited") |
 | `body-doc` | Outfit | 16.5 / 1.65 | 400 | 0 | Page reading text, max 740px column |
 | `body` | Outfit | 14 / 1.5 | 400 | 0 | Default UI |
 | `body-strong` | Outfit | 14 / 1.5 | 500–600 | 0 | Nav items, list titles, buttons |
@@ -125,48 +134,49 @@ Rules: labels are sentence case, never uppercase or letter-spaced. Headings use 
 
 ```
 ┌ ground #efefec ───────────────────────────────────────────────────────────┐
-│ Sidebar 264   │ ┌ page panel (white, radius 18) ────────────┐ │ Details 288 │
-│ (on ground)   │ │ top bar 56                                │ │ (on ground, │
+│ Sidebar 248   │ ┌ page panel (white, radius 10) ────────────┐ │ Details 288 │
+│ (on ground)   │ │ top bar 48                                │ │ (on ground, │
 │               │ │ ─ content: 740 reading / 1080 overview ─   │ │  optional)  │
 │               │ └──────────────────────────────────────────┘ │             │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Page panel:** white, radius 18px, inset 10px from the window on top, right and bottom, no border, shadow `0 1px 3px rgb(20 20 15 / .06), 0 8px 24px -12px rgb(20 20 15 / .10)`.
-- **Left sidebar** (264px, on ground, no border), top to bottom:
+- **Page panel:** white, radius 10px, inset 8px from the window on top, right and bottom, a 1px `--line` hairline edge (`box-shadow: 0 0 0 1px var(--line)`), no drop shadow.
+- **Left sidebar** (248px, on ground, no border), top to bottom:
+  0. Brand: the small Kenning mark (20px) + the live-text wordmark "kenning" (Outfit 600, lowercase); links to Home ("Kenning home"). On phones the top bar shows the mark alone at 24px in a 44px tap target, also linking to Home.
   1. Workspace switcher + New page icon button
-  2. Search field (opens Ctrl+K)
+  2. Search field (opens Ctrl+K): white, 1px `--line` border, radius 6, no shadow
   3. Home · Inbox (count badge) · Recent · Bookmarks
   4. Favourites
   5. Your teams: team row (initial on a tint) → spaces → page tree
   6. Private
   7. (space) Trash (opens a picker: each team's trash, or Private) · you + Help. Separated by space, no line. No Settings: the app has no settings screen; Profile is in the account menu.
-  Rows are 32px, radius 8px. Active row: white background + soft shadow. Hovering a tree row shows `…` and `+` on the right.
-- **Top bar** (56px, inside the panel, bottom line `--line-soft`): breadcrumbs left; right side in this order: save state, avatars of people here, icon buttons (history, bookmark), the one primary button, `…`, then the details-panel toggle (last, far right). No Share button in Release 1a (sharing is 1b).
+  Rows are 32px, radius 6px. Active row: `--hover` background, no shadow. Group labels have 16px above them. Hovering a tree row shows `…` and `+` on the right.
+- **Top bar** (48px, inside the panel, bottom line `--line`): breadcrumbs left; right side in this order: save state, avatars of people here, icon buttons (history, bookmark), the one primary button, `…`, then the details-panel toggle (last, far right). No Share button in Release 1a (sharing is 1b).
 - **Team sub-navigation:** on team screens a slim row (44px) under the top bar: Overview · Pages · Members · Requests (count) · Trash. Active tab = `--surface-card-hover` pill. Only Overview repeats the team name as a big title.
 - **Right details panel** (288px, on ground, outside the white panel, no border). Opens and closes from the top-bar toggle and its own close button; remembers its state per screen. Holds members, activity, version history. Section heads are `caption` muted with a link on the right ("Manage", "View all").
-- **Content widths:** reading pages 740px; overview screens 1080px (Home 920px). Page padding 40px, 56px from the top on Home.
+- **Content widths:** reading pages 740px (40px from the top); overview screens 1080px (Home 1040px). Page padding 40px, 32px from the top on Home and team screens.
 - **Spacing:** 4px base. Use 4, 8, 12, 16, 20, 24, 32, 40, 56, 64. Tight inside a group (4–8), generous between groups (24–40).
 
 ## 5. Shapes and depth
 
-Radius: 4 tiny chips · 5 tags · 8 sidebar rows, small buttons, inputs · 12 callouts, cards' inner parts · 14 cards · 18 page panel · 20 dialogs · 999 pills, avatars, top-bar buttons.
+Radius (Ledger, 2026-11-17): 4 tiny chips · 5 tags · 6 sidebar rows (`--r-row`) and rectangular buttons (top bar, Home, team screens, danger zone) · 8 cards (`--r-card`), inputs and callouts (`--r-lg`), the 40px page icon tile, danger rows · 10 page panel (`--r-panel`) · 18 the auth form card · 20 dialogs · 999 pills, avatars, the auth submit button.
 
-Borders for structure (list rows, tabs, inputs), shadows for lift (panel, active sidebar row, menus, dialogs). Nested radii: outer = inner + padding.
+Borders for structure (list rows, tabs, inputs, cards, the page panel edge), shadows only for things that float (menus, dialogs, toasts). Nested radii: outer = inner + padding.
 
 | Level | Shadow | Use |
 |---|---|---|
-| 0 | none | Cards on white (they use `--surface-card`) |
-| 1 | `0 1px 2px rgb(20 20 15 / .08)` | Active sidebar row, search field |
-| 2 | page panel shadow above | The page panel |
+| 0 | none | Cards on white (white with a `--line` edge) |
+| 1 | `0 1px 2px rgb(20 20 15 / .08)` | Segmented control's active segment |
+| 2 | `none` (`--shadow-2`) | The page panel uses the hairline edge instead |
 | 3 | `0 12px 32px -12px rgb(20 20 15 / .18), 0 0 0 1px rgb(28 27 23 / .06)` | Menus, Ctrl+K, dialogs, toasts |
 
 ## 6. Components
 
 - **Buttons:** height 30 (top bar) or 40 (forms), radius 999, `small`/`body` 500. Primary = black with white text. Ghost = transparent + `--line` border. Icon button = 28×28, radius 8, muted icon, hover `--hover`. Press: scale 0.96 over 150ms. Disabled: 50% opacity, no press.
 - **Inputs:** 40px, white, 1px border `#8f8b84` (3.4:1 on white; lighter greys fail the 3:1 rule), radius 12, label above (13/500 `--ink-label`). Focus: black border + 3px `--ring` glow.
-- **List row:** 42px, bottom line `--line-soft`, lead (dot or icon) · title 500 · location muted · status pill · avatar · time (tabular, right).
-- **Card (recently visited, spaces):** `--surface-card`, radius 14, padding 16, icon/dot top, title 600, meta row at the bottom (location left, time right). No border; a `--line` border appears on hover.
+- **List row:** 38px, bottom line `--line-soft`, lead (dot or icon) · title 500 · location muted · status pill · avatar · time (tabular, right).
+- **Card (recently visited, spaces):** white with a 1px `--line` edge, radius 8, padding 14, min height 92, icon/dot top, title 600, meta row at the bottom (location left, time right). The edge turns `--ink-muted` on hover.
 - **Tabs:** no underline tabs. Use the team sub-navigation pills (section 4) or the segmented control.
 - **Pills:** 11–12px 600, radius 999. Draft, Published, roles, count.
 - **Tags:** 12px 600, radius 999, tint pair.
@@ -174,7 +184,7 @@ Borders for structure (list rows, tabs, inputs), shadows for lift (panel, active
 - **Callout:** `--callout` background, radius 12, padding 16, icon + text.
 - **Draft state:** shown in the page's properties block (Draft pill + one sentence + "Compare"), never as a full-width bar.
 - **Icons:** one line icon set, 16px, stroke 1.4–1.5, `currentColor`. Never emoji for UI icons.
-- **Icon tile:** a line glyph (`currentColor`) centred in a rounded square with a tint background: 20px/radius 6 in group headers, 36px/radius 10 in result and trash rows, 52px/radius 14 as the page icon above the title.
+- **Icon tile:** a line glyph (`currentColor`) centred in a rounded square with a tint background: 20px/radius 6 in group headers, 36px/radius 10 in result and trash rows, 40px/radius 8 as the page icon above the title.
 - **Properties block (page view):** two-column grid (label column 120px, muted, with a 14px icon; value column ink). Rows 32px. Draft = soft yellow pill with a dot; tags with "+ Add"; last edited = avatar, name, time.
 - **Segmented control:** pill track `--surface-card-hover`, active segment white + level-1 shadow, counts in an 11px badge. Used for Trash/Archived, result types, Inbox filters, panel tabs.
 - **View bar (list screens):** view tabs as small pills on the left, active filters as yellow chips with ×, Filter and Display icon buttons on the right.
@@ -203,7 +213,7 @@ Borders for structure (list rows, tabs, inputs), shadows for lift (panel, active
 - **Profile:** two cards: You (88px avatar with camera button, upload/remove, name, read-only email, Save) and My teams (team tile, name, role pill).
 - **Inbox (Release 1b):** segmented Unread · All · Mentions, team filter, notifications grouped Today / Earlier on a `--surface-card` panel, unread rows soft yellow with a dot, a type tile (mention, comment, join request, publish), Mark all read, Load more.
 - **Version history:** opens in the right panel. Versions grouped by day (avatar, name, kind: Autosaved / Published / Restored, time); the current one has a "Current" pill. Selecting one shows a bar above the page ("Viewing version 11 by …") and highlights changes in the page, one colour per author with a legend at the top of the panel. Restore this version (primary) and Compare with current at the bottom.
-- **Login / register / join:** split screen, no sidebar. Left half white: brand top left (the Kenning mark, small version under 32px, plus the live-text wordmark "kenning" in Outfit 600), footer bottom ("© year Kenning" left, "Source on GitHub" right), a 380px left-aligned form column centred vertically: `title-login` heading, one line, 44px inputs, full-width black 46px button, link to the other auth page. Right half `--ground` with a real app preview (shell + page) scaled to 72%, offset 64px from the left and top and bleeding off the edges, level-2 shadow, not interactive. Join leads with the team (52px tile, name, "N members · invited by …"), then who you are signed in as ("Not you?"), Ask to join, and one line on what happens next; it needs `GET /api/team-invites/{code}` and falls back to "Join a team" without it.
+- **Login / register / join:** no sidebar. A decorative stage fills the window (`--ground`, aria-hidden, nothing focusable, never catches the pointer): a 28px dot grid that fades out around the form, a soft yellow glow behind it, six app fragments (a page card, a meeting note with to-dos, an API call, a Files list, a named version, a Published pill) each joined to the form card by a thin soft S-curve with small end circles (leaves the fragment flat, arrives at the card flat, controls at 45%/55% of the width). Every curve rises or falls at least 48px: the card-side end moves toward or away from the card's vertical centre, never the fragment; where 48px does not fit it becomes a gentle double wave (two ~20px bends). Three depths keep it calm and balanced side to side, and each curve takes its fragment's opacity: clear (1) API design notes, the Published pill, Ayesha's cursor; half (0.55) Weekly sync, the POST card, Rafi's cursor; faded (0.25, scale 0.94, 0.5px blur) Before the demo and Files; and two named cursors (Ayesha `--cursor-a`, Rafi `--cursor-b`) on a slow 60s drift. Nothing moves under reduced motion. The page card hides below 1200px (it cannot keep 48px from the form card there). 700–1100px: only the Published pill and the cursors. Under 700px: only the Published pill and Ayesha's cursor, in an 84px band under the brand. Brand centred at the top (the small Kenning mark plus the live-text wordmark "kenning", Outfit 600), footer at the bottom ("© year Kenning" left, "Source on GitHub" → github.com/Lut4Sayem/kenning right). The form is one white card centred in the window: max 440px, padding 32 (24/20 under 700px), radius 18, a `--line` edge plus a soft drop shadow. Inside, centred: the `tagline` "Your team’s knowledge, in one place.", the `title-login` heading at weight 400, one muted line; then left-aligned 44px inputs, a full-width black 46px button, and a centred link to the other auth page. Join puts the team (52px tile, name, "N members · invited by …") under the tagline, then who you are signed in as ("Not you?"), Ask to join, and one line on what happens next; it needs `GET /api/team-invites/{code}` and falls back to "Join a team" without it.
 
 ## 8. Bounded lists (non-negotiable)
 
@@ -226,7 +236,7 @@ Sentences never contain counts that grow with the team ("100 people changed 50 p
 
 ## 9. Motion
 
-150–200ms, ease-out. Animate only `opacity`, `transform`/`scale` and `background-color`; never `transition: all`. Hover feedback is instant or ≤150ms. Panels slide 200ms. Everything respects `prefers-reduced-motion: reduce` (fall back to an opacity fade). No page-load sequences.
+90–140ms (`--dur-fast` 90ms for hover and press, `--dur` 140ms for panels and menus), ease-out `cubic-bezier(0.2, 0.9, 0.3, 1)`. Animate only `opacity`, `transform`/`scale` and `background-color`; never `transition: all`. Hover feedback is instant or ≤140ms. Panels slide in `--dur`. The auth stage is the one exception: slow ambient drift (a 60s cursor path, a 14s glow), fully still under reduced motion. Everything respects `prefers-reduced-motion: reduce` (fall back to an opacity fade). No page-load sequences.
 
 ## 10. Accessibility (non-negotiable)
 

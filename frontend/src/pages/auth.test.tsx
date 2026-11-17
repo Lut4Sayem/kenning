@@ -79,6 +79,21 @@ describe('invite links while logged out (QA-04)', () => {
   })
 })
 
+describe('AuthLayout (D0)', () => {
+  it('showsTheTaglineAndADecorativeStage', async () => {
+    const { container } = render(<MemoryRouter><Login /></MemoryRouter>)
+    expect(screen.getByText('Your team’s knowledge, in one place.')).toBeTruthy()
+    const stage = container.querySelector('[data-auth-stage]')!
+    expect(stage.getAttribute('aria-hidden')).toBe('true')
+    expect(stage.querySelector('a, button, input, [tabindex]')).toBeNull()
+  })
+
+  it('footerLinksToTheRenamedRepo', () => {
+    render(<MemoryRouter><Login /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Source on GitHub' }).getAttribute('href')).toBe('https://github.com/Lut4Sayem/kenning')
+  })
+})
+
 describe('Register', () => {
   it('registerValidatesPasswordLength8', async () => {
     render(<MemoryRouter><Register /></MemoryRouter>)
