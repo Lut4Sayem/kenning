@@ -20,7 +20,10 @@
 .lines path { fill: none; stroke: var(--ink-muted); stroke-opacity: 0.38; stroke-width: 1.1; }
 .lines circle { fill: var(--canvas); stroke: var(--ink-muted); stroke-opacity: 0.55; stroke-width: 1.1; }
 
-.frag { position: absolute; opacity: 0.9; }
+.frag { position: absolute; }
+/* three depths keep the stage calm; each connector copies its fragment's opacity */
+.half { opacity: 0.55; }
+.faded { opacity: 0.25; scale: 0.94; filter: blur(0.5px); }
 .card, .note, .code, .files, .version {
   padding: 14px 16px; border-radius: var(--r-card); background: var(--canvas); box-shadow: var(--st-shadow);
   color: var(--ink); font-size: 13px; line-height: 1.45;
