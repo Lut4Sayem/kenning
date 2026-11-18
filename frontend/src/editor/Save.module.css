@@ -5,6 +5,8 @@
 .failed { color: var(--error-text); }
 .failed .dot { background: var(--error-text); }
 .saved .dot, .recovered .dot { display: none; }
+/* D-06: on phones the quiet "Saved" gives its room to the space name; still announced, and every other state stays visible */
+@media (max-width: 640px) { .saved { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
 
 .notice { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0 0 12px; padding: 10px 10px 10px 14px; border-radius: var(--r-card); background: var(--callout); font-size: 13.5px; color: var(--ink); }
 .notice > span { flex: 1; min-width: 12em; }
