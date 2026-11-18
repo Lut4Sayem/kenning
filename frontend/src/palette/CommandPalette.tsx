@@ -30,10 +30,11 @@ interface Props {
 export const placeOf = (teamName: string | null | undefined, spaceName: string | null | undefined) =>
   teamName == null ? 'Private' : [teamName, spaceName].filter(Boolean).join(' / ')
 
-/** The typed prefix of a title in a mark (the local title search is a prefix match). */
-export function markPrefix(title: string, term: string): ReactNode {
-  if (!term || !title.toLowerCase().startsWith(term.toLowerCase())) return title
-  return <><mark>{title.slice(0, term.length)}</mark>{title.slice(term.length)}</>
+/** The first place the typed term appears in a title, in a mark (title matches are case-insensitive, anywhere: D-04). */
+export function markMatch(title: string, term: string): ReactNode {
+  const i = term ? title.toLowerCase().indexOf(term.toLowerCase()) : -1
+  if (i < 0) return title
+  return <>{title.slice(0, i)}<mark>{title.slice(i, i + term.length)}</mark>{title.slice(i + term.length)}</>
 }
 
 /** Ctrl+K palette (task 7.2). Mounted by the Shell; the Shell also owns the shortcut and the focus return. */
@@ -85,21 +86,27 @@ function Palette({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t)
   }, [term])
 
-  // Title prefix match over the trees the sidebar has already loaded: instant, no request.
+  // Title match over the trees the sidebar has already loaded: instant, no request.
   const all = spaces.data ?? []
   const trees = qc.getQueriesData<NodeSummary[]>({ queryKey: ['tree'] })
   const lower = term.toLowerCase()
   const local = !term ? [] : trees.flatMap(([key, nodes]) =>
-    (nodes ?? []).filter((n) => n.title.toLowerCase().startsWith(lower)).map((n) => ({ ...n, spaceId: String(key[1]) })),
+    (nodes ?? []).filter((n) => n.title.toLowerCase().includes(lower)).map((n) => ({ ...n, spaceId: String(key[1]) })),
   )
   const localIds = new Set(local.map((n) => n.id))
+  // Server hits whose title holds the term are page (title) matches too: the sidebar has not loaded every tree.
+  const titled = content.filter((h) => h.nodeId && !localIds.has(h.nodeId) && h.title.toLowerCase().includes(lower))
+  const pageIds = new Set([...localIds, ...titled.map((h) => h.nodeId)])
   const pages = term
-    ? local.map((n) => {
-      const sp = all.find((x) => x.id === n.spaceId)
-      return { id: n.id, title: n.title, color: n.color, place: sp ? placeOf(sp.teamName, sp.name) : '' }
-    })
+    ? [
+      ...local.map((n) => {
+        const sp = all.find((x) => x.id === n.spaceId)
+        return { id: n.id, title: n.title, color: n.color, place: sp ? placeOf(sp.teamName, sp.name) : '' }
+      }),
+      ...titled.map((h) => ({ id: h.nodeId!, title: h.title, color: h.color, place: placeOf(h.teamName, h.spaceName) })),
+    ]
     : (recent.data ?? []).map((h) => ({ id: h.nodeId!, title: h.title, color: h.color, place: placeOf(h.teamName, h.spaceName) }))
-  const inContent = content.filter((h) => h.nodeId && !localIds.has(h.nodeId))
+  const inContent = content.filter((h) => h.nodeId && !pageIds.has(h.nodeId))
 
   // "Current project" = the space whose tree holds the open page, else the private space, else the first one.
   const currentId = trees.find(([, nodes]) => nodes?.some((n) => n.id === activeId))?.[0][1]
@@ -174,7 +181,7 @@ function Palette({ onClose }: { onClose: () => void }) {
               {cap(pages, 'pages').map((p) => (
                 <Command.Item key={p.id} value={`page-${p.id}`} onSelect={() => open(p.id)} className={s.item}>
                   <span className={s.dot} style={{ background: dotColour(p.color) }} aria-hidden="true" />
-                  <span className={s.title} title={p.title || 'Untitled'}>{markPrefix(p.title || 'Untitled', term)}</span>
+                  <span className={s.title} title={p.title || 'Untitled'}>{markMatch(p.title || 'Untitled', term)}</span>
                   {p.place && <span className={s.chip}>{p.place}</span>}
                   {go}
                 </Command.Item>

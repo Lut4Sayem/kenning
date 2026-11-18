@@ -153,6 +153,22 @@ describe('command palette', () => {
     expect(pressed()[0]).toMatch(/^Pages/)
   })
 
+  it('titleMatchesAnywhereGoInPagesAndRankAboveContent', async () => {
+    api.searchAll.mockResolvedValue([
+      { ...hit('c1', 'Budget'), snippetHtml: 'uses <mark>retrieval</mark>' },
+      hit('t1', 'Dense Retrieval notes'),
+    ])
+    setup()
+    await userEvent.keyboard('{Control>}k{/Control}retrieval')
+    await screen.findByText('in Budget')
+    const options = screen.getAllByRole('option').map((o) => o.textContent)
+    expect(options[0]).toContain('Dense Retrieval notes') // the title match comes first in All
+    expect(screen.queryByText('in Dense Retrieval notes')).toBeNull() // and is not repeated under content
+    await userEvent.keyboard('{Tab}')
+    expect(screen.getAllByRole('button', { pressed: true })[0].textContent).toMatch(/^Pages\s*1/)
+    expect(screen.getByRole('option', { name: /Dense Retrieval notes/ })).toBeTruthy()
+  })
+
   it('showsAtMostFivePerGroupInAll', async () => {
     api.getRecent.mockResolvedValue(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => hit(x, `Page ${x}`)))
     setup()
