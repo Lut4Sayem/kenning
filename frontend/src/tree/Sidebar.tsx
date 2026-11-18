@@ -71,7 +71,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
         <NavLink to="/recent" className={({ isActive }) => cx(s.navLink, isActive && s.active)}><Icon name="clock" />Recent</NavLink>
       </div>
 
-      <div className={s.labelRow}>
+      <div className={s.labelRow} data-row>
         <h2 className={s.label}>Your teams</h2>
         <button type="button" className={s.rowBtn} aria-label="New team" title="New team" onClick={() => setNewTeam(true)}><Icon name="plus" /></button>
       </div>

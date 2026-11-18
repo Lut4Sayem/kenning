@@ -28,7 +28,7 @@
 .labelRow { display: flex; align-items: center; padding-right: var(--space-1); }
 .labelRow .label { flex: 1; }
 .labelRow .rowBtn { width: 24px; } /* section-header + keeps its width; only tree rows collapse theirs */
-.labelRow:hover .rowBtn, .labelRow:focus-within .rowBtn { opacity: 1; }
+.labelRow:hover .rowBtn, .labelRow:focus-within .rowBtn, .labelRow[data-touched] .rowBtn { opacity: 1; }
 .label { margin: 0; padding: 16px 10px 4px; font-family: var(--font-sans); color: var(--ink-muted); font-size: 12px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .group { display: flex; flex-direction: column; gap: 2px; }
 .groupRow { display: flex; align-items: center; gap: 2px; height: 32px; padding-right: var(--space-1); border-radius: var(--r-row); }

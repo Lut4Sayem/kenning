@@ -45,6 +45,13 @@ afterEach(() => {
 })
 
 describe('Sidebar', () => {
+  it('aFingerTapOnTheTeamsLabelShowsItsNewTeamButton', async () => { // touch tablets in the docked layout have no hover
+    renderSidebar()
+    const row = (await screen.findByRole('button', { name: 'New team' })).closest('[data-row]')!
+    row.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true }), { pointerType: 'touch' }))
+    expect(row.hasAttribute('data-touched')).toBe(true)
+  })
+
   it('brandAtTheTopLinksHome', async () => {
     renderSidebar()
     const home = await screen.findByRole('link', { name: 'Kenning home' })
