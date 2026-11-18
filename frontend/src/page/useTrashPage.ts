@@ -18,6 +18,7 @@ export function useTrashPage(node: Pick<NodeDetail, 'id' | 'spaceId' | 'title'>)
     await trashNode(node.id)
     await qc.invalidateQueries({ queryKey: ['tree', node.spaceId] })
     if (isOpen) navigate('/')
+    else await qc.invalidateQueries({ queryKey: ['node'] }) // an open sub-page went with it: its refresh shows the server's notice
     toast(`Moved “${node.title || 'Untitled'}” to trash`, 'info', {
       action: {
         label: 'Undo',
