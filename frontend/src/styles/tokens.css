@@ -47,8 +47,8 @@
   --tint-gray-bg: #f0eeec;     --tint-gray-fg: #37352f;
 
   /* Page colours (the dot a user picks per page); default gray */
-  --page-gray: #9b9a97;   --page-brown: #93694f;  --page-orange: #d9730d;
-  --page-yellow: #dfab01; --page-green: #0f7b6c;  --page-blue: #2e7dbb;
+  --page-gray: #787774;   --page-brown: #93694f;  --page-orange: #b05a0a;
+  --page-yellow: #9a7200; --page-green: #0f7b6c;  --page-blue: #2e7dbb;
   --page-purple: #8a5cc4; --page-pink: #c4337c;   --page-red: #e03e3e;
 
   /* Type */
