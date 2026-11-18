@@ -23,9 +23,12 @@ export function useRowTouch() {
   }, [])
 }
 
+/** The row menu's Move dialog is a DOM child of the row: its presses must not drag the page or open the row menu. */
+export const inDialog = (e: React.SyntheticEvent) => e.target instanceof Element && !!e.target.closest('dialog')
+
 /** Right-click on a row opens its "…" menu (QA-18). A finger's long press is a drag, so touch is left alone. */
 export function openRowMenu(e: React.MouseEvent<HTMLElement>) {
-  if (lastPointer === 'touch') return
+  if (lastPointer === 'touch' || inDialog(e)) return
   const more = e.currentTarget.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')
   if (!more) return // no menu (viewers): keep the browser's own
   e.preventDefault()

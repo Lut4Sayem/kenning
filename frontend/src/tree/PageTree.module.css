@@ -28,7 +28,8 @@
 /* Phone (the sidebar is the drawer): + and … on every row, 40px rows; a long press drags, so the grip only shows for the
    keyboard. Width, never hover/pointer queries: touch laptops with a mouse match those (D-02 redo). */
 @media (max-width: 639.98px) {
-  .row { height: 40px; -webkit-touch-callout: none; user-select: none; }
+  .row { height: 40px; }
+  .link { -webkit-touch-callout: none; user-select: none; } /* not the row: the Move dialog inside it keeps selectable text */
   .btn, .row:hover .btn, .row:focus-within .btn, .row[data-touched] .btn { opacity: 1; width: 40px; height: 40px; }
   .grip, .row:hover .grip, .row:focus-within .grip, .row[data-touched] .grip { opacity: 0; width: 0; }
   .row .grip:focus-visible { opacity: 1; width: 40px; }

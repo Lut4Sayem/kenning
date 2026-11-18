@@ -10,7 +10,7 @@ import { buildTree, type TreeNode } from './buildTree'
 import TreeDnd, { useTreeDnd } from './TreeDnd'
 import s from './PageTree.module.css'
 import { useCreatePage } from './useCreatePage'
-import { openRowMenu } from './useRowTouch'
+import { inDialog, openRowMenu } from './useRowTouch'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 const storageKey = (spaceId: string) => `kf.expanded.${spaceId}`
@@ -184,7 +184,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
         ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el) }}
         className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
         style={{ paddingLeft: depth * 12 }} data-row
-        onTouchStart={canEdit ? (onTouchStart as React.TouchEventHandler) : undefined} onContextMenu={openRowMenu}
+        onTouchStart={canEdit ? (e) => { if (!inDialog(e)) (onTouchStart as React.TouchEventHandler)(e) } : undefined} onContextMenu={openRowMenu}
       >
         <button type="button" tabIndex={-1} className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
