@@ -26,7 +26,9 @@
 .topDrop.over { background: var(--canvas); }
 .note { margin: 0; padding: var(--space-1) var(--space-2); color: var(--ink-muted); font-size: 12px; }
 /* Phone (the sidebar is the drawer): + and … on every row, 40px rows; a long press drags, so the grip only shows for the
-   keyboard. Width, never hover/pointer queries: touch laptops with a mouse match those (D-02 redo). */
+   keyboard. Width, never hover/pointer queries: touch laptops with a mouse match those (D-02 redo).
+   shortcut: a mouse in a window under 640px can't drag (no grip); it uses Move to… in the row menu. Add the grip back here
+   if that becomes a need. */
 @media (max-width: 639.98px) {
   .row { height: 40px; }
   .link { -webkit-touch-callout: none; user-select: none; } /* not the row: the Move dialog inside it keeps selectable text */
