@@ -223,7 +223,7 @@ function RowMenu({ id, title, personal, tabIndex }: { id: string; title: string;
   const [wanted, setWanted] = useState(false)
   const { data } = useQuery({ queryKey: ['node', id], queryFn: () => getNode(id), enabled: wanted })
   const label = `More actions for ${title}`
-  if (data) return <PageMenu node={data} unsaved={false} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} />
+  if (data) return <PageMenu node={data} unsaved={false} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} className={s.menuHost} />
   return (
     <button type="button" tabIndex={tabIndex} className={s.btn} aria-label={label} aria-haspopup="menu" aria-expanded={false} onClick={() => setWanted(true)}>
       <Icon name="more" />

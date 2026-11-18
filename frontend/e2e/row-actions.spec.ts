@@ -39,7 +39,11 @@ test('wide layout with a mouse: names in full, row buttons on hover, right-click
   const row = space.getByRole('treeitem', { name: 'Methodology' })
   expect(await width(space.getByRole('button', { name: 'More actions for Methodology' }))).toBe(0)
   await row.click({ button: 'right' })
-  await expect(page.getByRole('menu', { name: 'More actions for Methodology' }).getByRole('menuitem', { name: 'Move to trash' })).toBeVisible()
+  const menu = page.getByRole('menu', { name: 'More actions for Methodology' })
+  await expect(menu.getByRole('menuitem', { name: 'Move to trash' })).toBeVisible()
+  const [m, nav] = [(await menu.boundingBox())!, (await page.getByRole('navigation', { name: 'Workspace' }).boundingBox())!]
+  expect(m.x).toBeGreaterThanOrEqual(nav.x) // inside the sidebar, which clips anything wider
+  expect(m.x + m.width).toBeLessThanOrEqual(nav.x + nav.width)
 })
 
 test('phone drawer: every row shows … and +, no grip', async ({ page }) => {

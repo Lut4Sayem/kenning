@@ -34,6 +34,9 @@
   .grip, .row:hover .grip, .row:focus-within .grip, .row[data-touched] .grip { opacity: 0; width: 0; }
   .row .grip:focus-visible { opacity: 1; width: 40px; }
 }
+/* The row menu hangs from the row, not the … button, so it stays inside the 232px sidebar (the scroll box clips it) */
+.row .menuHost { position: static; }
+.row .menuHost > [role='menu'], .row .menuHost > p { left: 0; right: 0; width: auto; min-width: 0; }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
 
 .skelList { display: flex; flex-direction: column; gap: 10px; padding: 8px 10px 8px 22px; }

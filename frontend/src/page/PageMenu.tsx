@@ -27,6 +27,7 @@ interface Props {
   buttonClass?: string
   tabIndex?: number
   defaultOpen?: boolean
+  className?: string
 }
 
 interface Item {
@@ -51,7 +52,7 @@ export function useUnarchive(node: Pick<NodeDetail, 'id' | 'spaceId'>) {
 }
 
 /** The "..." menu of a page (wireframe Main). Only for page editors, even when the page is locked or archived. */
-export default function PageMenu({ node, unsaved, personal, label = 'Page actions', buttonClass = m.btn, tabIndex, defaultOpen = false }: Props) {
+export default function PageMenu({ node, unsaved, personal, label = 'Page actions', buttonClass = m.btn, tabIndex, defaultOpen = false, className }: Props) {
   const qc = useQueryClient()
   const trash = useTrashPage(node)
   const unarchive = useUnarchive(node)
@@ -141,7 +142,7 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
   }
 
   return (
-    <div className={m.root} ref={root} onKeyDown={onKeyDown}>
+    <div className={className ? `${m.root} ${className}` : m.root} ref={root} onKeyDown={onKeyDown}>
       <button ref={button} type="button" className={buttonClass} tabIndex={tabIndex} aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <Icon name="more" />
       </button>
