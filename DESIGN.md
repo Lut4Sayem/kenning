@@ -242,7 +242,7 @@ Sentences never contain counts that grow with the team ("100 people changed 50 p
 
 Text ≥ 4.5:1, large text and input borders ≥ 3:1. Visible `:focus-visible` on everything (2px black outline, 2px offset). Real `<button>`/`<a>`, labels tied to inputs, `aria-label` on icon buttons, `aria-live` for toasts. Skip-to-content link. Touch targets ≥ 40px on touch screens (`pointer: coarse`). No horizontal scroll at 360px.
 
-Breakpoints: **1024px and up** the full shell. **640–1023px** a menu button opens and folds the sidebar (remembered); the right panel floats over the page (level 3) and starts closed. **Under 640px** the sidebar is an off-canvas drawer (max 300px, scrim, Esc and a close button, the page behind is inert, closes on navigation) opened from a menu button at the left of the top bar; the right panel is a full-screen sheet on the ground colour with its own close button.
+Breakpoints: **1024px and up** the full shell. **640–1023px** a menu button opens and folds the sidebar (remembered); the right panel floats over the page (level 3) and starts closed. **Under 640px** the sidebar is an off-canvas drawer (max 300px, scrim, Esc and a close button, the page behind is inert, closes on navigation) opened from a menu button at the left of the top bar; the right panel is a full-screen sheet on the ground colour with its own close button. Team screens (D-05) move their sections (Overview, Pages, Members, Requests, Trash) into a 60px bottom tab bar (icon over an 11px label, a count badge on Requests) and show the top bar actions as 40px icon buttons.
 
 ## 11. Do / Don't
 

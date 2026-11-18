@@ -32,5 +32,24 @@
 @keyframes pulse { 50% { opacity: 0.55; } }
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
 
-@media (max-width: 640px) { .column { padding: 24px 16px 48px; } .actions .ghostBtn { display: none; } }
-@media (max-width: 639.98px) { .subnav { gap: 0; padding: 0 6px; } .tab { padding: 0 8px; } }
+.tabIcon { display: none; }
+@media (max-width: 640px) { .column { padding: 24px 16px 48px; } }
+/* D-05 C: phones get icon-only top bar actions and a bottom tab bar for the team sections */
+@media (max-width: 639.98px) {
+  .actions { gap: 2px; }
+  .primaryBtn, .ghostBtn { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .ghostBtn { border-color: transparent; color: var(--ink-muted); }
+  .primaryBtn .label, .ghostBtn .label { display: none; }
+  .iconBtn { width: 40px; height: 40px; }
+  .subnav {
+    position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0;
+    height: calc(60px + env(safe-area-inset-bottom)); padding: 0 0 env(safe-area-inset-bottom); overflow: visible;
+    border-top: 1px solid var(--line-soft); border-bottom: 0; background: var(--canvas);
+  }
+  .tab { position: relative; flex-direction: column; justify-content: center; gap: 2px; height: 100%; padding: 0; border-radius: 0; font-size: 11px; font-weight: 600; }
+  .tab.active { background: none; color: var(--ink); }
+  .tab.active .tabIcon { stroke-width: 2; }
+  .tabIcon { display: block; }
+  .tab .count { position: absolute; top: 6px; left: calc(50% + 4px); }
+  [data-bleed]:has(> .subnav) { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+}
