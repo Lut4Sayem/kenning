@@ -162,6 +162,18 @@ describe('PageTree', () => {
     expect(await screen.findByRole('menu', { name: 'More actions for Alpha' })).toBeTruthy()
   })
 
+  it('theContextMenuKeyOpensTheRowMenuEvenAfterAFingerTap', async () => {
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }])
+    nodesApi.getNode.mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, color: null })
+    renderTree()
+    const alpha = await screen.findByRole('treeitem', { name: 'Alpha' })
+    alpha.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true }), { pointerType: 'touch' }))
+    alpha.focus()
+    await userEvent.keyboard('{Shift>}{F10}{/Shift}') // keydown first, then the browser's contextmenu
+    alpha.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    expect(await screen.findByRole('menu', { name: 'More actions for Alpha' })).toBeTruthy()
+  })
+
   it('aTapShowsThatRowsButtonsUntilTheNextTapElsewhere', async () => {
     nodesApi.getTree.mockResolvedValue(['Alpha', 'Beta'].map((title, i) => ({ id: title, parentId: null, rank: String(i), title, icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false })))
     renderTree()

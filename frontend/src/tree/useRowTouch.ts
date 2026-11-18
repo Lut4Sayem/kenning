@@ -18,8 +18,13 @@ export function useRowTouch() {
       row = hit
       row?.setAttribute('data-touched', '')
     }
+    const key = () => { lastPointer = '' } // the Menu key and Shift+F10 open the row menu even after a finger tap
     document.addEventListener('pointerdown', down, true)
-    return () => document.removeEventListener('pointerdown', down, true)
+    document.addEventListener('keydown', key, true)
+    return () => {
+      document.removeEventListener('pointerdown', down, true)
+      document.removeEventListener('keydown', key, true)
+    }
   }, [])
 }
 
