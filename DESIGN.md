@@ -179,7 +179,7 @@ Borders for structure (list rows, tabs, inputs, cards, the page panel edge), sha
 - **Card (recently visited, spaces):** white with a 1px `--line` edge, radius 8, padding 14, min height 92, icon/dot top, title 600, meta row at the bottom (location left, time right). The edge turns `--ink-muted` on hover.
 - **Tabs:** no underline tabs. Use the team sub-navigation pills (section 4) or the segmented control.
 - **Pills:** 11–12px 600, radius 999. Draft, Published, roles, count.
-- **Tags:** 12px 600, radius 999, tint pair.
+- **Tags:** 12px 600, radius 5 (`--r-tag`), tint pair.
 - **Avatar:** circle 24px (lists) / 22px (sidebar), initials 11px 700 on a tint, white 2px ring when stacked.
 - **Callout:** `--callout` background, radius 12, padding 16, icon + text.
 - **Draft state:** shown in the page's properties block (Draft pill + one sentence + "Compare"), never as a full-width bar.

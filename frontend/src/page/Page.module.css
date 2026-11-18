@@ -22,7 +22,7 @@
 @media (hover: hover) { .iconBtn:hover { background: var(--hover); color: var(--ink); } }
 .iconBtn[aria-pressed='true'] { background: var(--surface-card-hover); color: var(--ink); border-color: var(--line); }
 .publishedText { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--success-text); }
-.tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--pill-bg); color: var(--pill-ink); font-size: 12px; font-weight: 600; }
+.tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-tag); background: var(--pill-bg); color: var(--pill-ink); font-size: 12px; font-weight: 600; }
 
 /* The reading column: 740 wide, the same left edge for icon, title, properties and blocks */
 .column { max-width: var(--reading-max); margin: 0 auto; padding: 40px 32px 80px; }
@@ -49,7 +49,7 @@
 .when { font-size: 13px; color: var(--ink-muted); }
 
 .tags { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.chip { display: inline-flex; align-items: center; height: 24px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; }
+.chip { display: inline-flex; align-items: center; height: 24px; border-radius: var(--r-tag); font-size: 12px; font-weight: 600; }
 .chip a { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; color: inherit; text-decoration: none; }
 @media (hover: hover) { .chip a:hover { text-decoration: underline; text-underline-offset: 2px; } }
 /* QA-24: always shown to editors (it was display:none until hover, so screen readers in browse mode missed it) */
@@ -57,7 +57,7 @@
 .chip button:hover { opacity: 1; }
 .add { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: none; font-size: 12.5px; color: var(--ink-muted); cursor: pointer; }
 @media (hover: hover) { .add:hover { background: var(--surface-card-hover); color: var(--ink); } }
-.tagInput { width: 120px; height: 24px; padding: 0 10px; border: 1px solid var(--input-border); border-radius: var(--r-pill); font-size: 12.5px; color: var(--ink); background: var(--canvas); }
+.tagInput { width: 120px; height: 24px; padding: 0 10px; border: 1px solid var(--input-border); border-radius: var(--r-tag); font-size: 12.5px; color: var(--ink); background: var(--canvas); }
 .tagInput:focus-visible { outline: 0; border-color: var(--ink); box-shadow: 0 0 0 3px var(--ring); }
 
 .skel { display: block; border-radius: 8px; background: var(--surface-card-hover); animation: pulse 1.4s ease-in-out infinite; }
