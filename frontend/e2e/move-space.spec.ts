@@ -33,7 +33,7 @@ test('Move to… puts the page and its sub-pages in another space', async ({ pag
   await page.getByRole('button', { name: 'Page actions' }).click()
   await page.getByRole('menuitem', { name: 'Move to…' }).click()
   const dialog = page.getByRole('dialog', { name: 'Move “Methodology” to…' })
-  await expect(dialog.getByRole('radio', { name: 'Experiments' })).toBeChecked()
+  await expect(dialog.getByRole('radio', { name: 'Experiments', exact: true })).toBeChecked()
   await dialog.getByRole('button', { name: 'Move' }).click()
   await expect(dialog).toBeHidden()
 
