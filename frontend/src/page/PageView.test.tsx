@@ -130,6 +130,12 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
   })
 
   // QA-39: a Viewer sees why typing does nothing, also on a page that has content.
+  it('theIconTileTakesThePageColour', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, color: 'blue' })
+    const { view } = mount()
+    await waitFor(() => expect((view.container.querySelector('[data-page-icon]') as HTMLElement | null)?.style.getPropertyValue('--c')).toBe('var(--page-blue)'))
+  })
+
   it('aViewerSeesAViewOnlyTagInTheTopBar', async () => {
     nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW', canManage: false })
     const { topbar } = mount()

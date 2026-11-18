@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   archiveNode,
   lockNode,
@@ -22,6 +22,12 @@ interface Props {
   unsaved: boolean
   /** The page is in my private space: it can be moved into a team project. */
   personal?: boolean
+  /** The tree row's copy (QA-18): its own name, look and Tab stop; opens at once when it was asked for before it loaded. */
+  label?: string
+  buttonClass?: string
+  tabIndex?: number
+  defaultOpen?: boolean
+  className?: string
 }
 
 interface Item {
@@ -46,16 +52,28 @@ export function useUnarchive(node: Pick<NodeDetail, 'id' | 'spaceId'>) {
 }
 
 /** The "..." menu of a page (wireframe Main). Only for page editors, even when the page is locked or archived. */
-export default function PageMenu({ node, unsaved, personal }: Props) {
+export default function PageMenu({ node, unsaved, personal, label = 'Page actions', buttonClass = m.btn, tabIndex, defaultOpen = false, className }: Props) {
   const qc = useQueryClient()
   const trash = useTrashPage(node)
   const unarchive = useUnarchive(node)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [moving, setMoving] = useState<'team' | 'space' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
+
+  // Near the bottom of a scroll box (the sidebar) the list opens upward, when there is more room above. Set on the
+  // element before paint and before the first item takes focus, which would otherwise scroll the box instead.
+  useLayoutEffect(() => {
+    const list = root.current?.querySelector<HTMLElement>('[role="menu"]')
+    if (!open || !list) return
+    let box: HTMLElement | null = root.current!.parentElement
+    while (box && !/auto|scroll/.test(getComputedStyle(box).overflowY)) box = box.parentElement
+    const area = box?.getBoundingClientRect() ?? { top: 0, bottom: innerHeight }
+    const anchor = root.current!.getBoundingClientRect()
+    list.classList.toggle(m.up, list.getBoundingClientRect().bottom > area.bottom && anchor.top - area.top > area.bottom - anchor.bottom)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -136,12 +154,12 @@ export default function PageMenu({ node, unsaved, personal }: Props) {
   }
 
   return (
-    <div className={m.root} ref={root} onKeyDown={onKeyDown}>
-      <button ref={button} type="button" className={m.btn} aria-label="Page actions" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+    <div className={className ? `${m.root} ${className}` : m.root} ref={root} onKeyDown={onKeyDown}>
+      <button ref={button} type="button" className={buttonClass} tabIndex={tabIndex} aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <Icon name="more" />
       </button>
       {open && (
-        <div className={m.list} role="menu" aria-label="Page actions">
+        <div className={m.list} role="menu" aria-label={label}>
           {items.map((item) => (
             <button key={item.label} type="button" role="menuitem" disabled={!!item.blocked} title={item.blocked} onClick={() => void choose(item)}>
               {item.label}

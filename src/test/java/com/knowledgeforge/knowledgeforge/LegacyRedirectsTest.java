@@ -29,6 +29,9 @@ class LegacyRedirectsTest {
         redirects("/login.html", "/app/login");
         redirects("/login.html?next=%2Fapp%2Fp%2F1", "/app/login?next=%2Fapp%2Fp%2F1");
         redirects("/register.html", "/app/register");
+        redirects("/login", "/app/login");
+        redirects("/login?next=%2Fapp%2Fp%2F1", "/app/login?next=%2Fapp%2Fp%2F1");
+        redirects("/register", "/app/register");
         redirects("/join.html?code=ABC", "/app/join/ABC");
         redirects("/document.html?id=n1", "/app/p/n1");
         redirects("/space.html?id=s1", "/app/s/s1");

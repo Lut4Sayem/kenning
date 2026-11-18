@@ -15,6 +15,18 @@ import { SlotsContext } from './ShellSlots'
 const PHONE = '(max-width: 639.98px)'
 const NARROW = '(max-width: 1023.98px)'
 
+// The docked sidebar's width: drag its right edge, arrows step 16px, double-click resets. Remembered per browser.
+const WIDTH_KEY = 'kf.sidebar.width', MIN_W = 200, MAX_W = 420, DEFAULT_W = 248
+const clampW = (w: number) => Math.min(MAX_W, Math.max(MIN_W, Math.round(w)))
+function loadWidth() {
+  try {
+    const w = Number(localStorage.getItem(WIDTH_KEY))
+    return w ? clampW(w) : DEFAULT_W
+  } catch {
+    return DEFAULT_W
+  }
+}
+
 function useMedia(query: string) {
   const [match, setMatch] = useState(() => window.matchMedia?.(query).matches ?? false)
   useEffect(() => {
@@ -42,6 +54,14 @@ export default function Shell() {
   const narrow = useMedia(NARROW)
   const [drawer, setDrawer] = useState(false)
   const [shown, toggleShown] = useRemembered('kf.sidebar.shown', true)
+  const [width, setWidth] = useState(loadWidth)
+  useEffect(() => {
+    try {
+      localStorage.setItem(WIDTH_KEY, String(width))
+    } catch {
+      // private mode or blocked storage: the width just resets next time
+    }
+  }, [width])
   const menuBtn = useRef<HTMLButtonElement>(null)
   const drawerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -100,7 +120,8 @@ export default function Shell() {
 
   return (
     <SlotsContext.Provider value={{ topbar, details, detailsOpen, setDetailsOpen }}>
-      <div className={s.shell} data-sidebar={phone ? (drawer ? 'drawer' : 'hidden') : sidebarVisible ? 'shown' : 'hidden'}>
+      <div className={s.shell} data-sidebar={phone ? (drawer ? 'drawer' : 'hidden') : sidebarVisible ? 'shown' : 'hidden'}
+        style={{ '--sidebar-width': `${width}px` } as React.CSSProperties}>
         <a href="#main" className={s.skip}>Skip to content</a>
         {phone && drawer && <div className={s.scrim} onClick={closeDrawer} aria-hidden="true" />}
         <div
@@ -112,6 +133,23 @@ export default function Shell() {
             <button type="button" className={s.drawerClose} aria-label="Close navigation" onClick={closeDrawer}><Icon name="close" /></button>
           )}
           <Sidebar onSearch={() => { if (phone) setDrawer(false); show() }} />
+          {!phone && sidebarVisible && (
+            <div
+              role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-controls="kf-sidebar" tabIndex={0}
+              aria-valuenow={width} aria-valuemin={MIN_W} aria-valuemax={MAX_W} className={s.resize} title="Drag to resize. Double-click to reset."
+              onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId) }}
+              onPointerMove={(e) => {
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) setWidth(clampW(e.clientX - e.currentTarget.parentElement!.getBoundingClientRect().left))
+              }}
+              onDoubleClick={() => setWidth(DEFAULT_W)}
+              onKeyDown={(e) => {
+                const step = e.key === 'ArrowLeft' ? -16 : e.key === 'ArrowRight' ? 16 : 0
+                if (!step) return
+                e.preventDefault()
+                setWidth((w) => clampW(w + step))
+              }}
+            />
+          )}
         </div>
         <div ref={panelRef} className={s.panel}>
           <header className={s.topbar}>

@@ -19,12 +19,12 @@ public class LegacyRedirects {
         return found("/app/");
     }
 
-    @GetMapping("/login.html")
+    @GetMapping({"/login.html", "/login"})
     public ResponseEntity<Void> login(HttpServletRequest req) {
         return found("/app/login" + query(req));
     }
 
-    @GetMapping("/register.html")
+    @GetMapping({"/register.html", "/register"})
     public ResponseEntity<Void> register(HttpServletRequest req) {
         return found("/app/register" + query(req));
     }

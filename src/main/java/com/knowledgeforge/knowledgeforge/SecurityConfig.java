@@ -65,7 +65,7 @@ public class SecurityConfig {
                                 "/favicon.ico",
                                 "/api/auth/register",
                                 "/api/auth/login",
-                                "/login.html", "/register.html", "/dashboard.html", "/team.html", "/space.html", "/document.html", "/join.html", "/search.html", "/profile.html", // redirected to /app by LegacyRedirects
+                                "/login", "/register", "/login.html", "/register.html", "/dashboard.html", "/team.html", "/space.html", "/document.html", "/join.html", "/search.html", "/profile.html", // redirected to /app by LegacyRedirects
                                 "/actuator/health", // uptime monitor; details are off (application.properties)
                                 "/error", // so real errors (e.g. 500) aren't masked as 401 on public endpoints
                                 "/google557de5fbfde00618.html"

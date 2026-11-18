@@ -17,6 +17,7 @@ import { useLeaveTeam } from '../team/useTeamGone'
 import FormDialog from '../ui/FormDialog'
 import { useRemembered } from '../ui/useRemembered'
 import { useCreatePage } from './useCreatePage'
+import { openRowMenu, useRowTouch } from './useRowTouch'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 
@@ -37,6 +38,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
   const [newTeam, setNewTeam] = useState(false)
   const priv = (spaces.data ?? []).find((sp) => sp.ownerType === 'USER')
   const name = me.data?.fullName || me.data?.email.split('@')[0] || '' // QA-52: older accounts have no name
+  useRowTouch()
 
   async function newPrivatePage() {
     if (!priv) return
@@ -69,7 +71,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
         <NavLink to="/recent" className={({ isActive }) => cx(s.navLink, isActive && s.active)}><Icon name="clock" />Recent</NavLink>
       </div>
 
-      <div className={s.labelRow}>
+      <div className={s.labelRow} data-row>
         <h2 className={s.label}>Your teams</h2>
         <button type="button" className={s.rowBtn} aria-label="New team" title="New team" onClick={() => setNewTeam(true)}><Icon name="plus" /></button>
       </div>
@@ -81,11 +83,11 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
 
       {priv && (
         <section data-space={priv.id} aria-label="Private">
-          <div className={cx(s.groupRow, s.privateHead)}>
+          <div className={cx(s.groupRow, s.privateHead)} data-row onContextMenu={openRowMenu}>
             <h2 className={s.label}>Private</h2>
             <SpaceActions space={priv} />
           </div>
-          <PageTree spaceId={priv.id} activeId={activeId} label="Private pages" />
+          <PageTree spaceId={priv.id} activeId={activeId} label="Private pages" personal />
         </section>
       )}
 
@@ -177,12 +179,12 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
   const tint = tintOf(label)
   return (
     <section className={s.group} aria-label={label}>
-      <div className={s.groupRow}>
+      <div className={s.groupRow} data-row onContextMenu={openRowMenu}>
         <button type="button" className={s.chevBtn} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${label}`} onClick={toggle}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
         <span className={s.tile} aria-hidden="true" style={{ background: `var(--tint-${tint}-bg)`, color: `var(--tint-${tint}-fg)` }}>{initialOf(label)}</span>
-        <Link to={`/teams/${team.teamId}`} className={s.groupLink}>{label}</Link>
+        <Link to={`/teams/${team.teamId}`} className={s.groupLink} title={label}>{label}</Link>
         <TeamActions team={team} label={label} />
       </div>
       {open && (
@@ -241,11 +243,11 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
   const drop = useSpaceDrop(space.id)
   return (
     <section className={s.group} data-space={space.id} aria-label={space.name}>
-      <div ref={drop.setNodeRef} className={cx(s.groupRow, drop.isOver && s.dropOver)}>
+      <div ref={drop.setNodeRef} className={cx(s.groupRow, drop.isOver && s.dropOver)} data-row onContextMenu={openRowMenu}>
         <button type="button" className={s.chevBtn} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${space.name}`} onClick={toggle}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
-        <Link to={`/s/${space.id}`} className={s.groupLink}>{space.name}</Link>
+        <Link to={`/s/${space.id}`} className={s.groupLink} title={space.name}>{space.name}</Link>
         <SpaceActions space={space} />
       </div>
       {open && <PageTree spaceId={space.id} activeId={activeId} canEdit={canEditSpace(space)} label={`Pages in ${space.name}`} />}

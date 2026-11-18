@@ -2,7 +2,7 @@
 .top { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 4px; }
 .title { font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: 1.4; letter-spacing: 0; color: var(--ink); }
 .close { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-@media (hover: hover) { .close:hover { background: var(--hover); color: var(--ink); } }
+@media (min-width: 640px) { .close:hover { background: var(--hover); color: var(--ink); } }
 .section { padding: 0 4px; }
 .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
 .label { font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0; color: var(--ink-muted); }

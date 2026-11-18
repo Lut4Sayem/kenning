@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
 import { useLocation, useParams } from 'react-router-dom'
+import { dotColour } from '../ui/pageColour'
 import { ApiError } from '../api/client'
 import { getNode, getTrashed, publishNode, restoreBranch, unpublishNode, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
 import { getVersion, listVersions, restoreVersion } from '../api/versions'
@@ -97,6 +98,12 @@ export default function PageView() {
     const who = { id: me.data.id, name: me.data.fullName || me.data.email.split('@')[0], avatarUrl: me.data.profilePicture ?? null }
     qc.setQueryData<NodeDetail>(['node', nodeId], (n) => n && { ...n, contentUpdatedAt: new Date().toISOString(), updatedBy: who })
   }, [saveState, nodeId, qc, me.data])
+  // The sidebar row's menu blocks Archive / Trash like this page's own menu does while the page is not saved yet.
+  const unsaved = saveState !== 'saved' && saveState !== 'recovered'
+  useEffect(() => {
+    qc.setQueryData(['unsaved', nodeId], unsaved)
+    return () => { qc.setQueryData(['unsaved', nodeId], false) }
+  }, [qc, nodeId, unsaved])
 
   const restore = useMutation({
     mutationFn: (id: string) => restoreVersion(id),
@@ -295,7 +302,7 @@ export default function PageView() {
         {node.isError && <p role="alert" className={s.error}>{node.error.message}</p>}
         {publish.error && <p role="alert" className={s.error}>{publish.error.message}</p>}
         {compareError && <p role="alert" className={s.error}>{compareError}</p>}
-        <div className={s.iconTile} aria-hidden="true"><Icon name="doc-lines" size={26} /></div>
+        <div className={s.iconTile} data-page-icon style={{ '--c': dotColour(node.data?.color) } as React.CSSProperties} aria-hidden="true"><Icon name="doc-lines" size={26} /></div>
         <h1 className="sr-only">{title || 'Untitled'}</h1>
         <textarea
           ref={titleBox}

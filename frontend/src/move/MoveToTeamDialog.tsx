@@ -25,8 +25,8 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
   const qc = useQueryClient()
   const id = useId()
   const ref = useRef<HTMLDialogElement>(null)
-  const [teamId, setTeamId] = useState('')
   const [spaceId, setSpaceId] = useState('')
+  const [find, setFind] = useState('')
   const [parentId, setParentId] = useState('') // '' = top of the project
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -41,11 +41,12 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
       && (!within || s.teamId === from?.teamId)),
     [spaces.data, within, from?.teamId],
   )
-  const teams = useMemo(() => [...new Map(projects.map((s) => [s.teamId!, s.teamName ?? 'Team'])).entries()], [projects])
-  const team = teamId || teams[0]?.[0] || ''
-  const inTeam = projects.filter((s) => s.teamId === team)
-  // "Move to…" starts on another space of the team (the usual reason to open it), else on its own.
-  const space = inTeam.find((s) => s.id === spaceId) ?? (within ? inTeam.find((s) => s.id !== node.spaceId) : undefined) ?? inTeam[0]
+  // D-01 B: one list grouped by team, filtered by space or team name; picking a row picks both.
+  const q = find.trim().toLowerCase()
+  const shown = projects.filter((s) => !q || s.name.toLowerCase().includes(q) || (s.teamName ?? '').toLowerCase().includes(q))
+  const teams = [...new Map(shown.map((s) => [s.teamId!, s.teamName ?? 'Team'])).entries()]
+  // "Move to…" starts on another space of the team (the usual reason to open it), else on the first one.
+  const space = projects.find((s) => s.id === spaceId) ?? (within ? projects.find((s) => s.id !== node.spaceId) : undefined) ?? projects[0]
   const tree = useQuery({ queryKey: ['tree', space?.id], queryFn: () => getTree(space!.id), enabled: !!space })
   const rows = useMemo(() => flatten(buildTree(tree.data ?? []), node.id), [tree.data, node.id])
   const parentTitle = rows.find((r) => r.n.id === parentId)?.n.title ?? space?.name
@@ -95,28 +96,28 @@ export default function MoveToTeamDialog({ node, onClose, mode = 'team' }: Props
           <p role="status" className={s.none}>{within ? "You can’t edit any space of this team." : "You can’t edit any team space yet. Ask a team admin to make you an editor first."}</p>
         ) : (
           <>
-            <div className={s.pickers}>
-              {!within && <label className={s.field}>
-                <span className={s.label}>Team</span>
-                <span className={s.select}>
-                  <TeamTile name={teams.find(([tid]) => tid === team)?.[1] ?? '?'} size={18} />
-                  <select value={team} onChange={(e) => { setTeamId(e.target.value); setSpaceId(''); setParentId('') }}>
-                    {teams.map(([tid, name]) => <option key={tid} value={tid}>{name}</option>)}
-                  </select>
-                  <Icon name="chevron-down" size={14} />
-                </span>
-              </label>}
-              <label className={s.field}>
-                <span className={s.label}>Space</span>
-                <span className={s.select}>
-                  <span className={s.spaceDot} aria-hidden="true" />
-                  <select value={space?.id ?? ''} onChange={(e) => { setSpaceId(e.target.value); setParentId('') }}>
-                    {inTeam.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                  </select>
-                  <Icon name="chevron-down" size={14} />
-                </span>
-              </label>
-            </div>
+            <fieldset className={s.field}>
+              <legend className={s.label}>Space</legend>
+              <span className={s.select}>
+                <Icon name="search" size={14} />
+                <input type="search" aria-label="Find a space" placeholder="Find a space" value={find} onChange={(e) => setFind(e.target.value)} />
+              </span>
+              <div className={s.tree}>
+                {teams.map(([tid, name]) => (
+                  <div key={tid} role="group" aria-label={name}>
+                    <p className={s.group}><TeamTile name={name} size={18} />{name}</p>
+                    {shown.filter((x) => x.teamId === tid).map((x) => (
+                      <label key={x.id} className={`${s.opt} ${s.spaceOpt}`}>
+                        <input type="radio" name={`${id}-s`} checked={space?.id === x.id} onChange={() => { setSpaceId(x.id); setParentId('') }} />
+                        <span className={s.spaceDot} aria-hidden="true" /><span className={s.optText}>{x.name}</span>
+                        {x.id === node.spaceId && <span className={s.end}>Now here</span>}
+                      </label>
+                    ))}
+                  </div>
+                ))}
+                {teams.length === 0 && <p className={s.none} role="status">No space matches “{find.trim()}”.</p>}
+              </div>
+            </fieldset>
             <fieldset className={s.field}>
               <legend className={s.label}>Put it under</legend>
               <div className={s.tree}>

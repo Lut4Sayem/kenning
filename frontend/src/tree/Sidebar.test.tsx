@@ -45,6 +45,13 @@ afterEach(() => {
 })
 
 describe('Sidebar', () => {
+  it('aFingerTapOnTheTeamsLabelShowsItsNewTeamButton', async () => { // touch tablets in the docked layout have no hover
+    renderSidebar()
+    const row = (await screen.findByRole('button', { name: 'New team' })).closest('[data-row]')!
+    row.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true }), { pointerType: 'touch' }))
+    expect(row.hasAttribute('data-touched')).toBe(true)
+  })
+
   it('brandAtTheTopLinksHome', async () => {
     renderSidebar()
     const home = await screen.findByRole('link', { name: 'Kenning home' })
@@ -67,6 +74,12 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Requirements' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Hardware' })).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Private' })).toBeTruthy()
+  })
+
+  it('teamAndSpaceNamesShowInFullAsATooltip', async () => { // they are cut with … when the sidebar is narrow
+    renderSidebar()
+    expect((await screen.findByRole('link', { name: 'Thesis Group' })).title).toBe('Thesis Group')
+    expect(screen.getByRole('link', { name: 'Requirements' }).title).toBe('Requirements')
   })
 
   it('collapsingATeamHidesItsSpacesAndIsRemembered', async () => {

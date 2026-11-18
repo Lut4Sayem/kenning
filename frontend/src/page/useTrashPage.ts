@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useMatch, useNavigate } from 'react-router-dom'
 import { getSubtreeCount, restoreBranch, trashNode, type NodeDetail } from '../api/nodes'
 import { confirmTrash } from '../trash/ConfirmTrashDialog'
 import { toast } from '../ui/Toast'
@@ -11,12 +11,14 @@ import { toast } from '../ui/Toast'
 export function useTrashPage(node: Pick<NodeDetail, 'id' | 'spaceId' | 'title'>) {
   const qc = useQueryClient()
   const navigate = useNavigate()
+  const isOpen = useMatch('/p/:nodeId')?.params.nodeId === node.id // the sidebar row's menu can trash a page that is not open
   return async () => {
     const { count } = await getSubtreeCount(node.id)
     if (!(await confirmTrash(node.title, count))) return
     await trashNode(node.id)
     await qc.invalidateQueries({ queryKey: ['tree', node.spaceId] })
-    navigate('/')
+    if (isOpen) navigate('/')
+    else await qc.invalidateQueries({ queryKey: ['node'] }) // an open sub-page went with it: its refresh shows the server's notice
     toast(`Moved “${node.title || 'Untitled'}” to trash`, 'info', {
       action: {
         label: 'Undo',

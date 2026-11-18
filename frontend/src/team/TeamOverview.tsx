@@ -76,7 +76,8 @@ export default function TeamOverview() {
             {spaces.map((sp) => (
               <li key={sp.id}>
                 <Link to={`/s/${sp.id}`} className={s.space}>
-                  <span className={s.spaceName}><span className={s.dot} aria-hidden="true" />{sp.name}</span>
+                  <span className={s.dot} aria-hidden="true" />
+                  <span className={s.spaceName}>{sp.name}</span>
                   <span className={s.spaceMeta}>{sp.pageCount === 0 ? 'No pages yet' : `${plural(sp.pageCount, 'page')}${sp.draftCount ? ` · ${plural(sp.draftCount, 'draft')}` : ''}`}</span>
                 </Link>
               </li>

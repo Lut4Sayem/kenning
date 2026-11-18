@@ -1,19 +1,24 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import PageTree from './PageTree'
+import { useRowTouch } from './useRowTouch'
 
-const nodesApi = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn() }))
+const nodesApi = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn(), getNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodesApi)
 
+const Touch = () => { useRowTouch(); return null }
 const Where = () => <p data-testid="where">{useLocation().pathname}</p>
 
+let qc: QueryClient
 function renderTree() {
+  qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={qc}>
       <MemoryRouter>
+        <Touch />
         <PageTree spaceId="s1" />
         <Routes><Route path="*" element={<Where />} /></Routes>
       </MemoryRouter>
@@ -37,6 +42,7 @@ describe('PageTree', () => {
     const dot = async (name: string) => ((await screen.findByRole('treeitem', { name })).previousElementSibling as HTMLElement).style.background
     expect(await dot('Green page')).toBe('var(--page-green)')
     expect(await dot('Plain page')).toBe('var(--page-gray)')
+    expect((await screen.findByRole('treeitem', { name: 'Green page' })).title).toBe('Green page') // the full name, when cut with …
   })
 
   it('subPageButtonCreatesUnderThatPageAndOpensIt', async () => {
@@ -127,11 +133,78 @@ describe('PageTree', () => {
     await userEvent.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'New sub-page under Alpha' }))
     await userEvent.tab()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More actions for Alpha' }))
+    await userEvent.tab()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Drag to move Alpha' }))
     await userEvent.tab()
     expect(document.activeElement?.closest('[role="tree"]')).toBeNull()
 
     await userEvent.click(alpha)
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/p/a'))
+  })
+
+  it('rightClickOnARowOpensItsPageMenu', async () => { // QA-18
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }])
+    nodesApi.getNode.mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, color: null })
+    renderTree()
+    await userEvent.pointer({ keys: '[MouseRight]', target: await screen.findByRole('treeitem', { name: 'Alpha' }) })
+    const menu = await screen.findByRole('menu', { name: 'More actions for Alpha' })
+    expect(menu.textContent).toContain('Move to trash')
+    await waitFor(() => expect(document.activeElement?.closest('[role="menu"]')).toBe(menu))
+  })
+
+  it('theOpenPagesRowMenuWaitsForItsSaveLikeThePageMenu', async () => {
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }])
+    nodesApi.getNode.mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, color: null })
+    renderTree()
+    qc.setQueryData(['unsaved', 'a'], true) // what PageView writes while the open page is saving
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Alpha' }))
+    for (const name of [/^Archive/, /^Move to trash/]) {
+      const item = await screen.findByRole('menuitem', { name })
+      expect((item as HTMLButtonElement).disabled).toBe(true)
+      expect(item.textContent).toContain('Wait until the page is saved')
+    }
+    act(() => { qc.setQueryData(['unsaved', 'a'], false) })
+    await waitFor(() => expect((screen.getByRole('menuitem', { name: /^Move to trash/ }) as HTMLButtonElement).disabled).toBe(false))
+  })
+
+  it('aRowMenuThatFailedToLoadTriesAgainOnTheNextClick', async () => {
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }])
+    nodesApi.getNode.mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, color: null })
+    renderTree()
+    const more = await screen.findByRole('button', { name: 'More actions for Alpha' })
+    await userEvent.click(more)
+    await waitFor(() => expect(more.title).toMatch(/try again/))
+    await userEvent.click(more)
+    expect(await screen.findByRole('menu', { name: 'More actions for Alpha' })).toBeTruthy()
+  })
+
+  it('theContextMenuKeyOpensTheRowMenuEvenAfterAFingerTap', async () => {
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }])
+    nodesApi.getNode.mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, color: null })
+    renderTree()
+    const alpha = await screen.findByRole('treeitem', { name: 'Alpha' })
+    alpha.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true }), { pointerType: 'touch' }))
+    alpha.focus()
+    await userEvent.keyboard('{Shift>}{F10}{/Shift}') // keydown first, then the browser's contextmenu
+    alpha.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    expect(await screen.findByRole('menu', { name: 'More actions for Alpha' })).toBeTruthy()
+  })
+
+  it('aTapShowsThatRowsButtonsUntilTheNextTapElsewhere', async () => {
+    nodesApi.getTree.mockResolvedValue(['Alpha', 'Beta'].map((title, i) => ({ id: title, parentId: null, rank: String(i), title, icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false })))
+    renderTree()
+    const row = async (name: string) => (await screen.findByRole('treeitem', { name })).closest('[data-row]')!
+    const tap = async (name: string, pointerType: string) =>
+      (await row(name)).dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true }), { pointerType }))
+    await tap('Alpha', 'touch')
+    expect((await row('Alpha')).hasAttribute('data-touched')).toBe(true)
+    await tap('Beta', 'touch')
+    expect((await row('Alpha')).hasAttribute('data-touched')).toBe(false)
+    expect((await row('Beta')).hasAttribute('data-touched')).toBe(true)
+    await tap('Alpha', 'mouse') // a mouse has hover: nothing stays shown
+    expect((await row('Beta')).hasAttribute('data-touched')).toBe(false)
+    expect((await row('Alpha')).hasAttribute('data-touched')).toBe(false)
   })
 })

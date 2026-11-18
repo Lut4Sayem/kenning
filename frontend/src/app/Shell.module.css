@@ -2,7 +2,10 @@
 .shell[data-sidebar='hidden'], .shell[data-sidebar='drawer'] { grid-template-columns: minmax(0, 1fr) auto; }
 .shell[data-sidebar='hidden'] .sidebarCol { display: none; }
 .shell:not([data-sidebar='shown']) .panel { margin-left: var(--panel-inset); }
-.sidebarCol { min-height: 0; overflow: hidden; }
+.sidebarCol { position: relative; min-height: 0; overflow: hidden; }
+.resize { position: absolute; z-index: 5; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; touch-action: none; }
+.resize:hover, .resize:focus-visible { background: var(--line); }
+.resize:focus-visible { outline-offset: -2px; }
 .panel {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
   margin: var(--panel-inset) var(--panel-inset) var(--panel-inset) 0;
@@ -19,7 +22,7 @@
   flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-left: -6px; padding: 0; border: 0;
   border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer;
 }
-@media (hover: hover) { .menuBtn:hover { background: var(--hover); color: var(--ink); } }
+@media (min-width: 640px) { .menuBtn:hover { background: var(--hover); color: var(--ink); } }
 .main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-8) var(--space-10); container-type: inline-size; } /* screens can adapt to the room they really have (details panel open or not) */
 .main:has([data-bleed]) { padding: 0; } /* Home and Recent bring their own column padding */
 .details { width: var(--details-width); min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-4); }
@@ -53,7 +56,7 @@
   .shell[data-sidebar='drawer'] .sidebarCol nav > :first-child { margin-right: 40px; } /* room for the close button */
   .details { left: 0; width: auto; box-shadow: none; z-index: 70; padding: var(--space-4); }
 }
-@media (pointer: coarse) {
+@media (max-width: 639.98px) {
   .menuBtn, .drawerClose { width: 40px; height: 40px; }
 }
 @keyframes slide { from { transform: translateX(-100%); } }

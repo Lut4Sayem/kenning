@@ -101,7 +101,7 @@ Background / text pairs. Pick deterministically from a hash of the name.
 Roles: Admin = lavender, Editor = sky, Viewer = gray.
 
 ### Page colours (the dot a user picks per page)
-`gray #9b9a97` · `brown #93694f` · `orange #d9730d` · `yellow #dfab01` · `green #0f7b6c` · `blue #2e7dbb` · `purple #8a5cc4` · `pink #c4337c` · `red #e03e3e`. Default: gray.
+`gray #787774` · `brown #93694f` · `orange #b05a0a` · `yellow #9a7200` · `green #0f7b6c` · `blue #2e7dbb` · `purple #8a5cc4` · `pink #c4337c` · `red #e03e3e`. Default: gray. (D-10, 2026-11-19: gray #9b9a97 → #787774, orange #d9730d → #b05a0a, yellow #dfab01 → #9a7200, so every dot passes 3:1 on white, the sidebar ground and a hovered row.)
 Dot: 8×8px, radius 3px. On cards: 12×12px, radius 4px.
 
 Dark mode: not in this release. Tokens are named by role so a dark theme can be added later by redefining them.
@@ -179,12 +179,12 @@ Borders for structure (list rows, tabs, inputs, cards, the page panel edge), sha
 - **Card (recently visited, spaces):** white with a 1px `--line` edge, radius 8, padding 14, min height 92, icon/dot top, title 600, meta row at the bottom (location left, time right). The edge turns `--ink-muted` on hover.
 - **Tabs:** no underline tabs. Use the team sub-navigation pills (section 4) or the segmented control.
 - **Pills:** 11–12px 600, radius 999. Draft, Published, roles, count.
-- **Tags:** 12px 600, radius 999, tint pair.
+- **Tags:** 12px 600, radius 5 (`--r-tag`), tint pair.
 - **Avatar:** circle 24px (lists) / 22px (sidebar), initials 11px 700 on a tint, white 2px ring when stacked.
 - **Callout:** `--callout` background, radius 12, padding 16, icon + text.
 - **Draft state:** shown in the page's properties block (Draft pill + one sentence + "Compare"), never as a full-width bar.
 - **Icons:** one line icon set, 16px, stroke 1.4–1.5, `currentColor`. Never emoji for UI icons.
-- **Icon tile:** a line glyph (`currentColor`) centred in a rounded square with a tint background: 20px/radius 6 in group headers, 36px/radius 10 in result and trash rows, 40px/radius 8 as the page icon above the title.
+- **Icon tile:** a line glyph (`currentColor`) centred in a rounded square with a tint background: 20px/radius 6 in group headers, 36px/radius 10 in result and trash rows, 40px/radius 8 as the page icon above the title (glyph in the page colour on a 14% mix of it, X-3).
 - **Properties block (page view):** two-column grid (label column 120px, muted, with a 14px icon; value column ink). Rows 32px. Draft = soft yellow pill with a dot; tags with "+ Add"; last edited = avatar, name, time.
 - **Segmented control:** pill track `--surface-card-hover`, active segment white + level-1 shadow, counts in an 11px badge. Used for Trash/Archived, result types, Inbox filters, panel tabs.
 - **View bar (list screens):** view tabs as small pills on the left, active filters as yellow chips with ×, Filter and Display icon buttons on the right.
@@ -209,7 +209,7 @@ Borders for structure (list rows, tabs, inputs, cards, the page panel edge), sha
 - **Ctrl+K palette:** dialog 680px wide, 110px from the top, over a dimmed screen (`rgb(28 27 23 / .32)`). Search field 56px, a scope row (All · Pages · Content · Actions with counts; Tab switches), then groups separated by a line, each with an icon-tile header and count: Pages (dot, title, location chip), Found inside pages (two lines: matching text, "in <page>"), Actions (grey tiles). Selected row soft yellow with "Open ↵". Footer with key hints.
 - **Search page:** large search field with a yellow focus glow, Status filter, removable tag chip, segmented type filter with counts; results grouped (Pages, Spaces), each result a rounded row: icon tile, title + status pill, highlighted snippet, location chip, editor, time; "Show all N" per group.
 - **Trash (per space):** title + one line, segmented Trash · Archived, filter field; items grouped "Gone for good this week" (soft red rows, solid red days-left badge) and "Later"; each item a rounded row: icon tile, title, sub-page badge, "Was in …", note when the parent is gone, deleted by, days-left badge, Restore, red delete icon.
-- **Move to team:** dialog with Team and Space pickers side by side, "Put it under" radio tree, consequences box.
+- **Move to team / Move to…:** dialog with one searchable list of the spaces you can edit, grouped by team (team tile + name as the group label; a whole row picks team and space at once, D-01), "Put it under" radio tree, consequences box.
 - **Profile:** two cards: You (88px avatar with camera button, upload/remove, name, read-only email, Save) and My teams (team tile, name, role pill).
 - **Inbox (Release 1b):** segmented Unread · All · Mentions, team filter, notifications grouped Today / Earlier on a `--surface-card` panel, unread rows soft yellow with a dot, a type tile (mention, comment, join request, publish), Mark all read, Load more.
 - **Version history:** opens in the right panel. Versions grouped by day (avatar, name, kind: Autosaved / Published / Restored, time); the current one has a "Current" pill. Selecting one shows a bar above the page ("Viewing version 11 by …") and highlights changes in the page, one colour per author with a legend at the top of the panel. Restore this version (primary) and Compare with current at the bottom.
@@ -242,7 +242,7 @@ Sentences never contain counts that grow with the team ("100 people changed 50 p
 
 Text ≥ 4.5:1, large text and input borders ≥ 3:1. Visible `:focus-visible` on everything (2px black outline, 2px offset). Real `<button>`/`<a>`, labels tied to inputs, `aria-label` on icon buttons, `aria-live` for toasts. Skip-to-content link. Touch targets ≥ 40px on touch screens (`pointer: coarse`). No horizontal scroll at 360px.
 
-Breakpoints: **1024px and up** the full shell. **640–1023px** a menu button opens and folds the sidebar (remembered); the right panel floats over the page (level 3) and starts closed. **Under 640px** the sidebar is an off-canvas drawer (max 300px, scrim, Esc and a close button, the page behind is inert, closes on navigation) opened from a menu button at the left of the top bar; the right panel is a full-screen sheet on the ground colour with its own close button.
+Breakpoints: **1024px and up** the full shell. **640–1023px** a menu button opens and folds the sidebar (remembered); the right panel floats over the page (level 3) and starts closed. **Under 640px** the sidebar is an off-canvas drawer (max 300px, scrim, Esc and a close button, the page behind is inert, closes on navigation) opened from a menu button at the left of the top bar; the right panel is a full-screen sheet on the ground colour with its own close button. Team screens (D-05) move their sections (Overview, Pages, Members, Requests, Trash) into a 60px bottom tab bar (icon over an 11px label, a count badge on Requests) and show the top bar actions as 40px icon buttons.
 
 ## 11. Do / Don't
 

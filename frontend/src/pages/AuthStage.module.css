@@ -40,7 +40,7 @@
 .dot { flex: none; width: 9px; height: 9px; border-radius: 3px; background: var(--page-green); }
 .meta { margin: 0 0 10px; color: var(--ink-muted); font-size: 12px; }
 .tags { display: flex; gap: 6px; }
-.tag { padding: 1px 9px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600; background: var(--tint-sky-bg); color: var(--tint-sky-fg); }
+.tag { padding: 1px 9px; border-radius: var(--r-tag); font-size: 11.5px; font-weight: 600; background: var(--tint-sky-bg); color: var(--tint-sky-fg); }
 .tag + .tag { background: var(--tint-rose-bg); color: var(--tint-rose-fg); }
 .todo { display: flex; align-items: center; gap: 8px; margin: 5px 0 0; }
 .box { flex: none; display: grid; place-items: center; width: 14px; height: 14px; border: 1.5px solid var(--input-border); border-radius: 4px; }

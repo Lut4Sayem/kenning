@@ -6,7 +6,7 @@
 .crumbs a, .crumbs li > span:not(.current) { color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .current > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .crumbs li:not(:last-child) { flex: none; max-width: 12em; } /* team, space and parent stay readable; only the page title gives way (QA-42) */
-@media (hover: hover) { .crumbs a:hover { color: var(--ink); } }
+@media (min-width: 640px) { .crumbs a:hover { color: var(--ink); } }
 .crumbs li:last-child { flex: 0 1 auto; min-width: 4em; overflow: hidden; }
 .current { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-weight: 500; color: var(--ink); }
 .current > span:last-child { overflow: hidden; text-overflow: ellipsis; }
@@ -15,20 +15,20 @@
 .actions { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex: none; }
 .btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 14px; border: 1px solid transparent; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out), opacity 150ms var(--ease-out); }
 .primary { background: var(--primary); color: var(--on-primary); }
-@media (hover: hover) { .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
+@media (min-width: 640px) { .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
 .btn:active:not(:disabled) { scale: 0.96; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .iconBtn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-@media (hover: hover) { .iconBtn:hover { background: var(--hover); color: var(--ink); } }
+@media (min-width: 640px) { .iconBtn:hover { background: var(--hover); color: var(--ink); } }
 .iconBtn[aria-pressed='true'] { background: var(--surface-card-hover); color: var(--ink); border-color: var(--line); }
 .publishedText { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--success-text); }
-.tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--pill-bg); color: var(--pill-ink); font-size: 12px; font-weight: 600; }
+.tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-tag); background: var(--pill-bg); color: var(--pill-ink); font-size: 12px; font-weight: 600; }
 
 /* The reading column: 740 wide, the same left edge for icon, title, properties and blocks */
 .column { max-width: var(--reading-max); margin: 0 auto; padding: 40px 32px 80px; }
 .banners { max-width: var(--reading-max); margin: 0 auto; padding: 14px 0 0; }
 .banners:empty { display: none; }
-.iconTile { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 14px; border-radius: 8px; background: var(--tint-mint-bg); color: var(--page-green); }
+.iconTile { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 14px; border-radius: 8px; background: color-mix(in srgb, var(--c) 14%, var(--canvas)); color: var(--c); } /* X-3: --c = the page colour */
 .title { display: block; width: 100%; margin: 0 0 12px; padding: 0; border: 0; border-radius: 6px; background: transparent; font-family: var(--font-title); font-size: 32px; font-weight: 500; line-height: 1.1; letter-spacing: -0.015em; color: var(--ink); text-wrap: balance; resize: none; overflow: hidden; overflow-wrap: break-word; }
 .title::placeholder { color: var(--ink-muted); }
 .title:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--ring); } /* QA-54: the input focus glow from DESIGN.md, not a black box */
@@ -38,10 +38,9 @@
 .props { display: grid; grid-template-columns: 120px minmax(0, 1fr); column-gap: 12px; row-gap: 4px; margin: 4px 0 32px; font-size: 14px; }
 .k { display: flex; align-items: center; gap: 8px; height: 32px; font-size: 13.5px; color: var(--ink-muted); }
 .v { display: flex; align-items: center; gap: 8px; min-height: 32px; flex-wrap: wrap; min-width: 0; color: var(--ink); }
-.pill { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .draft { background: var(--pill-bg); color: var(--pill-ink); }
-.draft::before { background: #d9a400; }
 .published { background: var(--published-bg); color: var(--published-ink); }
 .published::before { background: var(--published-ink); }
 .hint { font-size: 13px; color: var(--ink-muted); }
@@ -49,15 +48,17 @@
 .when { font-size: 13px; color: var(--ink-muted); }
 
 .tags { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.chip { display: inline-flex; align-items: center; height: 24px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; }
+.chip { display: inline-flex; align-items: center; height: 24px; border-radius: var(--r-tag); font-size: 12px; font-weight: 600; }
 .chip a { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; color: inherit; text-decoration: none; }
-@media (hover: hover) { .chip a:hover { text-decoration: underline; text-underline-offset: 2px; } }
+@media (min-width: 640px) { .chip a:hover { text-decoration: underline; text-underline-offset: 2px; } }
 /* QA-24: always shown to editors (it was display:none until hover, so screen readers in browse mode missed it) */
 .chip button { display: grid; place-items: center; width: 20px; height: 24px; margin-left: -6px; padding: 0; border: 0; background: none; color: inherit; opacity: 0.7; cursor: pointer; }
 .chip button:hover { opacity: 1; }
+/* X-7: a 32px hit area on touch; the chip looks the same */
+@media (max-width: 639.98px) { .chip button { position: relative; } .chip button::after { content: ''; position: absolute; inset: -4px -6px; } }
 .add { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: 0; border-radius: var(--r-pill); background: none; font-size: 12.5px; color: var(--ink-muted); cursor: pointer; }
-@media (hover: hover) { .add:hover { background: var(--surface-card-hover); color: var(--ink); } }
-.tagInput { width: 120px; height: 24px; padding: 0 10px; border: 1px solid var(--input-border); border-radius: var(--r-pill); font-size: 12.5px; color: var(--ink); background: var(--canvas); }
+@media (min-width: 640px) { .add:hover { background: var(--surface-card-hover); color: var(--ink); } }
+.tagInput { width: 120px; height: 24px; padding: 0 10px; border: 1px solid var(--input-border); border-radius: var(--r-tag); font-size: 12.5px; color: var(--ink); background: var(--canvas); }
 .tagInput:focus-visible { outline: 0; border-color: var(--ink); box-shadow: 0 0 0 3px var(--ring); }
 
 .skel { display: block; border-radius: 8px; background: var(--surface-card-hover); animation: pulse 1.4s ease-in-out infinite; }
@@ -77,6 +78,7 @@
   .props { grid-template-columns: 96px minmax(0, 1fr); }
   /* QA-46: the big title says which page this is; the top bar keeps the space (the page title when there is no space) */
   .wideOnly { display: none; } /* Move to trash is in the page menu too; phones need the room for the crumb */
+  .actions { gap: 2px; } /* D-06: room for the space name */
   .crumbs li:not(.space) { display: none; }
   .crumbs li.space, .crumbs ol:not(:has(.space)) li:last-child { display: inline-flex; flex: 0 1 auto; max-width: none; overflow: hidden; }
   .crumbs li.space::after { content: none; }

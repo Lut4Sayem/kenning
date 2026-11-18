@@ -62,9 +62,9 @@ export default function TeamLayout() {
         </span>
         <span className={s.actions}>
           {/* QA-07: ghost everywhere, so Members keeps one primary ("Create link") */}
-          {(tab === 'overview' || tab === 'members' || tab === 'requests') && admin && <button type="button" className={s.ghostBtn} onClick={inviteTo}><Icon name="user-plus" />Invite people</button>}
+          {(tab === 'overview' || tab === 'members' || tab === 'requests') && admin && <button type="button" className={s.ghostBtn} aria-label="Invite people" onClick={inviteTo}><Icon name="user-plus" /><span className={s.label}>Invite people</span></button>}
           {(tab === 'overview' || tab === 'pages') && canEdit && first && (
-            <button type="button" className={s.primaryBtn} onClick={() => void create(null)}><Icon name="plus" />New page</button>
+            <button type="button" className={s.primaryBtn} aria-label="New page" onClick={() => void create(null)}><Icon name="plus" /><span className={s.label}>New page</span></button>
           )}
           {tab === 'overview' && (
             <button type="button" className={s.iconBtn} aria-label="Details" aria-pressed={detailsOpen} title="Details" onClick={toggleDetails}>
@@ -76,15 +76,16 @@ export default function TeamLayout() {
 
       {tabName && summary.data && <h1 className="sr-only">{summary.data.name}: {tabName}</h1>}
       <nav className={s.subnav} aria-label="Team">
-        <NavLink to={base} end className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>Overview</NavLink>
-        <NavLink to={`${base}/pages`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>Pages</NavLink>
-        <NavLink to={`${base}/members`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>Members</NavLink>
+        {/* D-05 C: under 640px this is a bottom tab bar; the icons only show there */}
+        <NavLink to={base} end className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}><Icon name="home" className={s.tabIcon} />Overview</NavLink>
+        <NavLink to={`${base}/pages`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}><Icon name="file" className={s.tabIcon} />Pages</NavLink>
+        <NavLink to={`${base}/members`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}><Icon name="users" className={s.tabIcon} />Members</NavLink>
         {admin && (
           <NavLink to={`${base}/requests`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>
-            Requests{pending > 0 && <span className={s.count} aria-label={`${pending} waiting`}>{pending}</span>}
+            <Icon name="inbox" className={s.tabIcon} />Requests{pending > 0 && <span className={s.count} aria-label={`${pending} waiting`}>{pending}</span>}
           </NavLink>
         )}
-        <NavLink to={`${base}/trash`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}>Trash</NavLink>
+        <NavLink to={`${base}/trash`} className={({ isActive }) => `${s.tab} ${isActive ? s.active : ''}`}><Icon name="trash" className={s.tabIcon} />Trash</NavLink>
       </nav>
 
       {summary.data ? (
