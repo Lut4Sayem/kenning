@@ -158,7 +158,9 @@ function InviteBox() {
       {link ? (
         <>
           <div className={s.linkField}>
-            <input readOnly aria-label="Invite link address" value={link} onFocus={(e) => e.currentTarget.select()} />
+            {/* D-09: selecting scrolls the field to the end; keep the start of the link in view, cut with an ellipsis at the end */}
+            <input readOnly aria-label="Invite link address" value={link}
+              onFocus={(e) => { e.currentTarget.select(); e.currentTarget.scrollLeft = 0 }} onBlur={(e) => { e.currentTarget.scrollLeft = 0 }} />
             <button type="button" className={s.copy} onClick={() => void copy()}><Icon name={copied ? 'check' : 'copy'} />{copied ? 'Copied' : 'Copy'}</button>
           </div>
           <p className={s.live} aria-live="polite">{copied ? 'Link copied' : ''}</p>
