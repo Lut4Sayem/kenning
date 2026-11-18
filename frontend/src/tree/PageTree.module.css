@@ -13,7 +13,7 @@
 .chev { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
 .chev.open { transform: rotate(90deg); }
 .dot { flex: none; width: 8px; height: 8px; border-radius: 3px; background: var(--page-gray); margin-right: var(--space-2); }
-.link { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-label); text-decoration: none; line-height: 32px; }
+.link { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; line-height: 32px; }
 /* Hidden at zero width so the title gets the room; still focusable, so keyboard and screen readers reach them */
 .btn, .grip { opacity: 0; width: 0; overflow: hidden; }
 .row:hover .btn, .row:focus-within .btn, .row:hover .grip, .row:focus-within .grip { opacity: 1; width: 24px; }
