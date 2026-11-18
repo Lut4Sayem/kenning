@@ -10,14 +10,15 @@ test('create page, create sub-page, drag it to top level, breadcrumbs update', a
   // A new user only has the private space.
   const priv = page.locator('[data-space]').first()
   const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' })
-  await priv.getByRole('button', { name: /new page/i }).click()
+  // Row buttons take no width until the row is hovered or focused, so tests reach them by keyboard.
+  await priv.getByRole('button', { name: /new page/i }).press('Enter')
   await page.waitForURL(/\/app\/p\//)
   await page.getByLabel('Page title').fill('Parent')
   await page.getByLabel('Page title').blur()
   await expect(priv.getByRole('treeitem', { name: 'Parent' })).toBeVisible()
 
   const parentUrl = page.url()
-  await priv.getByRole('button', { name: 'New sub-page under Parent' }).click()
+  await priv.getByRole('button', { name: 'New sub-page under Parent' }).press('Enter')
   await page.waitForURL((url) => url.href !== parentUrl)
   await page.getByLabel('Page title').fill('Child')
   await page.getByLabel('Page title').blur()
@@ -38,5 +39,5 @@ test('create page, create sub-page, drag it to top level, breadcrumbs update', a
   await page.keyboard.press('Space')
 
   await expect(crumbs).not.toContainText('Parent')
-  await expect(priv.getByRole('button', { name: 'New sub-page under Child' })).toBeVisible() // still in the tree, now a sibling
+  await expect(priv.getByRole('button', { name: 'New sub-page under Child' })).toBeAttached() // still in the tree, now a sibling
 })
