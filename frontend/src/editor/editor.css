@@ -25,8 +25,18 @@
 /* Quote reads as a callout; check list uses the primary colour */
 .bn-block-content[data-content-type='quote'] blockquote { width: 100%; margin: 0; padding: 14px 16px; border: 0; border-radius: var(--r-lg); background: var(--callout); color: var(--ink); }
 @media (hover: hover) { .bn-editor[contenteditable='true'] .bn-block-content[data-content-type='quote']:hover { background: transparent; } }
-.bn-block-content[data-content-type='checkListItem'] input[type='checkbox'] { accent-color: var(--primary); }
-.bn-block-content[data-content-type='checkListItem'][data-checked='true'] .bn-inline-content { color: var(--ink-muted); text-decoration: line-through; }
+/* D-03 A: our own square box so it looks the same in every browser; black with a white tick when done */
+.bn-block-content[data-content-type='checkListItem'] input[type='checkbox'] {
+  appearance: none; flex: none; width: 18px; height: 18px; margin: 0 10px 0 0; border: 1.5px solid var(--input-border); border-radius: 5px;
+  background: var(--canvas) center / 12px no-repeat; cursor: pointer;
+}
+.bn-block-content[data-content-type='checkListItem'] input[type='checkbox']:checked {
+  border-color: var(--primary); background-color: var(--primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+}
+.bn-block-content[data-content-type='checkListItem'] input[type='checkbox']:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.bn-block-content[data-content-type='checkListItem'][data-checked='true'] .bn-inline-content { color: var(--ink-muted); text-decoration: line-through; text-decoration-color: rgb(28 27 23 / 0.35); }
+@media (forced-colors: active) { .bn-block-content[data-content-type='checkListItem'] input[type='checkbox'] { appearance: auto; } } /* the drawn tick is a background image, which high contrast removes */
 
 .bn-editor code, .bn-block-content[data-content-type='codeBlock'] { font-family: var(--font-mono); }
 .bn-editor code { padding: 1px 5px; border-radius: 5px; background: var(--surface-card-hover); font-size: 0.9em; }
