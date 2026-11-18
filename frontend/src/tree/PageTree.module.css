@@ -1,6 +1,6 @@
 .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
 .row { position: relative; display: flex; align-items: center; gap: 2px; height: 32px; padding-right: 4px; border-radius: var(--r-row); color: var(--ink); }
-@media (hover: hover) { .row:hover { background: var(--hover); } }
+@media (min-width: 640px) { .row:hover { background: var(--hover); } } /* docked sidebar only: no sticky hover in the drawer */
 .row.active { background: var(--hover); }
 .row.active .link { font-weight: 500; color: var(--ink); }
 .row.over { outline: 2px solid var(--primary); }
@@ -8,15 +8,16 @@
   display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row);
   background: none; color: var(--ink-muted); cursor: pointer;
 }
-@media (hover: hover) { .toggle:hover:not(:disabled), .btn:hover { background: var(--hover); } }
+@media (min-width: 640px) { .toggle:hover:not(:disabled), .btn:hover { background: var(--hover); } }
 .toggle:disabled { cursor: default; visibility: hidden; }
 .chev { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
 .chev.open { transform: rotate(90deg); }
 .dot { flex: none; width: 8px; height: 8px; border-radius: 3px; background: var(--page-gray); margin-right: var(--space-2); }
 .link { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; line-height: 32px; }
-/* Hidden at zero width so the title gets the room; still focusable, so keyboard and screen readers reach them */
+/* Docked sidebar: +, … and the grip take no width (the title gets the room) until the row is hovered, focused or tapped
+   (data-touched, see useRowTouch). Still focusable, so keyboard and screen readers reach them. */
 .btn, .grip { opacity: 0; width: 0; overflow: hidden; }
-.row:hover .btn, .row:focus-within .btn, .row:hover .grip, .row:focus-within .grip { opacity: 1; width: 24px; }
+.row:hover .btn, .row:focus-within .btn, .row[data-touched] .btn { opacity: 1; width: 24px; }
 .grip { cursor: grab; touch-action: none; }
 .gap { height: 2px; }
 .gap.over { background: var(--primary); }
@@ -24,12 +25,13 @@
 .topDrop { margin: var(--space-2) 0; padding: var(--space-2); border: 1px dashed var(--input-border); border-radius: var(--r-row); font-size: 13px; text-align: center; color: var(--ink-muted); }
 .topDrop.over { background: var(--canvas); }
 .note { margin: 0; padding: var(--space-1) var(--space-2); color: var(--ink-muted); font-size: 12px; }
-@media (hover: none) { .btn, .grip { opacity: 1; width: 24px; } }
-/* D-02: touch laptops also report hover, so any coarse pointer shows the actions softly and makes rows 40px */
-@media (any-pointer: coarse) {
-  .row { height: 40px; }
-  .btn { opacity: 0.55; width: 40px; height: 40px; }
-  .row.active .btn, .row:hover .btn, .row:focus-within .btn { opacity: 1; width: 40px; }
+/* Phone (the sidebar is the drawer): + and … on every row, 40px rows; a long press drags, so the grip only shows for the
+   keyboard. Width, never hover/pointer queries: touch laptops with a mouse match those (D-02 redo). */
+@media (max-width: 639.98px) {
+  .row { height: 40px; -webkit-touch-callout: none; user-select: none; }
+  .btn, .row:hover .btn, .row:focus-within .btn, .row[data-touched] .btn { opacity: 1; width: 40px; height: 40px; }
+  .grip, .row:hover .grip, .row:focus-within .grip, .row[data-touched] .grip { opacity: 0; width: 0; }
+  .row .grip:focus-visible { opacity: 1; width: 40px; }
 }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
 

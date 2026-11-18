@@ -1,5 +1,5 @@
 import {
-  DndContext, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors, type Announcements,
+  DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors, type Announcements,
   type CollisionDetection, type DragEndEvent,
 } from '@dnd-kit/core'
 import { useQueryClient } from '@tanstack/react-query'
@@ -32,7 +32,9 @@ export default function TreeDnd({ children }: { children: ReactNode }) {
   const scope = useRef<Scope>({ onExpand: new Map() }).current
   const [message, setMessage] = useState('')
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Mouse: the grip. Finger: a long press anywhere on the row (phones have no grip), so a swipe still scrolls.
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   )
 

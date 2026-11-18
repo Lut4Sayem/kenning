@@ -2,13 +2,15 @@ import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getTree, type NodeSummary } from '../api/nodes'
+import { getNode, getTree, type NodeSummary } from '../api/nodes'
+import PageMenu from '../page/PageMenu'
 import Icon from '../ui/Icon'
 import { dotColour } from '../ui/pageColour'
 import { buildTree, type TreeNode } from './buildTree'
 import TreeDnd, { useTreeDnd } from './TreeDnd'
 import s from './PageTree.module.css'
 import { useCreatePage } from './useCreatePage'
+import { openRowMenu } from './useRowTouch'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 const storageKey = (spaceId: string) => `kf.expanded.${spaceId}`
@@ -37,6 +39,8 @@ interface Props {
   canEdit?: boolean
   /** Name of the tree for screen readers, e.g. "Pages in Literature Review" */
   label?: string
+  /** The private space: the row menu offers Move to team */
+  personal?: boolean
 }
 
 /** The pages a reader can reach with the arrow keys: every top-level page and the children of open ones, top to bottom. */
@@ -53,7 +57,7 @@ export default function PageTree(props: Props) {
   return useTreeDnd() ? <Tree {...props} /> : <TreeDnd><Tree {...props} /></TreeDnd>
 }
 
-function Tree({ spaceId, activeId, canEdit = true, label = 'Pages' }: Props) {
+function Tree({ spaceId, activeId, canEdit = true, label = 'Pages', personal }: Props) {
   const dnd = useTreeDnd()
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['tree', spaceId], queryFn: () => getTree(spaceId) })
   const nodes = useMemo<NodeSummary[]>(() => data ?? [], [data])
@@ -143,7 +147,7 @@ function Tree({ spaceId, activeId, canEdit = true, label = 'Pages' }: Props) {
       <ul className={s.tree} role="tree" aria-label={label} onKeyDown={onTreeKey}>
         {tree.map((node) => (
           <Row key={node.id} node={node} depth={0} activeId={activeId} expanded={expanded} onToggle={toggle} onNew={newPage} canEdit={canEdit}
-            tabStop={tabStop} onFocusRow={setFocusId} />
+            personal={personal} tabStop={tabStop} onFocusRow={setFocusId} />
         ))}
       </ul>
       <TopLevelDrop spaceId={spaceId} />
@@ -159,12 +163,13 @@ interface RowProps {
   onToggle: (id: string) => void
   onNew: (parentId: string) => void
   canEdit: boolean
+  personal?: boolean
   /** The one row in Tab order; its New sub-page and grip buttons follow it */
   tabStop?: string
   onFocusRow: (id: string) => void
 }
 
-function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabStop, onFocusRow }: RowProps) {
+function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, personal, tabStop, onFocusRow }: RowProps) {
   const drag = useDraggable({ id: node.id })
   // A page can't be dropped on its own row: those drops were no-ops announced as "inside itself"
   const into = useDroppable({ id: `in:${node.id}`, disabled: drag.isDragging })
@@ -172,12 +177,14 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabSto
   const open = expanded.has(node.id)
   const title = node.title || 'Untitled'
   const tab = node.id === tabStop ? 0 : -1
+  const { onTouchStart, ...gripListeners } = drag.listeners ?? {} // a finger drags the whole row (long press), the mouse the grip
   return (
     <li role="none" className={cx(s.item, drag.isDragging && s.dragging)}>
       <div
         ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el) }}
         className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
-        style={{ paddingLeft: depth * 12 }}
+        style={{ paddingLeft: depth * 12 }} data-row
+        onTouchStart={canEdit ? (onTouchStart as React.TouchEventHandler) : undefined} onContextMenu={openRowMenu}
       >
         <button type="button" tabIndex={-1} className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
@@ -192,8 +199,9 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabSto
         {canEdit && (
           <>
             <button type="button" tabIndex={tab} className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
+            <RowMenu id={node.id} title={title} personal={personal} tabIndex={tab} />
             <button type="button" className={cx(s.btn, s.grip)} aria-label={`Drag to move ${title}`} title="Drag to move"
-              {...drag.listeners} {...drag.attributes} tabIndex={tab}><Icon name="grip" /></button>
+              {...gripListeners} {...drag.attributes} tabIndex={tab}><Icon name="grip" /></button>
           </>
         )}
       </div>
@@ -201,12 +209,25 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, tabSto
         <ul className={s.tree} role="group">
           {node.children.map((c) => (
             <Row key={c.id} node={c} depth={depth + 1} activeId={activeId} expanded={expanded} onToggle={onToggle} onNew={onNew} canEdit={canEdit}
-              tabStop={tabStop} onFocusRow={onFocusRow} />
+              personal={personal} tabStop={tabStop} onFocusRow={onFocusRow} />
           ))}
         </ul>
       )}
       <div ref={after.setNodeRef} className={cx(s.gap, after.isOver && s.over)} style={{ marginLeft: depth * 12 }} />
     </li>
+  )
+}
+
+/** QA-18: the page's own "…" menu on its row. The tree only has summaries, so the page loads when the menu is first asked for. */
+function RowMenu({ id, title, personal, tabIndex }: { id: string; title: string; personal?: boolean; tabIndex: number }) {
+  const [wanted, setWanted] = useState(false)
+  const { data } = useQuery({ queryKey: ['node', id], queryFn: () => getNode(id), enabled: wanted })
+  const label = `More actions for ${title}`
+  if (data) return <PageMenu node={data} unsaved={false} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} />
+  return (
+    <button type="button" tabIndex={tabIndex} className={s.btn} aria-label={label} aria-haspopup="menu" aria-expanded={false} onClick={() => setWanted(true)}>
+      <Icon name="more" />
+    </button>
   )
 }
 

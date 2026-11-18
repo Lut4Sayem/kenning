@@ -32,10 +32,10 @@
 .label { margin: 0; padding: 16px 10px 4px; font-family: var(--font-sans); color: var(--ink-muted); font-size: 12px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .group { display: flex; flex-direction: column; gap: 2px; }
 .groupRow { display: flex; align-items: center; gap: 2px; height: 32px; padding-right: var(--space-1); border-radius: var(--r-row); }
-@media (hover: hover) { .groupRow:hover { background: var(--hover); } }
+@media (min-width: 640px) { .groupRow:hover { background: var(--hover); } } /* docked sidebar only: no sticky hover in the drawer */
 .groupRow.dropOver { outline: 2px solid var(--primary); }
 .chevBtn { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
-@media (hover: hover) { .chevBtn:hover { background: var(--hover); } }
+@media (min-width: 640px) { .chevBtn:hover { background: var(--hover); } }
 .chev { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
 .chev.open { transform: rotate(90deg); }
 .tile { display: grid; place-items: center; flex: none; width: 18px; height: 18px; margin-right: var(--space-2); border-radius: var(--r-tag); font-size: 11px; font-weight: 700; }
@@ -47,19 +47,17 @@
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
 .privateHead { height: auto; padding: 0 var(--space-1) 0 0; }
 .privateHead .label { flex: 1; }
-@media (hover: hover) { .groupRow.privateHead:hover { background: none; } }
+@media (min-width: 640px) { .groupRow.privateHead:hover { background: none; } }
 .actions { position: relative; display: flex; flex: none; align-items: center; gap: 2px; }
 .rowBtn { display: grid; place-items: center; width: 0; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; opacity: 0; overflow: hidden; }
-@media (hover: hover) { .rowBtn:hover { background: var(--hover); color: var(--ink); } }
-.groupRow:hover .rowBtn, .groupRow:focus-within .rowBtn, .pinned .rowBtn { opacity: 1; width: 24px; }
+@media (min-width: 640px) { .rowBtn:hover { background: var(--hover); color: var(--ink); } }
+.groupRow:hover .rowBtn, .groupRow:focus-within .rowBtn, .groupRow[data-touched] .rowBtn, .pinned .rowBtn { opacity: 1; width: 24px; }
 .actions .menu { top: 28px; right: 0; left: auto; min-width: 160px; }
 .actions .note { position: absolute; top: 28px; right: 0; width: 200px; background: var(--canvas); box-shadow: var(--shadow-3); border-radius: var(--r-row); z-index: 20; }
-@media (hover: none) { .rowBtn { opacity: 1; width: 24px; } }
-/* D-02: same rule as the page tree */
-@media (any-pointer: coarse) {
+/* Phone (the sidebar is the drawer): same rule as the page tree, by width, never by hover/pointer queries */
+@media (max-width: 639.98px) {
   .groupRow { height: 40px; }
-  .rowBtn { opacity: 0.55; width: 40px; height: 40px; }
-  .groupRow:hover .rowBtn, .groupRow:focus-within .rowBtn, .pinned .rowBtn { opacity: 1; width: 40px; }
+  .rowBtn, .labelRow .rowBtn, .groupRow:hover .rowBtn, .groupRow:focus-within .rowBtn, .pinned .rowBtn { opacity: 1; width: 40px; height: 40px; }
 }
 .trash { position: relative; }
 .navBtn { width: 100%; border: 0; background: none; font: inherit; cursor: pointer; text-align: left; }
