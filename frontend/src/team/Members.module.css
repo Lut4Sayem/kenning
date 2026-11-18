@@ -19,7 +19,8 @@
 .empty, .note { margin: 0; font-size: 14px; color: var(--ink-muted); }
 .error { margin: 0 0 8px; font-size: 13px; color: var(--error-text); }
 
-.roleBtn { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px 0 12px; border: 0; border-radius: var(--r-pill); font-size: 13px; font-weight: 600; cursor: pointer; }
+.roleBtn { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px 0 9px; border: 0; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; cursor: pointer; } /* D-08 A */
+@media (pointer: coarse) { .roleBtn::after { content: ''; position: absolute; inset: -9px -4px; } } /* 40px touch target, same look */
 .roleBtn svg { width: 12px; height: 12px; }
 .ADMIN { background: var(--tint-lavender-bg); color: var(--tint-lavender-fg); }
 .EDITOR { background: var(--tint-sky-bg); color: var(--tint-sky-fg); }
