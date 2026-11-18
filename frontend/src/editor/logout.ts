@@ -80,6 +80,6 @@ export async function logOut(userId: string, next?: string): Promise<boolean> {
   } catch {
     // go to the login page anyway
   }
-  location.assign('/app/login' + (next ? '?next=' + encodeURIComponent(next) : ''))
+  location.replace('/app/login' + (next ? '?next=' + encodeURIComponent(next) : ''))
   return true
 }

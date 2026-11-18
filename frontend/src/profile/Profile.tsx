@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { getMe, getMyTeams, type Me } from '../api/spaces'
 import { TopBar } from '../app/ShellSlots'
@@ -17,6 +17,7 @@ const MAX = 2 * 1024 * 1024
 export default function Profile() {
   const qc = useQueryClient()
   const me = useQuery({ queryKey: ['me'], queryFn: getMe })
+  const navigate = useNavigate()
   const teams = useQuery({ queryKey: ['my-teams'], queryFn: getMyTeams })
   const [name, setName] = useState('')
   const [error, setError] = useState('')
@@ -104,6 +105,8 @@ export default function Profile() {
               <button type="submit" className={s.primary} disabled={!name.trim() || !dirty || save.isPending}>{save.isPending ? 'Saving…' : 'Save'}</button>
             </div>
           </form>
+          {/* /logout sends unsaved local copies first, like the sidebar's Log out */}
+          <button type="button" className={`${s.white} ${s.logout}`} onClick={() => navigate('/logout')}><Icon name="logout" />Log out</button>
         </section>
 
         <section className={s.card} aria-labelledby="my-teams">
