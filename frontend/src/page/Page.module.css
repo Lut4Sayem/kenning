@@ -38,7 +38,7 @@
 .props { display: grid; grid-template-columns: 120px minmax(0, 1fr); column-gap: 12px; row-gap: 4px; margin: 4px 0 32px; font-size: 14px; }
 .k { display: flex; align-items: center; gap: 8px; height: 32px; font-size: 13.5px; color: var(--ink-muted); }
 .v { display: flex; align-items: center; gap: 8px; min-height: 32px; flex-wrap: wrap; min-width: 0; color: var(--ink); }
-.pill { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .draft { background: var(--pill-bg); color: var(--pill-ink); }
 .published { background: var(--published-bg); color: var(--published-ink); }
