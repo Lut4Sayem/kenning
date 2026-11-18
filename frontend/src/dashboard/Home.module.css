@@ -20,7 +20,7 @@ button.more { padding: 0; border: 0; background: none; font-family: inherit; cur
   border: 1px solid var(--line); border-radius: var(--r-card); background: var(--canvas);
   color: inherit; text-decoration: none;
 }
-@media (hover: hover) { .card:hover { border-color: var(--ink-muted); } }
+@media (min-width: 640px) { .card:hover { border-color: var(--ink-muted); } }
 .cardDot { display: block; width: 12px; height: 12px; border-radius: var(--r-chip); background: var(--page-gray); }
 .cardTitle {
   font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--ink);
@@ -37,7 +37,7 @@ button.more { padding: 0; border: 0; background: none; font-family: inherit; cur
   display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 8px; border-bottom: 1px solid var(--line-soft);
   font-size: 14px; color: inherit; text-decoration: none;
 }
-@media (hover: hover) { .row:hover { background: var(--surface-card); } }
+@media (min-width: 640px) { .row:hover { background: var(--surface-card); } }
 .rowDot { flex: none; width: 8px; height: 8px; margin: 0 3px; border-radius: 3px; background: var(--page-gray); }
 .rowTitle { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--ink); }
 .rowLoc { flex: 0 1 auto; max-width: 45%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--ink-muted); }
@@ -55,7 +55,7 @@ button.more { padding: 0; border: 0; background: none; font-family: inherit; cur
   background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 500; cursor: pointer;
   transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out);
 }
-@media (hover: hover) { .newPage:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
+@media (min-width: 640px) { .newPage:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
 .newPage:active:not(:disabled) { scale: 0.96; }
 .newPage:disabled { opacity: 0.5; cursor: not-allowed; }
 .notice { margin: 0; font-size: 13px; color: var(--error-text); }
@@ -79,7 +79,7 @@ button.more { padding: 0; border: 0; background: none; font-family: inherit; cur
 .startActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .primaryBtn, .ghostBtn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 1px solid transparent; border-radius: 6px; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
 .primaryBtn { background: var(--primary); color: var(--on-primary); }
-@media (hover: hover) { .primaryBtn:hover { background: color-mix(in srgb, var(--primary), white 14%); } }
+@media (min-width: 640px) { .primaryBtn:hover { background: color-mix(in srgb, var(--primary), white 14%); } }
 .ghostBtn { background: var(--canvas); border-color: var(--line); color: var(--ink); }
-@media (hover: hover) { .ghostBtn:hover { background: var(--hover); } }
+@media (min-width: 640px) { .ghostBtn:hover { background: var(--hover); } }
 .primaryBtn:active, .ghostBtn:active { scale: 0.96; }

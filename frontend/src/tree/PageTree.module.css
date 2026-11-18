@@ -16,7 +16,7 @@
 .link { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; line-height: 32px; }
 /* Docked sidebar: +, … and the grip take no width (the title gets the room) until the row is hovered, focused or tapped
    (data-touched, see useRowTouch). Still focusable, so keyboard and screen readers reach them. */
-.btn, .grip { opacity: 0; width: 0; overflow: hidden; }
+.row .btn { opacity: 0; width: 0; min-width: 0; overflow: hidden; } /* min-width: base.css gives phone buttons 40px */
 .row:hover .btn, .row:focus-within .btn, .row[data-touched] .btn { opacity: 1; width: 24px; }
 .grip { cursor: grab; touch-action: none; }
 .gap { height: 2px; }
@@ -32,8 +32,8 @@
 @media (max-width: 639.98px) {
   .row { height: 40px; }
   .link { -webkit-touch-callout: none; user-select: none; } /* not the row: the Move dialog inside it keeps selectable text */
-  .btn, .row:hover .btn, .row:focus-within .btn, .row[data-touched] .btn { opacity: 1; width: 40px; height: 40px; }
-  .grip, .row:hover .grip, .row:focus-within .grip, .row[data-touched] .grip { opacity: 0; width: 0; }
+  .row .btn, .row:hover .btn, .row:focus-within .btn, .row[data-touched] .btn { opacity: 1; width: 40px; height: 40px; }
+  .row .grip, .row:hover .grip, .row:focus-within .grip, .row[data-touched] .grip { opacity: 0; width: 0; }
   .row .grip:focus-visible { opacity: 1; width: 40px; }
 }
 /* The row menu hangs from the row, not the … button, so it stays inside the 232px sidebar (the scroll box clips it) */

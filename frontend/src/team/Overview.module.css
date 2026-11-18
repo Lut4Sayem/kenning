@@ -10,11 +10,11 @@
 .sectionTitle { font-family: var(--font-sans); font-size: 15px; font-weight: 600; line-height: 1.25; letter-spacing: 0; }
 .count { font-size: 13px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .headLink { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; font-size: 13px; color: var(--link); cursor: pointer; }
-@media (hover: hover) { .headLink:hover { text-decoration: underline; text-underline-offset: 2px; } }
+@media (min-width: 640px) { .headLink:hover { text-decoration: underline; text-underline-offset: 2px; } }
 
 .spaces { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .space { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 92px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--canvas); color: inherit; text-decoration: none; }
-@media (hover: hover) { .space:hover { border-color: var(--ink-muted); } }
+@media (min-width: 640px) { .space:hover { border-color: var(--ink-muted); } }
 .space:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .spaceName { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
 .dot { display: block; width: 12px; height: 12px; border-radius: var(--r-chip); background: var(--page-gray); } /* card dot, DESIGN.md section 2 */
@@ -30,7 +30,7 @@
 @media (max-width: 900px) { .spaces { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .spaces { grid-template-columns: minmax(0, 1fr); } }
 .nameBtn { display: inline; padding: 0; border: 0; border-radius: 6px; background: none; font: inherit; color: inherit; letter-spacing: inherit; text-align: left; cursor: text; }
-@media (hover: hover) { .nameBtn:hover { background: var(--hover); } }
+@media (min-width: 640px) { .nameBtn:hover { background: var(--hover); } }
 .nameBtn:focus-visible, .nameInput:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 .nameInput { display: block; width: 100%; padding: 0; border: 0; border-radius: 6px; background: transparent; font-family: var(--font-title); font-size: 28px; font-weight: 500; line-height: 1.1; letter-spacing: -0.015em; color: var(--ink); }
 .nameError { margin: 8px 0 0; font-size: 13px; color: var(--error-text); }
@@ -40,7 +40,7 @@
 .dangerRow + .dangerRow { margin-top: 10px; }
 .dangerText { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); }
 .dangerBtn { flex: none; height: 34px; padding: 0 14px; border: 1px solid var(--danger); border-radius: 6px; background: transparent; color: var(--error-text); font-size: 13.5px; font-weight: 500; cursor: pointer; }
-@media (hover: hover) { .dangerBtn:hover { background: var(--danger-tile); } }
+@media (min-width: 640px) { .dangerBtn:hover { background: var(--danger-tile); } }
 .dangerBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 @media (max-width: 560px) { .dangerRow { flex-direction: column; align-items: flex-start; } }
 @media (max-width: 640px) { .facts { gap: 8px 16px; } .fact { padding: 0; border-left: 0; } }

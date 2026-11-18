@@ -29,7 +29,7 @@
 .white { border-color: var(--line); background: var(--canvas); color: var(--ink); }
 .danger { background: transparent; color: var(--error-text); }
 .primary { height: 36px; padding: 0 18px; background: var(--primary); color: var(--on-primary); font-size: 14px; }
-@media (hover: hover) {
+@media (min-width: 640px) {
   .white:hover:not(:disabled) { background: var(--row-hover); }
   .danger:hover:not(:disabled) { background: var(--error-soft); }
   .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); }
@@ -52,7 +52,7 @@
 
 .teams { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .teamRow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid transparent; border-radius: var(--r-lg); background: var(--canvas); color: inherit; text-decoration: none; }
-@media (hover: hover) { .teamRow:hover { border-color: var(--line); } }
+@media (min-width: 640px) { .teamRow:hover { border-color: var(--line); } }
 .teamName { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--ink); }
 .skel, .teamSkel { animation: pulse 1.4s ease-in-out infinite; }
 .skel { min-height: 320px; }

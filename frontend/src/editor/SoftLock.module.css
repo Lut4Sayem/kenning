@@ -6,6 +6,6 @@
 .open, .anyway { height: 30px; padding: 0 14px; border: 0; border-radius: var(--r-pill); font-size: 13px; font-weight: 500; cursor: pointer; transition: scale 150ms var(--ease-out), background-color 150ms var(--ease-out); }
 .open { background: var(--canvas); color: var(--ink); box-shadow: var(--shadow-1); }
 .anyway { background: transparent; color: var(--ink-muted); }
-@media (hover: hover) { .anyway:hover { color: var(--ink); background: var(--hover); } }
+@media (min-width: 640px) { .anyway:hover { color: var(--ink); background: var(--hover); } }
 .open:active, .anyway:active { scale: 0.96; }
 @media (max-width: 640px) { .banner { flex-wrap: wrap; } .text { flex-basis: calc(100% - 50px); } }

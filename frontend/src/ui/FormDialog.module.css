@@ -11,11 +11,11 @@
 .body { margin: -6px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-doc); text-wrap: pretty; }
 .ghost, .primary, .danger { height: 38px; padding: 0 18px; border-radius: var(--r-pill); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: background-color 150ms var(--ease-out), scale 150ms var(--ease-out); }
 .ghost { background: transparent; border-color: var(--line); color: var(--ink); }
-@media (hover: hover) { .ghost:hover:not(:disabled) { background: var(--hover); } }
+@media (min-width: 640px) { .ghost:hover:not(:disabled) { background: var(--hover); } }
 .primary { background: var(--primary); color: var(--on-primary); }
-@media (hover: hover) { .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
+@media (min-width: 640px) { .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--primary), white 14%); } }
 .danger { background: var(--danger); color: var(--on-primary); }
-@media (hover: hover) { .danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger), black 12%); } }
+@media (min-width: 640px) { .danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger), black 12%); } }
 .ghost:active:not(:disabled), .primary:active:not(:disabled), .danger:active:not(:disabled) { scale: 0.96; }
 .ghost:disabled, .primary:disabled, .danger:disabled { opacity: 0.5; cursor: not-allowed; }
 .warning { margin: -6px 0 12px; font-size: 14px; line-height: 1.5; font-weight: 500; color: var(--error-text); text-wrap: pretty; }
