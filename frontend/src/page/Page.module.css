@@ -41,7 +41,6 @@
 .pill { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .draft { background: var(--pill-bg); color: var(--pill-ink); }
-.draft::before { background: #d9a400; }
 .published { background: var(--published-bg); color: var(--published-ink); }
 .published::before { background: var(--published-ink); }
 .hint { font-size: 13px; color: var(--ink-muted); }
