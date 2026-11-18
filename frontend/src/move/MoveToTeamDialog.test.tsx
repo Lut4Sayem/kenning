@@ -98,10 +98,10 @@ describe('Move to… (within the team)', () => {
   it('offersOnlyThisTeamsSpacesStartingOnAnotherOne', async () => {
     mountWithin()
     expect(await screen.findByRole('dialog', { name: 'Move “Methodology” to…' })).toBeTruthy()
-    const select = await screen.findByRole('combobox', { name: 'Space' }) as HTMLSelectElement
-    await waitFor(() => expect(select.value).toBe('s2'))
-    expect(screen.queryByRole('option', { name: 'Other team space' })).toBeNull()
-    expect(screen.queryByRole('combobox', { name: 'Team' })).toBeNull()
+    const exp = await screen.findByRole('radio', { name: 'Experiments' }) as HTMLInputElement
+    await waitFor(() => expect(exp.checked).toBe(true))
+    expect(screen.queryByRole('radio', { name: 'Other team space' })).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull() // D-01 B: one list, no selects
     expect(await screen.findByRole('radio', { name: 'Pilot' })).toBeTruthy()
   })
 
@@ -116,13 +116,51 @@ describe('Move to… (within the team)', () => {
 
   it('inItsOwnSpaceThePageAndItsSubPagesAreNotParents', async () => {
     mountWithin()
-    await screen.findByRole('option', { name: 'Literature Review' })
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Space' }), 's1')
+    await userEvent.click(await screen.findByRole('radio', { name: 'Literature Review Now here' }))
     expect(await screen.findByRole('radio', { name: 'Related work' })).toBeTruthy()
     expect(screen.queryByRole('radio', { name: 'Methodology' })).toBeNull()
     expect(screen.queryByRole('radio', { name: 'Sampling' })).toBeNull()
     await userEvent.click(screen.getByRole('radio', { name: 'Related work' }))
     await userEvent.click(screen.getByRole('button', { name: 'Move' }))
     await waitFor(() => expect(api.moveNode).toHaveBeenCalledWith('n1', { parentId: 'x' })) // same space: no spaceId
+  })
+})
+
+// D-01 B: one searchable list grouped by team; one click picks the team and the space.
+describe('the destination list', () => {
+  function mountTwoTeams() {
+    api.getSubtreeCount.mockResolvedValue({ count: 0 })
+    api.getTree.mockResolvedValue([])
+    api.moveToTeam.mockResolvedValue({})
+    spaces.getMySpaces.mockResolvedValue([
+      space('s1', 'Thesis', 'EDITOR'),
+      { ...space('d1', 'Lab reports', 'ADMIN', 't2'), teamName: 'DBMS Lab' },
+      { ...space('d2', 'Viva prep', 'VIEWER', 't2'), teamName: 'DBMS Lab' },
+    ])
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MoveToTeamDialog node={{ id: 'n1', spaceId: 'me', title: 'Interview plan' }} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    )
+  }
+
+  it('groupsEditableSpacesByTeamAndOneClickPicksBoth', async () => {
+    mountTwoTeams()
+    expect(await screen.findByText('DBMS Lab')).toBeTruthy()
+    expect(screen.queryByRole('radio', { name: 'Viva prep' })).toBeNull()
+    await userEvent.click(screen.getByText('Lab reports')) // the whole row is the target
+    await userEvent.click(screen.getByRole('button', { name: 'Move to team' }))
+    await waitFor(() => expect(api.moveToTeam).toHaveBeenCalledWith('n1', { spaceId: 'd1', parentId: null }))
+  })
+
+  it('findsASpaceByItsNameOrItsTeam', async () => {
+    mountTwoTeams()
+    await screen.findByRole('radio', { name: 'Thesis' })
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Find a space' }), 'dbms')
+    expect(screen.queryByRole('radio', { name: 'Thesis' })).toBeNull()
+    expect(screen.getByRole('radio', { name: 'Lab reports' })).toBeTruthy()
+    await userEvent.clear(screen.getByRole('searchbox', { name: 'Find a space' }))
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Find a space' }), 'nothing like it')
+    expect(screen.getByText('No space matches “nothing like it”.')).toBeTruthy()
   })
 })
