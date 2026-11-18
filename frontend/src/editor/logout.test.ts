@@ -64,7 +64,7 @@ function pageWithUnsaved(nodeId: string, typed: string, copy: Partial<Pending> =
   return local
 }
 
-let assign: ReturnType<typeof vi.fn>
+let replace: ReturnType<typeof vi.fn>
 const confirmDialog = vi.hoisted(() => vi.fn())
 vi.mock('../ui/ConfirmDialog', () => ({ confirmDialog }))
 let confirm: ReturnType<typeof vi.fn>
@@ -88,11 +88,11 @@ beforeEach(() => {
     return { id: 'v', createdAt: '' }
   })
   apiMock.mockResolvedValue(null)
-  assign = vi.fn()
+  replace = vi.fn()
   confirmDialog.mockReset()
   confirmDialog.mockResolvedValue(true)
   confirm = confirmDialog
-  vi.stubGlobal('location', { assign })
+  vi.stubGlobal('location', { replace })
 })
 
 afterEach(() => {
@@ -135,12 +135,12 @@ describe('logging out with unsaved local copies', () => {
 
     expect(confirm).not.toHaveBeenCalled()
     expect(apiMock).toHaveBeenCalledWith('/logout', expect.objectContaining({ method: 'POST' }))
-    expect(assign).toHaveBeenCalledWith('/app/login')
+    expect(replace).toHaveBeenCalledWith('/app/login')
   })
 
   it('logOutCanComeBackToAGivenPage', async () => {
     expect(await logOut(ME, '/app/join/abc')).toBe(true)
-    expect(assign).toHaveBeenCalledWith('/app/login?next=' + encodeURIComponent('/app/join/abc'))
+    expect(replace).toHaveBeenCalledWith('/app/login?next=' + encodeURIComponent('/app/join/abc'))
   })
 
   // QA-40: back online, copies of pages that were left offline are sent; a copy an open editor still owns is its own business.
@@ -188,7 +188,7 @@ describe('logging out with unsaved local copies', () => {
     expect(Object.values(slotsOf('down-1'))).toMatchObject([{ text: 'base stuck one' }]) // still on the device
     expect(Object.values(slotsOf('down-2'))).toMatchObject([{ text: 'base stuck two' }])
     expect(apiMock).not.toHaveBeenCalled() // still logged in
-    expect(assign).not.toHaveBeenCalled()
+    expect(replace).not.toHaveBeenCalled()
   })
 
   it('loggingOutAnywayClearsWhatIsLeftOfThisUserOnly', async () => {
@@ -205,7 +205,7 @@ describe('logging out with unsaved local copies', () => {
     expect(Object.values(slotsOf('theirs', 'other-user'))).toHaveLength(1) // not ours to send or to delete
     expect(pages.get('theirs')!.puts).toBe(0)
     expect(apiMock).toHaveBeenCalledWith('/logout', expect.objectContaining({ method: 'POST' }))
-    expect(assign).toHaveBeenCalledWith('/app/login')
+    expect(replace).toHaveBeenCalledWith('/app/login')
   })
 
   it('onePageIsSingular', async () => {

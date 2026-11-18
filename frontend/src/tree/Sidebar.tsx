@@ -95,9 +95,6 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
 
       <div className={s.foot}>
         <TrashPicker teams={teams.data ?? []} priv={priv} />
-        {me.data && (
-          <Link to="/profile" className={s.me}><span className={s.avatar} aria-hidden="true">{initialsOf(name)}</span>{name}</Link>
-        )}
       </div>
     </nav>
   )
@@ -164,6 +161,7 @@ function AccountMenu({ name, userId }: { name: string; userId?: string }) {
       {open && (
         <div className={s.menu} role="menu" aria-label="Account">
           <Link to="/profile" role="menuitem" className={s.menuItem}><Icon name="user" />Profile</Link>
+          <div role="separator" className={s.divider} />
           <button type="button" role="menuitem" className={s.menuItem} disabled={!userId} onClick={() => { setOpen(false); if (userId) void logOut(userId) }}>
             <Icon name="logout" />Log out
           </button>

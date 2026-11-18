@@ -15,7 +15,7 @@ export default function Logout() {
     let live = true
     getMe().then(
       (me) => import('../editor/logout').then((m) => m.logOut(me.id, next)).then((left) => !left && live && (next ? location.assign(next) : navigate('/'))), // "no, stay"
-      (e) => (e instanceof ApiError ? location.assign('/app/login') : live && setFailed(true)),
+      (e) => (e instanceof ApiError ? location.replace('/app/login') : live && setFailed(true)),
     )
     return () => {
       live = false

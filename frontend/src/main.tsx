@@ -18,5 +18,8 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
+// Back after logging out can restore a frozen app page from the back/forward cache; reload so the session check runs.
+addEventListener('pageshow', (e) => { if (e.persisted) location.reload() })
+
 // Dead-code-removed in production builds, so the panel never ships.
 if (import.meta.env.DEV) void import('./dev/mount').then((m) => m.mountTokenPanel())

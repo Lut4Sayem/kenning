@@ -57,7 +57,7 @@ test('trash a parent with 2 children, restore it, the tree is back', async ({ pa
   await expect(page.locator('[data-space]').first().getByRole('treeitem', { name: 'Parent' })).toHaveCount(0)
 
   // Trash page: one row for the branch, then restore.
-  await page.locator('[data-space]').first().getByRole('button', { name: /More actions for/ }).click()
+  await page.locator('[data-space]').first().getByRole('button', { name: /More actions for/ }).press('Enter')
   await page.getByRole('menuitem', { name: 'Trash' }).click()
   const row = page.getByRole('listitem').filter({ hasText: 'Parent' })
   await expect(row).toContainText('+ 2 sub-pages')

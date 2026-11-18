@@ -8,7 +8,7 @@ async function openNewPage(page: Page): Promise<string> {
   const login = await page.request.post('/api/auth/login', { data: { email, password: 'password123' } })
   expect(login.ok()).toBeTruthy()
   await page.goto('/app')
-  await page.getByRole('button', { name: /new page/i }).first().click() // a new user only has the private space
+  await page.getByRole('button', { name: /new page/i }).first().press('Enter') // a new user only has the private space
   await page.waitForURL(/\/app\/p\//)
   await expect(editor(page)).toBeVisible()
   return page.url()
@@ -93,7 +93,7 @@ test('logging out sends unsaved local copies first, or asks before dropping them
   expect((await context.request.post('/api/auth/register', { data: { fullName: 'Logout Tester', email, password: 'password123' } })).ok()).toBeTruthy()
   expect((await login()).ok()).toBeTruthy()
   await page.goto('/app')
-  await page.getByRole('button', { name: /new page/i }).first().click()
+  await page.getByRole('button', { name: /new page/i }).first().press('Enter')
   await page.waitForURL(/\/app\/p\//)
   const url = page.url()
   await typeInEditor(page, 'Saved normally. ')

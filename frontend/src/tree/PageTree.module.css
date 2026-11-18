@@ -14,8 +14,9 @@
 .chev.open { transform: rotate(90deg); }
 .dot { flex: none; width: 8px; height: 8px; border-radius: 3px; background: var(--page-gray); margin-right: var(--space-2); }
 .link { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-label); text-decoration: none; line-height: 32px; }
-.btn, .grip { opacity: 0; }
-.row:hover .btn, .row:focus-within .btn, .row:hover .grip, .row:focus-within .grip { opacity: 1; }
+/* Hidden at zero width so the title gets the room; still focusable, so keyboard and screen readers reach them */
+.btn, .grip { opacity: 0; width: 0; overflow: hidden; }
+.row:hover .btn, .row:focus-within .btn, .row:hover .grip, .row:focus-within .grip { opacity: 1; width: 24px; }
 .grip { cursor: grab; touch-action: none; }
 .gap { height: 2px; }
 .gap.over { background: var(--primary); }
@@ -23,7 +24,7 @@
 .topDrop { margin: var(--space-2) 0; padding: var(--space-2); border: 1px dashed var(--input-border); border-radius: var(--r-row); font-size: 13px; text-align: center; color: var(--ink-muted); }
 .topDrop.over { background: var(--canvas); }
 .note { margin: 0; padding: var(--space-1) var(--space-2); color: var(--ink-muted); font-size: 12px; }
-@media (hover: none) { .btn, .grip { opacity: 1; } }
+@media (hover: none) { .btn, .grip { opacity: 1; width: 24px; } }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
 
 .skelList { display: flex; flex-direction: column; gap: 10px; padding: 8px 10px 8px 22px; }
