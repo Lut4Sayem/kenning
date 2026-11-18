@@ -58,3 +58,27 @@ test('phone drawer: every row shows … and +, no grip', async ({ page }) => {
   }
   expect(await width(space.getByRole('button', { name: 'Drag to move Methodology' }))).toBeCloseTo(0, 1)
 })
+
+test('the row menu opens upward near the bottom of the sidebar, so it stays in view', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 560 })
+  const lit = await teamSpacePage(page)
+  for (let i = 1; i <= 8; i++) await call(page, `/api/spaces/${lit.id}/nodes`, { title: `Note ${i}` })
+  await page.goto('/app')
+  const last = page.locator(`[data-space="${lit.id}"]`).getByRole('treeitem', { name: 'Note 8' })
+  await last.evaluate((el) => el.scrollIntoView({ block: 'end' }))
+  const before = (await last.boundingBox())!
+  await last.click({ button: 'right' })
+  const menu = page.getByRole('menu', { name: 'More actions for Note 8' })
+  await expect(menu.getByRole('menuitem', { name: 'Move to trash' })).toBeVisible()
+  const scroll = (await last.evaluate((el) => {
+    let box = el.parentElement
+    while (box && getComputedStyle(box).overflowY !== 'auto') box = box.parentElement
+    const r = box!.getBoundingClientRect()
+    return { top: r.top, bottom: r.bottom }
+  }))
+  const m = (await menu.boundingBox())!
+  expect(m.y).toBeGreaterThanOrEqual(scroll.top)
+  expect(m.y + m.height).toBeLessThanOrEqual(scroll.bottom)
+  expect((await last.boundingBox())!.y).toBeCloseTo(before.y, 0) // the sidebar did not have to scroll to show it
+  expect(m.y + m.height).toBeLessThanOrEqual(before.y) // it opened above the row
+})

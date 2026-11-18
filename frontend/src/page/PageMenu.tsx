@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   archiveNode,
   lockNode,
@@ -62,6 +62,18 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
   const [moving, setMoving] = useState<'team' | 'space' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
+
+  // Near the bottom of a scroll box (the sidebar) the list opens upward, when there is more room above. Set on the
+  // element before paint and before the first item takes focus, which would otherwise scroll the box instead.
+  useLayoutEffect(() => {
+    const list = root.current?.querySelector<HTMLElement>('[role="menu"]')
+    if (!open || !list) return
+    let box: HTMLElement | null = root.current!.parentElement
+    while (box && !/auto|scroll/.test(getComputedStyle(box).overflowY)) box = box.parentElement
+    const area = box?.getBoundingClientRect() ?? { top: 0, bottom: innerHeight }
+    const anchor = root.current!.getBoundingClientRect()
+    list.classList.toggle(m.up, list.getBoundingClientRect().bottom > area.bottom && anchor.top - area.top > area.bottom - anchor.bottom)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
