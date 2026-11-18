@@ -222,8 +222,10 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
 function RowMenu({ id, title, personal, tabIndex }: { id: string; title: string; personal?: boolean; tabIndex: number }) {
   const [wanted, setWanted] = useState(false)
   const { data, isError, refetch } = useQuery({ queryKey: ['node', id], queryFn: () => getNode(id), enabled: wanted })
+  // Written by the open page's PageView (no query function: the cache is the store); false for pages not open.
+  const { data: unsaved = false } = useQuery<boolean>({ queryKey: ['unsaved', id], queryFn: () => false, enabled: false })
   const label = `More actions for ${title}`
-  if (data) return <PageMenu node={data} unsaved={false} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} className={s.menuHost} />
+  if (data) return <PageMenu node={data} unsaved={unsaved} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} className={s.menuHost} />
   return (
     <button type="button" tabIndex={tabIndex} className={s.btn} aria-label={label} aria-haspopup="menu" aria-expanded={false}
       title={isError ? 'Could not load the page menu. Click to try again.' : undefined} onClick={() => (isError ? void refetch() : setWanted(true))}>

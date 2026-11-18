@@ -98,6 +98,12 @@ export default function PageView() {
     const who = { id: me.data.id, name: me.data.fullName || me.data.email.split('@')[0], avatarUrl: me.data.profilePicture ?? null }
     qc.setQueryData<NodeDetail>(['node', nodeId], (n) => n && { ...n, contentUpdatedAt: new Date().toISOString(), updatedBy: who })
   }, [saveState, nodeId, qc, me.data])
+  // The sidebar row's menu blocks Archive / Trash like this page's own menu does while the page is not saved yet.
+  const unsaved = saveState !== 'saved' && saveState !== 'recovered'
+  useEffect(() => {
+    qc.setQueryData(['unsaved', nodeId], unsaved)
+    return () => { qc.setQueryData(['unsaved', nodeId], false) }
+  }, [qc, nodeId, unsaved])
 
   const restore = useMutation({
     mutationFn: (id: string) => restoreVersion(id),

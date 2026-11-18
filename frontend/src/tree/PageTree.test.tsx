@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,9 +12,11 @@ vi.mock('../api/nodes', () => nodesApi)
 const Touch = () => { useRowTouch(); return null }
 const Where = () => <p data-testid="where">{useLocation().pathname}</p>
 
+let qc: QueryClient
 function renderTree() {
+  qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={qc}>
       <MemoryRouter>
         <Touch />
         <PageTree spaceId="s1" />
@@ -148,6 +150,21 @@ describe('PageTree', () => {
     const menu = await screen.findByRole('menu', { name: 'More actions for Alpha' })
     expect(menu.textContent).toContain('Move to trash')
     await waitFor(() => expect(document.activeElement?.closest('[role="menu"]')).toBe(menu))
+  })
+
+  it('theOpenPagesRowMenuWaitsForItsSaveLikeThePageMenu', async () => {
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }])
+    nodesApi.getNode.mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, color: null })
+    renderTree()
+    qc.setQueryData(['unsaved', 'a'], true) // what PageView writes while the open page is saving
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Alpha' }))
+    for (const name of [/^Archive/, /^Move to trash/]) {
+      const item = await screen.findByRole('menuitem', { name })
+      expect((item as HTMLButtonElement).disabled).toBe(true)
+      expect(item.textContent).toContain('Wait until the page is saved')
+    }
+    act(() => { qc.setQueryData(['unsaved', 'a'], false) })
+    await waitFor(() => expect((screen.getByRole('menuitem', { name: /^Move to trash/ }) as HTMLButtonElement).disabled).toBe(false))
   })
 
   it('aRowMenuThatFailedToLoadTriesAgainOnTheNextClick', async () => {

@@ -82,3 +82,22 @@ test('the row menu opens upward near the bottom of the sidebar, so it stays in v
   expect((await last.boundingBox())!.y).toBeCloseTo(before.y, 0) // the sidebar did not have to scroll to show it
   expect(m.y + m.height).toBeLessThanOrEqual(before.y) // it opened above the row
 })
+
+test('the open page’s row menu waits for its save, like the page’s own menu', async ({ page, context }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const lit = await teamSpacePage(page)
+  const node = await call(page, `/api/spaces/${lit.id}/nodes`, { title: 'Draft notes' })
+  await page.goto(`/app/p/${node.id}`)
+  await page.locator('.bn-editor[contenteditable="true"]').click()
+  await page.keyboard.type('Saved part')
+  await expect(page.locator('header [role="status"]')).toHaveText('Saved')
+
+  await context.setOffline(true)
+  await page.keyboard.type(' and an unsaved part')
+  await expect(page.locator('header [role="status"]')).toHaveText('Offline: changes kept on this device')
+  await page.locator(`[data-space="${lit.id}"]`).getByRole('treeitem', { name: 'Draft notes' }).click({ button: 'right' })
+  const menu = page.getByRole('menu', { name: 'More actions for Draft notes' })
+  for (const name of [/^Archive/, /^Move to trash/]) await expect(menu.getByRole('menuitem', { name })).toBeDisabled()
+  await expect(menu).toContainText('Wait until the page is saved')
+  await context.setOffline(false)
+})
