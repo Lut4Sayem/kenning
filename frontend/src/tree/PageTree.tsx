@@ -221,11 +221,12 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
 /** QA-18: the page's own "…" menu on its row. The tree only has summaries, so the page loads when the menu is first asked for. */
 function RowMenu({ id, title, personal, tabIndex }: { id: string; title: string; personal?: boolean; tabIndex: number }) {
   const [wanted, setWanted] = useState(false)
-  const { data } = useQuery({ queryKey: ['node', id], queryFn: () => getNode(id), enabled: wanted })
+  const { data, isError, refetch } = useQuery({ queryKey: ['node', id], queryFn: () => getNode(id), enabled: wanted })
   const label = `More actions for ${title}`
   if (data) return <PageMenu node={data} unsaved={false} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} className={s.menuHost} />
   return (
-    <button type="button" tabIndex={tabIndex} className={s.btn} aria-label={label} aria-haspopup="menu" aria-expanded={false} onClick={() => setWanted(true)}>
+    <button type="button" tabIndex={tabIndex} className={s.btn} aria-label={label} aria-haspopup="menu" aria-expanded={false}
+      title={isError ? 'Could not load the page menu. Click to try again.' : undefined} onClick={() => (isError ? void refetch() : setWanted(true))}>
       <Icon name="more" />
     </button>
   )

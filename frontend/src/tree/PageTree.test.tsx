@@ -150,6 +150,18 @@ describe('PageTree', () => {
     await waitFor(() => expect(document.activeElement?.closest('[role="menu"]')).toBe(menu))
   })
 
+  it('aRowMenuThatFailedToLoadTriesAgainOnTheNextClick', async () => {
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }])
+    nodesApi.getNode.mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, color: null })
+    renderTree()
+    const more = await screen.findByRole('button', { name: 'More actions for Alpha' })
+    await userEvent.click(more)
+    await waitFor(() => expect(more.title).toMatch(/try again/))
+    await userEvent.click(more)
+    expect(await screen.findByRole('menu', { name: 'More actions for Alpha' })).toBeTruthy()
+  })
+
   it('aTapShowsThatRowsButtonsUntilTheNextTapElsewhere', async () => {
     nodesApi.getTree.mockResolvedValue(['Alpha', 'Beta'].map((title, i) => ({ id: title, parentId: null, rank: String(i), title, icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false })))
     renderTree()
