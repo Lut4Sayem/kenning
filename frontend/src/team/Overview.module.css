@@ -36,11 +36,11 @@
 .nameError { margin: 8px 0 0; font-size: 13px; color: var(--error-text); }
 
 .danger { padding-top: 24px; border-top: 1px solid var(--line-soft); }
-.dangerRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--danger-tile); border-radius: var(--r-lg); }
+.dangerRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--danger-soft); } /* X-6: a surface, only the button is red */
 .dangerRow + .dangerRow { margin-top: 10px; }
 .dangerText { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-muted); }
 .dangerBtn { flex: none; height: 34px; padding: 0 14px; border: 1px solid var(--danger); border-radius: 6px; background: transparent; color: var(--error-text); font-size: 13.5px; font-weight: 500; cursor: pointer; }
-@media (hover: hover) { .dangerBtn:hover { background: var(--danger-soft); } }
+@media (hover: hover) { .dangerBtn:hover { background: var(--danger-tile); } }
 .dangerBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 @media (max-width: 560px) { .dangerRow { flex-direction: column; align-items: flex-start; } }
 @media (max-width: 640px) { .facts { gap: 8px 16px; } .fact { padding: 0; border-left: 0; } }
