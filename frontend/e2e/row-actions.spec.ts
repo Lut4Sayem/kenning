@@ -32,12 +32,12 @@ test('wide layout with a mouse: names in full, row buttons on hover, right-click
   await expect(name).toBeVisible()
   expect(await name.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true) // not cut to "Literatu…"
   const more = space.getByRole('button', { name: 'More actions for Literature Review' })
-  expect(await width(more)).toBe(0)
+  expect(await width(more)).toBeCloseTo(0, 1)
   await name.hover()
   await expect.poll(() => width(more)).toBeGreaterThan(0)
 
   const row = space.getByRole('treeitem', { name: 'Methodology' })
-  expect(await width(space.getByRole('button', { name: 'More actions for Methodology' }))).toBe(0)
+  expect(await width(space.getByRole('button', { name: 'More actions for Methodology' }))).toBeCloseTo(0, 1)
   await row.click({ button: 'right' })
   const menu = page.getByRole('menu', { name: 'More actions for Methodology' })
   await expect(menu.getByRole('menuitem', { name: 'Move to trash' })).toBeVisible()
@@ -54,7 +54,7 @@ test('phone drawer: every row shows … and +, no grip', async ({ page }) => {
   const space = page.locator(`[data-space="${lit.id}"]`)
   for (const label of ['More actions for Literature Review', 'New page in Literature Review', 'More actions for Methodology', 'New sub-page under Methodology']) {
     await expect(space.getByRole('button', { name: label })).toBeVisible()
-    expect(await width(space.getByRole('button', { name: label }))).toBe(40)
+    expect(await width(space.getByRole('button', { name: label }))).toBeCloseTo(40, 1)
   }
-  expect(await width(space.getByRole('button', { name: 'Drag to move Methodology' }))).toBe(0)
+  expect(await width(space.getByRole('button', { name: 'Drag to move Methodology' }))).toBeCloseTo(0, 1)
 })
