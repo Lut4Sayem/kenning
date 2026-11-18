@@ -28,7 +28,7 @@
 .column { max-width: var(--reading-max); margin: 0 auto; padding: 40px 32px 80px; }
 .banners { max-width: var(--reading-max); margin: 0 auto; padding: 14px 0 0; }
 .banners:empty { display: none; }
-.iconTile { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 14px; border-radius: 8px; background: var(--tint-mint-bg); color: var(--page-green); }
+.iconTile { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 14px; border-radius: 8px; background: color-mix(in srgb, var(--c) 14%, var(--canvas)); color: var(--c); } /* X-3: --c = the page colour */
 .title { display: block; width: 100%; margin: 0 0 12px; padding: 0; border: 0; border-radius: 6px; background: transparent; font-family: var(--font-title); font-size: 32px; font-weight: 500; line-height: 1.1; letter-spacing: -0.015em; color: var(--ink); text-wrap: balance; resize: none; overflow: hidden; overflow-wrap: break-word; }
 .title::placeholder { color: var(--ink-muted); }
 .title:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--ring); } /* QA-54: the input focus glow from DESIGN.md, not a black box */

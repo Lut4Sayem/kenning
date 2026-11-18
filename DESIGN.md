@@ -184,7 +184,7 @@ Borders for structure (list rows, tabs, inputs, cards, the page panel edge), sha
 - **Callout:** `--callout` background, radius 12, padding 16, icon + text.
 - **Draft state:** shown in the page's properties block (Draft pill + one sentence + "Compare"), never as a full-width bar.
 - **Icons:** one line icon set, 16px, stroke 1.4–1.5, `currentColor`. Never emoji for UI icons.
-- **Icon tile:** a line glyph (`currentColor`) centred in a rounded square with a tint background: 20px/radius 6 in group headers, 36px/radius 10 in result and trash rows, 40px/radius 8 as the page icon above the title.
+- **Icon tile:** a line glyph (`currentColor`) centred in a rounded square with a tint background: 20px/radius 6 in group headers, 36px/radius 10 in result and trash rows, 40px/radius 8 as the page icon above the title (glyph in the page colour on a 14% mix of it, X-3).
 - **Properties block (page view):** two-column grid (label column 120px, muted, with a 14px icon; value column ink). Rows 32px. Draft = soft yellow pill with a dot; tags with "+ Add"; last edited = avatar, name, time.
 - **Segmented control:** pill track `--surface-card-hover`, active segment white + level-1 shadow, counts in an 11px badge. Used for Trash/Archived, result types, Inbox filters, panel tabs.
 - **View bar (list screens):** view tabs as small pills on the left, active filters as yellow chips with ×, Filter and Display icon buttons on the right.

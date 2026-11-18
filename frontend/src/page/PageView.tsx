@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
 import { useLocation, useParams } from 'react-router-dom'
+import { dotColour } from '../ui/pageColour'
 import { ApiError } from '../api/client'
 import { getNode, getTrashed, publishNode, restoreBranch, unpublishNode, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
 import { getVersion, listVersions, restoreVersion } from '../api/versions'
@@ -295,7 +296,7 @@ export default function PageView() {
         {node.isError && <p role="alert" className={s.error}>{node.error.message}</p>}
         {publish.error && <p role="alert" className={s.error}>{publish.error.message}</p>}
         {compareError && <p role="alert" className={s.error}>{compareError}</p>}
-        <div className={s.iconTile} aria-hidden="true"><Icon name="doc-lines" size={26} /></div>
+        <div className={s.iconTile} data-page-icon style={{ '--c': dotColour(node.data?.color) } as React.CSSProperties} aria-hidden="true"><Icon name="doc-lines" size={26} /></div>
         <h1 className="sr-only">{title || 'Untitled'}</h1>
         <textarea
           ref={titleBox}
