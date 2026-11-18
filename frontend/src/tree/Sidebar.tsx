@@ -184,7 +184,7 @@ function TeamSection({ team, spaces, loaded, activeId }: { team: MyTeam; spaces:
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
         <span className={s.tile} aria-hidden="true" style={{ background: `var(--tint-${tint}-bg)`, color: `var(--tint-${tint}-fg)` }}>{initialOf(label)}</span>
-        <Link to={`/teams/${team.teamId}`} className={s.groupLink}>{label}</Link>
+        <Link to={`/teams/${team.teamId}`} className={s.groupLink} title={label}>{label}</Link>
         <TeamActions team={team} label={label} />
       </div>
       {open && (
@@ -247,7 +247,7 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
         <button type="button" className={s.chevBtn} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${space.name}`} onClick={toggle}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
-        <Link to={`/s/${space.id}`} className={s.groupLink}>{space.name}</Link>
+        <Link to={`/s/${space.id}`} className={s.groupLink} title={space.name}>{space.name}</Link>
         <SpaceActions space={space} />
       </div>
       {open && <PageTree spaceId={space.id} activeId={activeId} canEdit={canEditSpace(space)} label={`Pages in ${space.name}`} />}

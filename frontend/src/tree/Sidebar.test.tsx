@@ -76,6 +76,12 @@ describe('Sidebar', () => {
     expect(screen.getByRole('region', { name: 'Private' })).toBeTruthy()
   })
 
+  it('teamAndSpaceNamesShowInFullAsATooltip', async () => { // they are cut with … when the sidebar is narrow
+    renderSidebar()
+    expect((await screen.findByRole('link', { name: 'Thesis Group' })).title).toBe('Thesis Group')
+    expect(screen.getByRole('link', { name: 'Requirements' }).title).toBe('Requirements')
+  })
+
   it('collapsingATeamHidesItsSpacesAndIsRemembered', async () => {
     const first = renderSidebar()
     await userEvent.click(await screen.findByRole('button', { name: 'Collapse Thesis Group' }))

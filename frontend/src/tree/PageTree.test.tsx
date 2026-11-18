@@ -42,6 +42,7 @@ describe('PageTree', () => {
     const dot = async (name: string) => ((await screen.findByRole('treeitem', { name })).previousElementSibling as HTMLElement).style.background
     expect(await dot('Green page')).toBe('var(--page-green)')
     expect(await dot('Plain page')).toBe('var(--page-gray)')
+    expect((await screen.findByRole('treeitem', { name: 'Green page' })).title).toBe('Green page') // the full name, when cut with …
   })
 
   it('subPageButtonCreatesUnderThatPageAndOpensIt', async () => {
