@@ -2,7 +2,10 @@
 .shell[data-sidebar='hidden'], .shell[data-sidebar='drawer'] { grid-template-columns: minmax(0, 1fr) auto; }
 .shell[data-sidebar='hidden'] .sidebarCol { display: none; }
 .shell:not([data-sidebar='shown']) .panel { margin-left: var(--panel-inset); }
-.sidebarCol { min-height: 0; overflow: hidden; }
+.sidebarCol { position: relative; min-height: 0; overflow: hidden; }
+.resize { position: absolute; z-index: 5; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; touch-action: none; }
+.resize:hover, .resize:focus-visible { background: var(--line); }
+.resize:focus-visible { outline-offset: -2px; }
 .panel {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
   margin: var(--panel-inset) var(--panel-inset) var(--panel-inset) 0;
