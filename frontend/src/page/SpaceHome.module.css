@@ -1,4 +1,4 @@
-/* Empty space (QA-17): the space's name, one line of help, New page. Opts out of the shell padding via [data-bleed]. */
+/* Space page: name, New page, the page list (empty: one line of help, QA-17): the space's name, one line of help, New page. Opts out of the shell padding via [data-bleed]. */
 .wrap { max-width: var(--reading-max); margin: 0 auto; padding: 56px 40px 64px; }
 .crumbs { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; color: var(--ink-label); }
 .crumbs a { color: inherit; text-decoration: none; }
@@ -15,3 +15,4 @@
 .mainBtn:active { scale: 0.96; }
 .error { margin: 12px 0 0; font-size: 13px; color: var(--error-text); }
 @media (max-width: 640px) { .wrap { padding: 32px 16px 48px; } }
+.pages { margin-top: 24px; }

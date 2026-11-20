@@ -30,9 +30,17 @@ function setup() {
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('space home', () => {
-  it('opensTheFirstPage', async () => {
-    nodes.getTree.mockResolvedValue([n('a', null, 'a0')])
+  // A space click opens the space's own page: its pages, in tree order, each a link; nothing opens by itself.
+  it('listsItsPagesInTreeOrderInsteadOfOpeningTheFirst', async () => {
+    nodes.getTree.mockResolvedValue([n('b', null, 'b0'), n('a1', 'a', 'a0'), n('a', null, 'a0')])
+    spaces.getMySpaces.mockResolvedValue(sp('VIEWER'))
     setup()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Experiments' })).toBeTruthy()
+    const list = screen.getByRole('list', { name: 'Pages in Experiments' })
+    expect([...list.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/p/a', '/p/a1', '/p/b'])
+    expect(list.textContent).toContain('in a')
+    expect(screen.queryByText('opened page')).toBeNull()
+    await userEvent.click(screen.getByRole('link', { name: /^b/ }))
     expect(await screen.findByText('opened page')).toBeTruthy()
   })
 
