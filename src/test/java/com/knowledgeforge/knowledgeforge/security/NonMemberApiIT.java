@@ -64,6 +64,8 @@ class NonMemberApiIT extends NodeIntegrationTest {
         denied(o, get(sp + "/trash"), null);
         denied(o, get(sp + "/archived"), null);
         denied(o, post(sp + "/ai/ask"), "{\"question\":\"q\"}");
+        denied(o, patch(sp), "{\"name\":\"x\"}");
+        denied(o, delete(sp), null);
         denied(o, get(n), null);
         denied(o, patch(n), "{\"title\":\"x\"}");
         for (String a : new String[]{"publish", "unpublish", "lock", "unlock", "trash", "archive", "unarchive", "session/end"})
@@ -109,6 +111,8 @@ class NonMemberApiIT extends NodeIntegrationTest {
         denied(o, get(ps + "/trash"), null);
         denied(o, get(ps + "/archived"), null);
         denied(o, post(ps + "/ai/ask"), "{\"question\":\"q\"}");
+        denied(o, patch(ps), "{\"name\":\"x\"}");
+        denied(o, delete(ps), null);
         denied(o, get(pn), null);
         denied(o, get(pn + "/content"), null);
         denied(o, get(pn + "/versions"), null);

@@ -265,7 +265,11 @@ class NodeServiceIT extends IntegrationTest {
     @Test
     void pageColourIsOneOfThePaletteAndShowsInTheTree() {
         NodeDTO a = create(null, "A");
-        assertNull(a.color()); // no colour = the default gray dot
+        // a new page gets a random palette colour (gray is stored as null) and keeps it
+        assertTrue(a.color() == null || (NodeService.COLORS.contains(a.color()) && !"gray".equals(a.color())));
+        assertEquals(a.color(), nodeService.get(a.id()).color());
+        assertTrue(java.util.stream.IntStream.range(0, 30).mapToObj(i -> create(null, "P" + i).color())
+                .collect(java.util.stream.Collectors.toSet()).size() > 1, "colours are mixed, not one fixed value");
         assertEquals("green", nodeService.update(a.id(), new UpdateNodeRequest(null, null, null, "green")).color());
         assertEquals("green", nodeService.tree(space.getId()).get(0).color());
         assertEquals(400, statusOf(() -> nodeService.update(a.id(), new UpdateNodeRequest(null, null, null, "#ff0000"))));

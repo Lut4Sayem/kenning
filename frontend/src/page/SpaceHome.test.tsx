@@ -7,7 +7,7 @@ import SpaceHome from './SpaceHome'
 
 const nodes = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodes)
-const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn() }))
+const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn(), renameSpace: vi.fn() }))
 vi.mock('../api/spaces', async (orig) => ({ ...(await orig<typeof import('../api/spaces')>()), ...spaces }))
 vi.mock('../app/ShellSlots', () => ({ TopBar: ({ children }: { children: React.ReactNode }) => <header>{children}</header> }))
 const sp = (myRole: string) => [{ id: 's1', name: 'Experiments', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis Group', myRole }]
@@ -30,9 +30,17 @@ function setup() {
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 describe('space home', () => {
-  it('opensTheFirstPage', async () => {
-    nodes.getTree.mockResolvedValue([n('a', null, 'a0')])
+  // A space click opens the space's own page: its pages, in tree order, each a link; nothing opens by itself.
+  it('listsItsPagesInTreeOrderInsteadOfOpeningTheFirst', async () => {
+    nodes.getTree.mockResolvedValue([n('b', null, 'b0'), n('a1', 'a', 'a0'), n('a', null, 'a0')])
+    spaces.getMySpaces.mockResolvedValue(sp('VIEWER'))
     setup()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Experiments' })).toBeTruthy()
+    const list = screen.getByRole('list', { name: 'Pages in Experiments' })
+    expect([...list.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/p/a', '/p/a1', '/p/b'])
+    expect(list.textContent).toContain('in a')
+    expect(screen.queryByText('opened page')).toBeNull()
+    await userEvent.click(screen.getByRole('link', { name: /^b/ }))
     expect(await screen.findByText('opened page')).toBeTruthy()
   })
 
@@ -59,5 +67,28 @@ describe('space home', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Experiments' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'New page' })).toBeNull()
     expect(screen.getByText(/An editor of Thesis Group can write the first one/)).toBeTruthy()
+  })
+
+  // Admins and editors rename the space from its title; viewers see plain text.
+  it('editorsRenameTheSpaceFromItsTitle', async () => {
+    nodes.getTree.mockResolvedValue([])
+    spaces.getMySpaces.mockResolvedValue(sp('EDITOR'))
+    spaces.renameSpace.mockRejectedValueOnce(new Error('A space needs a name')).mockResolvedValue({ id: 's1', name: 'Lab' })
+    setup()
+    await userEvent.click(await screen.findByRole('button', { name: 'Rename space: Experiments' }))
+    const field = screen.getByLabelText('Space name')
+    await userEvent.clear(field)
+    await userEvent.type(field, '{Enter}')
+    expect((await screen.findByRole('alert')).textContent).toBe('A space needs a name') // the field stays open
+    await userEvent.type(field, 'Lab{Enter}')
+    await waitFor(() => expect(spaces.renameSpace).toHaveBeenLastCalledWith('s1', 'Lab'))
+  })
+
+  it('viewersCannotRenameTheSpace', async () => {
+    nodes.getTree.mockResolvedValue([])
+    spaces.getMySpaces.mockResolvedValue(sp('VIEWER'))
+    setup()
+    await screen.findByRole('heading', { level: 1, name: 'Experiments' })
+    expect(screen.queryByRole('button', { name: /Rename space/ })).toBeNull()
   })
 })

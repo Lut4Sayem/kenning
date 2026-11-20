@@ -1,5 +1,8 @@
 package com.knowledgeforge.knowledgeforge.space;
 
+import com.knowledgeforge.knowledgeforge.node.NodeRepository;
+import com.knowledgeforge.knowledgeforge.node.NodeStatus;
+import com.knowledgeforge.knowledgeforge.node.TrashService;
 import com.knowledgeforge.knowledgeforge.team.TeamMemberRepository;
 import com.knowledgeforge.knowledgeforge.team.TeamRepository;
 import com.knowledgeforge.knowledgeforge.user.User;
@@ -25,7 +28,12 @@ public class SpaceService {
     final UserRepository userRepository;
     final SpaceRepository spaceRepository;
     final TeamRepository teamRepository;
-    public SpaceService(TeamMemberRepository teamMemberRepository, SpaceRepository spaceRepository, UserRepository userRepository, TeamRepository teamRepository) {
+    final NodeRepository nodeRepository;
+    final TrashService trash;
+    public SpaceService(TeamMemberRepository teamMemberRepository, SpaceRepository spaceRepository, UserRepository userRepository,
+                        TeamRepository teamRepository, NodeRepository nodeRepository, TrashService trash) {
+        this.nodeRepository = nodeRepository;
+        this.trash = trash;
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.userRepository = userRepository;
@@ -116,4 +124,62 @@ public class SpaceService {
         return out;
     }
 
+    static final int MAX_NAME = 200; // the page title limit
+
+    /** Team ADMINs and EDITORs; same rules as a page title (trimmed, at most 200), but a space needs a name. */
+    public Space renameSpace(String spaceId, RenameSpaceRequest req) {
+        Space space = teamSpaceFor(spaceId, "renamed");
+        if (!teamMemberRepository.canEdit(space.getTeamId(), currentUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only a team admin or editor can rename a space");
+        }
+        String name = req == null || req.name() == null ? "" : req.name().trim();
+        if (name.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A space needs a name");
+        if (name.codePointCount(0, name.length()) > MAX_NAME) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A space name can be at most " + MAX_NAME + " characters");
+        }
+        space.setName(name);
+        space.setUpdatedAt(new Date());
+        return spaceRepository.save(space);
+    }
+
+    /**
+     * Team admins only. Spaces have no trash, so only an empty space can be deleted: no ACTIVE or ARCHIVED pages
+     * (409 otherwise). Pages already in its trash are deleted forever with it.
+     */
+    public void deleteSpace(String spaceId) {
+        Space space = teamSpaceFor(spaceId, "deleted");
+        if (!teamMemberRepository.findByTeamIdAndUserId(space.getTeamId(), currentUserId())
+                .map(m -> "ADMIN".equals(m.getRole())).orElse(false)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only a team admin can delete a space");
+        }
+        long held = nodeRepository.countBySpaceIdAndStatus(spaceId, NodeStatus.ACTIVE)
+                + nodeRepository.countBySpaceIdAndStatus(spaceId, NodeStatus.ARCHIVED);
+        if (held > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This space still holds " + held + (held == 1 ? " page" : " pages")
+                    + " (archived ones count too). Move them to another space or to the trash first.");
+        }
+        trash.purgeSpace(spaceId);
+        spaceRepository.delete(space);
+    }
+
+    /** A team space the current user is a member of (else 404). The personal space is the owner's only: 400 for them, 404 for others. */
+    private Space teamSpaceFor(String spaceId, String verb) {
+        String userId = currentUserId();
+        Space space = spaceRepository.findById(spaceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Space not found"));
+        if (space.getOwnerType() == Space.OwnerType.USER) {
+            if (!userId.equals(space.getOwnerUserId())) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Space not found");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Your Private space can’t be " + verb);
+        }
+        if (!teamMemberRepository.existsByTeamIdAndUserId(space.getTeamId(), userId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Space not found");
+        }
+        return space;
+    }
+
+    private String currentUserId() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found")).getId();
+    }
 }

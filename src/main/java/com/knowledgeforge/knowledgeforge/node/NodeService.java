@@ -31,13 +31,14 @@ import com.knowledgeforge.knowledgeforge.activity.ActivityLogService;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersionService;
 import com.knowledgeforge.knowledgeforge.nodeversion.VersionKind;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 public class NodeService {
     /** DESIGN.md page palette; gray is the default and is stored as null. */
-    static final Set<String> COLORS = Set.of("gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red");
+    static final List<String> COLORS = List.of("gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red");
     static final int MAX_DEPTH = 50, MAX_TITLE = 200, MAX_ICON = 16, MAX_TAGS = 20, MAX_TAG = 40, MAX_RECENT = 20;
 
     private final NodeRepository nodes;
@@ -109,6 +110,8 @@ public class NodeService {
         node.setAncestors(ancestors);
         node.setRank(rank(siblings, null, req.afterId()));
         node.setTitle(title);
+        String color = COLORS.get(ThreadLocalRandom.current().nextInt(COLORS.size())); // picked once, stored, never re-rolled
+        node.setColor("gray".equals(color) ? null : color);
         node.setCreatedBy(ref(user));
         node.setUpdatedBy(ref(user));
         node.setContentUpdatedAt(now);

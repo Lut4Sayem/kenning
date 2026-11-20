@@ -1,4 +1,4 @@
-/* Empty space (QA-17): the space's name, one line of help, New page. Opts out of the shell padding via [data-bleed]. */
+/* Space page: name, New page, the page list (empty: one line of help, QA-17): the space's name, one line of help, New page. Opts out of the shell padding via [data-bleed]. */
 .wrap { max-width: var(--reading-max); margin: 0 auto; padding: 56px 40px 64px; }
 .crumbs { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; color: var(--ink-label); }
 .crumbs a { color: inherit; text-decoration: none; }
@@ -15,3 +15,9 @@
 .mainBtn:active { scale: 0.96; }
 .error { margin: 12px 0 0; font-size: 13px; color: var(--error-text); }
 @media (max-width: 640px) { .wrap { padding: 32px 16px 48px; } }
+.pages { margin-top: 24px; }
+/* Rename in place (team admins and editors): the title is a button, then an input in the same type */
+.titleBtn { display: inline; padding: 0; border: 0; border-radius: 6px; background: none; font: inherit; color: inherit; letter-spacing: inherit; text-align: left; cursor: text; }
+@media (min-width: 640px) { .titleBtn:hover { background: var(--hover); } }
+.titleBtn:focus-visible, .titleInput:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.titleInput { display: block; width: 100%; padding: 0; border: 0; border-radius: 6px; background: transparent; font-family: var(--font-title); font-size: 28px; font-weight: 500; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); }
