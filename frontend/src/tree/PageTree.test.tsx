@@ -39,10 +39,10 @@ describe('PageTree', () => {
       { id: 'b', parentId: null, rank: 'b', title: 'Plain page', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false, color: null },
     ])
     renderTree()
-    const dot = async (name: string) => ((await screen.findByRole('treeitem', { name })).previousElementSibling as HTMLElement).style.background
+    const dot = async (name: string) => (await screen.findByRole('treeitem', { name })).querySelector<HTMLElement>('span[aria-hidden]')!.style.background
     expect(await dot('Green page')).toBe('var(--page-green)')
     expect(await dot('Plain page')).toBe('var(--page-gray)')
-    expect((await screen.findByRole('treeitem', { name: 'Green page' })).title).toBe('Green page') // the full name, when cut with …
+    expect((await screen.findByRole('treeitem', { name: 'Green page' })).querySelector('a')!.title).toBe('Green page') // the full name, when cut with …
   })
 
   it('subPageButtonCreatesUnderThatPageAndOpensIt', async () => {
@@ -139,7 +139,8 @@ describe('PageTree', () => {
     await userEvent.tab()
     expect(document.activeElement?.closest('[role="tree"]')).toBeNull()
 
-    await userEvent.click(alpha)
+    alpha.focus()
+    await userEvent.keyboard('{Enter}') // the row is the treeitem; Enter opens its page
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/p/a'))
   })
 

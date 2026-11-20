@@ -30,6 +30,7 @@
     "yjs": "^13.6.33"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@blocknote/server-util": "0.57.0",
     "@eslint/js": "^9.15.0",
     "@playwright/test": "^1.49.0",

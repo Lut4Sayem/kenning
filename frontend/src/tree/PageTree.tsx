@@ -130,6 +130,7 @@ function Tree({ spaceId, activeId, canEdit = true, label = 'Pages', personal }: 
         if (open) toggle(node.id)
         else next = items.find((el) => el.getAttribute('data-id') === node.parentId)
         break
+      case 'Enter': (e.target as HTMLElement).querySelector('a')?.click(); break
       default: return
     }
     e.preventDefault()
@@ -180,20 +181,21 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
   const { onTouchStart, ...gripListeners } = drag.listeners ?? {} // a finger drags the whole row (long press), the mouse the grip
   return (
     <li role="none" className={cx(s.item, drag.isDragging && s.dragging)}>
+      {/* The row is the treeitem, not the link: a tree may only own treeitems and groups, and the row holds buttons (axe) */}
       <div
         ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el) }}
         className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
         style={{ paddingLeft: depth * 12 }} data-row
+        role="treeitem" aria-label={title} data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
+        aria-selected={node.id === activeId} onFocus={() => onFocusRow(node.id)}
         onTouchStart={canEdit ? (e) => { if (!inDialog(e)) (onTouchStart as React.TouchEventHandler)(e) } : undefined} onContextMenu={openRowMenu}
       >
-        <button type="button" tabIndex={-1} className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
+        <button type="button" tabIndex={-1} aria-hidden="true" className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
         <span className={s.dot} style={{ background: dotColour(node.color) }} aria-hidden="true" />
-        <Link to={`/p/${node.id}`} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined}
-          role="treeitem" data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
-          onFocus={() => onFocusRow(node.id)}>
+        <Link to={`/p/${node.id}`} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined} tabIndex={-1}>
           {title}
         </Link>
         {canEdit && (
