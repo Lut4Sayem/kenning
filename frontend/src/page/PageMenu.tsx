@@ -6,13 +6,11 @@ import {
   unarchiveNode,
   unlockNode,
   unpublishNode,
-  updateNode,
   type NodeDetail,
 } from '../api/nodes'
 import MoveToTeamDialog from '../move/MoveToTeamDialog'
 import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
-import { dotColour, PAGE_COLOURS } from '../ui/pageColour'
 import m from './PageMenu.module.css'
 import { useTrashPage } from './useTrashPage'
 
@@ -166,21 +164,6 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
               {item.blocked && <small>{item.blocked}</small>}
             </button>
           ))}
-          {node.status === 'ACTIVE' && (
-            <div className={m.colours}>
-              <span aria-hidden="true" className={m.colourLabel}>Colour</span>
-              <div role="group" aria-label="Page colour" className={m.swatches}>
-                {PAGE_COLOURS.map((c) => {
-                  const name = c[0].toUpperCase() + c.slice(1)
-                  return (
-                    <button key={c} type="button" role="menuitemradio" aria-checked={(node.color ?? 'gray') === c} aria-label={name}
-                      title={lockedNote ?? name} disabled={!!lockedNote} className={m.swatch} style={{ background: dotColour(c) }}
-                      onClick={() => void choose({ label: name, run: async () => (await updateNode(node.id, { color: c }), await refresh()) })} />
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
       {moving && <MoveToTeamDialog node={node} mode={moving} onClose={() => { setMoving(null); button.current?.focus() }} />}
