@@ -1,5 +1,8 @@
 package com.knowledgeforge.knowledgeforge.space;
 
+import com.knowledgeforge.knowledgeforge.node.NodeRepository;
+import com.knowledgeforge.knowledgeforge.node.NodeStatus;
+import com.knowledgeforge.knowledgeforge.node.TrashService;
 import com.knowledgeforge.knowledgeforge.team.TeamMemberRepository;
 import com.knowledgeforge.knowledgeforge.team.TeamRepository;
 import com.knowledgeforge.knowledgeforge.user.User;
@@ -25,7 +28,12 @@ public class SpaceService {
     final UserRepository userRepository;
     final SpaceRepository spaceRepository;
     final TeamRepository teamRepository;
-    public SpaceService(TeamMemberRepository teamMemberRepository, SpaceRepository spaceRepository, UserRepository userRepository, TeamRepository teamRepository) {
+    final NodeRepository nodeRepository;
+    final TrashService trash;
+    public SpaceService(TeamMemberRepository teamMemberRepository, SpaceRepository spaceRepository, UserRepository userRepository,
+                        TeamRepository teamRepository, NodeRepository nodeRepository, TrashService trash) {
+        this.nodeRepository = nodeRepository;
+        this.trash = trash;
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.userRepository = userRepository;
@@ -132,6 +140,26 @@ public class SpaceService {
         space.setName(name);
         space.setUpdatedAt(new Date());
         return spaceRepository.save(space);
+    }
+
+    /**
+     * Team admins only. Spaces have no trash, so only an empty space can be deleted: no ACTIVE or ARCHIVED pages
+     * (409 otherwise). Pages already in its trash are deleted forever with it.
+     */
+    public void deleteSpace(String spaceId) {
+        Space space = teamSpaceFor(spaceId, "deleted");
+        if (!teamMemberRepository.findByTeamIdAndUserId(space.getTeamId(), currentUserId())
+                .map(m -> "ADMIN".equals(m.getRole())).orElse(false)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only a team admin can delete a space");
+        }
+        long held = nodeRepository.countBySpaceIdAndStatus(spaceId, NodeStatus.ACTIVE)
+                + nodeRepository.countBySpaceIdAndStatus(spaceId, NodeStatus.ARCHIVED);
+        if (held > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This space still holds " + held + (held == 1 ? " page" : " pages")
+                    + " (archived ones count too). Move them to another space or to the trash first.");
+        }
+        trash.purgeSpace(spaceId);
+        spaceRepository.delete(space);
     }
 
     /** A team space the current user is a member of (else 404). The personal space is the owner's only: 400 for them, 404 for others. */

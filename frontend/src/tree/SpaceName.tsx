@@ -1,6 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
-import { renameSpace } from '../api/spaces'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { getTree } from '../api/nodes'
+import { deleteSpace, renameSpace, type MySpace } from '../api/spaces'
+import { confirmDialog } from '../ui/ConfirmDialog'
 import { toast } from '../ui/Toast'
 
 /** Renames a team space and refreshes everything that shows its name. Rejects with the server's message. */
@@ -51,4 +54,46 @@ export default function SpaceNameInput({ spaceId, name, className, errorClass, o
       {error && <p role="alert" className={errorClass}>{error}</p>}
     </>
   )
+}
+
+/**
+ * "Delete space" (team admins). Spaces have no trash, so the server deletes only an empty one; the dialog says how many
+ * pages it holds and, when there are any, sends you to the space to move them out instead.
+ */
+export function useDeleteSpace(space: MySpace) {
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const here = useLocation().pathname
+  return async () => {
+    let count: number
+    try {
+      count = (await qc.fetchQuery({ queryKey: ['tree', space.id], queryFn: () => getTree(space.id) })).length
+    } catch {
+      return toast('Could not check the space’s pages. Try again.', 'error')
+    }
+    if (count > 0) {
+      const open = await confirmDialog({
+        title: `“${space.name}” still holds ${count} ${count === 1 ? 'page' : 'pages'}`,
+        body: 'A space can be deleted only when it is empty. Move its pages to another space or to the trash first.',
+        confirmLabel: 'Open the space', cancelLabel: 'Close',
+      })
+      if (open) navigate(`/s/${space.id}`)
+      return
+    }
+    const yes = await confirmDialog({
+      title: `Delete “${space.name}”?`,
+      body: 'It holds no pages. Pages in its trash are deleted forever with it. This can’t be undone.',
+      confirmLabel: 'Delete space', danger: true,
+    })
+    if (!yes) return
+    try {
+      await deleteSpace(space.id)
+    } catch (e) {
+      return toast(e instanceof Error ? e.message : 'Could not delete the space.', 'error')
+    }
+    if (here.startsWith(`/s/${space.id}`)) navigate(space.teamId ? `/teams/${space.teamId}` : '/')
+    await Promise.all(['spaces', 'team-spaces', 'team-summary'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
+    qc.removeQueries({ queryKey: ['tree', space.id] })
+    toast(`Deleted “${space.name}”`)
+  }
 }

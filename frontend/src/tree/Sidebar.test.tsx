@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConfirmHost } from '../ui/ConfirmDialog'
 import Sidebar from './Sidebar'
 
-const api = vi.hoisted(() => ({ getMe: vi.fn(), getMyTeams: vi.fn(), getMySpaces: vi.fn(), renameSpace: vi.fn() }))
+const api = vi.hoisted(() => ({ getMe: vi.fn(), getMyTeams: vi.fn(), getMySpaces: vi.fn(), renameSpace: vi.fn(), deleteSpace: vi.fn() }))
 vi.mock('../api/spaces', async (orig) => ({ ...(await orig<typeof import('../api/spaces')>()), ...api }))
 const nodes = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodes)
@@ -160,6 +160,42 @@ describe('Sidebar', () => {
     await userEvent.type(field, 'Specs{Enter}')
     await waitFor(() => expect(api.renameSpace).toHaveBeenCalledWith('s1', 'Specs'))
     await waitFor(() => expect(screen.queryByLabelText('Space name')).toBeNull())
+  })
+
+  // Spaces have no trash: an admin deletes a space only when it is empty; the dialog says how many pages it holds.
+  it('adminsDeleteAnEmptySpaceAfterAConfirm', async () => {
+    api.getMySpaces.mockResolvedValue([space('s1', 'Requirements', 't1'), { ...space('s2', 'Hardware', 't2'), myRole: 'EDITOR' }, space('p1', 'My drafts', null)])
+    api.deleteSpace.mockResolvedValue(null)
+    renderSidebar()
+    await screen.findByRole('link', { name: 'Requirements' })
+    for (const other of ['Hardware', 'My drafts']) {
+      await userEvent.click(screen.getByRole('button', { name: `More actions for ${other}` }))
+      expect(screen.queryByRole('menuitem', { name: 'Delete space' })).toBeNull()
+      await userEvent.keyboard('{Escape}')
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Requirements' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Delete space' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('Delete “Requirements”?')
+    expect(dialog.textContent).toContain('It holds no pages')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete space' }))
+    await waitFor(() => expect(api.deleteSpace).toHaveBeenCalledWith('s1'))
+  })
+
+  it('aSpaceWithPagesIsNotDeletedAndTheDialogSaysHowMany', async () => {
+    nodes.getTree.mockImplementation(async (id: string) => id === 's1'
+      ? [{ id: 'a', parentId: null, rank: 'a', title: 'A', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false },
+         { id: 'b', parentId: null, rank: 'b', title: 'B', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }]
+      : [])
+    renderSidebar()
+    await screen.findByRole('link', { name: 'Requirements' })
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Requirements' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Delete space' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).toContain('“Requirements” still holds 2 pages')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Open the space' }))
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/s/s1'))
+    expect(api.deleteSpace).not.toHaveBeenCalled()
   })
 
   // QA-68: any member leaves a team from its row's menu, after a confirm; then Home, and the team is gone.

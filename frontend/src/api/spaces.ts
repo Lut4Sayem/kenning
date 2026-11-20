@@ -33,3 +33,4 @@ export const renameSpace = (id: string, name: string) =>
   api<{ id: string; name: string }>(`/api/spaces/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) })
 /** Team spaces only; the private space is the owner's and keeps its name (the server checks again). */
 export const canRenameSpace = (s: MySpace) => s.ownerType === 'TEAM' && canEditSpace(s)
+export const deleteSpace = (id: string) => api<null>(`/api/spaces/${id}`, { method: 'DELETE' })

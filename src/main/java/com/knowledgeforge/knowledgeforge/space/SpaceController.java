@@ -35,4 +35,10 @@ public class SpaceController {
     public ResponseEntity<Space> renameSpace(@PathVariable String spaceId, @RequestBody RenameSpaceRequest request) {
         return ResponseEntity.ok(spaceService.renameSpace(spaceId, request));
     }
+
+    @DeleteMapping("/api/spaces/{spaceId}")
+    public ResponseEntity<Void> deleteSpace(@PathVariable String spaceId) {
+        spaceService.deleteSpace(spaceId);
+        return ResponseEntity.noContent().build();
+    }
 }

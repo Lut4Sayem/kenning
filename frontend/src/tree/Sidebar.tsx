@@ -18,7 +18,7 @@ import FormDialog from '../ui/FormDialog'
 import { useRemembered } from '../ui/useRemembered'
 import { useCreatePage } from './useCreatePage'
 import { openRowMenu, useRowTouch } from './useRowTouch'
-import SpaceNameInput from './SpaceName'
+import SpaceNameInput, { useDeleteSpace } from './SpaceName'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 
@@ -261,9 +261,10 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
   )
 }
 
-/** "+" (new page in this space) and "..." (Rename, Archived, Trash): shown on hover or focus of the space row. */
+/** "+" (new page in this space) and "..." (Rename, Archived, Trash, Delete space): shown on hover or focus of the space row. */
 function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => void }) {
   const { create, message } = useCreatePage(space.id)
+  const remove = useDeleteSpace(space)
   const [open, setOpen] = useState(false)
   const btn = useRef<HTMLButtonElement>(null)
   const box = useRef<HTMLDivElement>(null)
@@ -287,6 +288,7 @@ function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => vo
           {onRename && canRenameSpace(space) && <button type="button" role="menuitem" className={s.menuItem} onClick={onRename}>Rename</button>}
           <Link to={`/s/${space.id}/trash?tab=archived`} role="menuitem" className={s.menuItem}>Archived</Link>
           <Link to={`/s/${space.id}/trash`} role="menuitem" className={s.menuItem}>Trash</Link>
+          {space.ownerType === 'TEAM' && space.myRole === 'ADMIN' && <button type="button" role="menuitem" className={cx(s.menuItem, s.menuDanger)} onClick={() => void remove()}>Delete space</button>}
         </div>
       )}
       {message && <p className={s.note} role="alert">{message}</p>}
