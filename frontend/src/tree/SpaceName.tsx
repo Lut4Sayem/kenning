@@ -17,25 +17,31 @@ export function useRenameSpace(spaceId: string) {
 }
 
 /** Inline rename field: Enter or leaving the field saves, Escape cancels; an error keeps the field open. */
-export default function SpaceNameInput({ spaceId, name, className, errorClass, onDone }: {
+export default function SpaceNameInput({ spaceId, ...rest }: {
   spaceId: string; name: string; className?: string; errorClass?: string; onDone: () => void
 }) {
-  const rename = useRenameSpace(spaceId)
+  return <NameInput label="Space name" save={useRenameSpace(spaceId)} {...rest} />
+}
+
+/** The field behind SpaceNameInput, for anything renamed in place (spaces, tree rows). `save` rejects with the message to show. */
+export function NameInput({ label, name, save, className, errorClass, onDone }: {
+  label: string; name: string; save: (name: string) => Promise<unknown>; className?: string; errorClass?: string; onDone: () => void
+}) {
   const [draft, setDraft] = useState(name)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const cancelled = useRef(false) // Escape: the blur that follows must not save
 
-  async function save() {
+  async function submit() {
     if (busy || cancelled.current) return
     if (draft.trim() === name) return onDone()
     setBusy(true)
     setError('')
     try {
-      await rename(draft)
+      await save(draft)
       onDone()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not rename the space')
+      setError(e instanceof Error ? e.message : 'Could not rename it')
       setBusy(false)
     }
   }
@@ -43,11 +49,11 @@ export default function SpaceNameInput({ spaceId, name, className, errorClass, o
   return (
     <>
       <input
-        className={className} aria-label="Space name" value={draft} maxLength={200} autoFocus readOnly={busy}
+        className={className} aria-label={label} value={draft} maxLength={200} autoFocus readOnly={busy}
         onFocus={(e) => e.currentTarget.select()} aria-invalid={error ? true : undefined}
-        onChange={(e) => setDraft(e.target.value)} onBlur={() => void save()}
+        onChange={(e) => setDraft(e.target.value)} onBlur={() => void submit()}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') { e.preventDefault(); void save() }
+          if (e.key === 'Enter') { e.preventDefault(); void submit() }
           if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelled.current = true; onDone() }
         }}
       />

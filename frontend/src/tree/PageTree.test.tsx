@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import PageTree from './PageTree'
 import { useRowTouch } from './useRowTouch'
 
-const nodesApi = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn(), getNode: vi.fn() }))
+const nodesApi = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn(), getNode: vi.fn(), updateNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodesApi)
 
 const Touch = () => { useRowTouch(); return null }
@@ -152,6 +152,47 @@ describe('PageTree', () => {
     const menu = await screen.findByRole('menu', { name: 'More actions for Alpha' })
     expect(menu.textContent).toContain('Move to trash')
     await waitFor(() => expect(document.activeElement?.closest('[role="menu"]')).toBe(menu))
+  })
+
+  it('renameFromTheRowMenuEditsInPlaceEnterSavesEscapeCancels', async () => { // QA-18
+    const alpha = { id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: false, titleOnly: false }
+    nodesApi.getTree.mockResolvedValue([alpha])
+    nodesApi.getNode.mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, access: 'EDIT', color: null })
+    nodesApi.updateNode.mockImplementation(async (_id: string, { title }: { title: string }) => {
+      nodesApi.getTree.mockResolvedValue([{ ...alpha, title }])
+      return { id: 'a', spaceId: 's1', title, status: 'ACTIVE', publishState: 'DRAFT', locked: false, canManage: true, access: 'EDIT', color: null }
+    })
+    renderTree()
+    const rename = async () => {
+      await userEvent.click(await screen.findByRole('button', { name: /^More actions for/ }))
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Rename' }))
+      return screen.findByRole('textbox', { name: /^Rename/ })
+    }
+
+    let field = await rename()
+    expect(document.activeElement).toBe(field)
+    await userEvent.clear(field)
+    await userEvent.type(field, 'Scratch{Escape}')
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(nodesApi.updateNode).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(screen.getByRole('treeitem', { name: 'Alpha' }))
+
+    field = await rename()
+    await userEvent.clear(field)
+    await userEvent.type(field, '  Beta{Enter}')
+    await waitFor(() => expect(nodesApi.updateNode).toHaveBeenCalledWith('a', { title: 'Beta' }))
+    expect(await screen.findByRole('treeitem', { name: 'Beta' })).toBe(document.activeElement)
+    expect(nodesApi.updateNode).toHaveBeenCalledTimes(1)
+  })
+
+  it('renameIsBlockedOnALockedPageLikeTheHeaderTitle', async () => {
+    nodesApi.getTree.mockResolvedValue([{ id: 'a', parentId: null, rank: 'a', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'DRAFT', locked: true, titleOnly: false }])
+    nodesApi.getNode.mockResolvedValue({ id: 'a', spaceId: 's1', title: 'Alpha', status: 'ACTIVE', publishState: 'DRAFT', locked: true, canManage: true, access: 'VIEW', color: null })
+    renderTree()
+    await userEvent.click(await screen.findByRole('button', { name: /^More actions for/ }))
+    const item = await screen.findByRole('menuitem', { name: /Rename/ })
+    expect((item as HTMLButtonElement).disabled).toBe(true)
+    expect(item.textContent).toContain('Unlock the page first')
   })
 
   it('theOpenPagesRowMenuWaitsForItsSaveLikeThePageMenu', async () => {

@@ -101,3 +101,28 @@ test('the open page’s row menu waits for its save, like the page’s own menu'
   await expect(menu).toContainText('Wait until the page is saved')
   await context.setOffline(false)
 })
+
+test('QA-18: Rename in the row menu edits the name in place; Escape cancels, Enter saves', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const lit = await teamSpacePage(page)
+  await page.goto('/app')
+  const space = page.locator(`[data-space="${lit.id}"]`)
+  const menuItem = page.getByRole('menu', { name: 'More actions for Methodology' }).getByRole('menuitem', { name: 'Rename' })
+
+  await space.getByRole('treeitem', { name: 'Methodology' }).click({ button: 'right' })
+  await menuItem.click()
+  const field = space.getByRole('textbox', { name: 'Rename Methodology' })
+  await expect(field).toBeFocused()
+  await field.fill('Scratch')
+  await field.press('Escape')
+  await expect(field).toBeHidden()
+  await expect(space.getByRole('treeitem', { name: 'Methodology' })).toBeFocused()
+
+  await space.getByRole('treeitem', { name: 'Methodology' }).click({ button: 'right' })
+  await menuItem.click()
+  await field.fill('Research methods')
+  await field.press('Enter')
+  await expect(space.getByRole('treeitem', { name: 'Research methods' })).toBeFocused()
+  await page.reload()
+  await expect(page.locator(`[data-space="${lit.id}"]`).getByRole('treeitem', { name: 'Research methods' })).toBeVisible()
+})
