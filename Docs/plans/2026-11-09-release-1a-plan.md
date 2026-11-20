@@ -201,7 +201,7 @@ Wireframes `Sidebar` and `Main`. Plain layout.
 **Files:** `app/Shell.tsx`, `tree/Sidebar.tsx`, `tree/PageTree.tsx`, `tree/buildTree.ts`, `page/PageView.tsx`, `page/Breadcrumbs.tsx`, `api/nodes.ts`, `api/spaces.ts`. Routes: `/app` (dashboard placeholder until Phase 9), `/app/p/:nodeId`.
 **Produces:** `buildTree(nodes: NodeSummary[]): TreeNode[]` (hash map id -> node, children sorted by `rank` then `id`). Sidebar: team switcher, "Search Ctrl K" button, PROJECTS = team spaces of the selected team, PRIVATE = personal space, each with expandable tree, `+` new page under a node and at top, "Archived" and "Trash" links per project. Drag-and-drop with dnd-kit (reorder + nest, keyboard sensor enabled) calls `move` with `beforeId/afterId`. Expanded state remembered per space in `localStorage` (try/catch).
 - [x] Vitest: `buildTreeNestsAndSorts`, `buildTreeHandlesOrphansAtTop` (parent not in list -> top level), `newPageButtonCreatesAndNavigates`.
-- [ ] Playwright `tree.spec.ts`: create page, create sub-page, drag sub-page to top level, breadcrumbs update.
+- [x] Playwright `tree.spec.ts`: create page, create sub-page, drag sub-page to top level, breadcrumbs update.
 - [x] Commit `feat: sidebar page tree and page route`.
 
 ---
