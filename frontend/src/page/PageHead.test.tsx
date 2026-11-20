@@ -95,8 +95,14 @@ describe('page top bar and properties', () => {
   })
 
   it('theTitleStaysOneLineOfText', async () => {
+    // Flaky on CI: the field was in the DOM empty until an effect filled it, so typing could land after "Use cases".
+    const seen: string[] = []
+    const watch = new MutationObserver(() => { const f = document.querySelector('textarea'); if (f) seen.push(f.value) })
+    watch.observe(document.body, { subtree: true, childList: true })
     mount()
     const field = (await screen.findByLabelText('Page title')) as HTMLTextAreaElement
+    watch.disconnect()
+    expect(seen).not.toContain('') // never shown empty, not even for one frame
     await userEvent.clear(field)
     await userEvent.type(field, 'Line one{Enter}')
     expect(field.value).toBe('Line one') // Enter finishes the title, it does not add a line

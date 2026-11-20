@@ -6,7 +6,9 @@ async function openNewPage(page: Page) {
   expect((await page.request.post('/api/auth/register', { data: { fullName: 'Reading Tester', email, password: 'password123' } })).ok()).toBeTruthy()
   expect((await page.request.post('/api/auth/login', { data: { email, password: 'password123' } })).ok()).toBeTruthy()
   await page.goto('/app/')
-  await page.getByRole('button', { name: /new page/i }).first().press('Enter')
+  const newPageButton = page.getByRole('button', { name: /new page/i }).first()
+  await expect(newPageButton).toBeEnabled() // disabled until the spaces load, and press() does not wait for that
+  await newPageButton.press('Enter')
   await page.waitForURL(/\/app\/p\//)
   await page.locator('.bn-editor[contenteditable="true"]').click()
 }

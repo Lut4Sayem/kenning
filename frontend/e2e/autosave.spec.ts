@@ -8,7 +8,9 @@ async function openNewPage(page: Page): Promise<string> {
   const login = await page.request.post('/api/auth/login', { data: { email, password: 'password123' } })
   expect(login.ok()).toBeTruthy()
   await page.goto('/app')
-  await page.getByRole('button', { name: /new page/i }).first().press('Enter') // a new user only has the private space
+  const newPageButton = page.getByRole('button', { name: /new page/i }).first()
+  await expect(newPageButton).toBeEnabled() // disabled until the spaces load, and press() does not wait for that
+  await newPageButton.press('Enter') // a new user only has the private space
   await page.waitForURL(/\/app\/p\//)
   await expect(editor(page)).toBeVisible()
   return page.url()
@@ -53,6 +55,10 @@ test('offline edits are kept on the device and replayed on the next open', async
 
   await context.setOffline(false)
   const again = await context.newPage()
+  // The browser frees a closed tab's Web Lock a moment later; until then its copy counts as a live tab's and is
+  // (rightly) left alone. A person reopens later than that, so wait for it, on a light page of the same origin.
+  await again.goto('/app/favicon.svg')
+  await expect.poll(() => again.evaluate(async () => ((await navigator.locks.query()).held ?? []).length)).toBe(0)
   await again.goto(url)
   await expect(editor(again)).toContainText('Before offline and typed offline')
   await expect(saveState(again)).toHaveText('Saved')
@@ -93,7 +99,9 @@ test('logging out sends unsaved local copies first, or asks before dropping them
   expect((await context.request.post('/api/auth/register', { data: { fullName: 'Logout Tester', email, password: 'password123' } })).ok()).toBeTruthy()
   expect((await login()).ok()).toBeTruthy()
   await page.goto('/app')
-  await page.getByRole('button', { name: /new page/i }).first().press('Enter')
+  const newPageButton = page.getByRole('button', { name: /new page/i }).first()
+  await expect(newPageButton).toBeEnabled() // disabled until the spaces load, and press() does not wait for that
+  await newPageButton.press('Enter')
   await page.waitForURL(/\/app\/p\//)
   const url = page.url()
   await typeInEditor(page, 'Saved normally. ')
