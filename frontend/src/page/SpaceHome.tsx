@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { getTree, type NodeSummary } from '../api/nodes'
-import { canEditSpace, getMySpaces } from '../api/spaces'
+import { canEditSpace, canRenameSpace, getMySpaces } from '../api/spaces'
+import SpaceNameInput from '../tree/SpaceName'
 import { TopBar } from '../app/ShellSlots'
 import { buildTree, type TreeNode } from '../tree/buildTree'
 import PageRow from '../dashboard/PageRow'
@@ -37,6 +39,7 @@ function SpaceView({ spaceId, pages }: { spaceId: string; pages: (NodeSummary & 
   const { create, message } = useCreatePage(spaceId)
   const editable = !!space && canEditSpace(space)
   const who = space?.teamName ?? 'the team'
+  const [renaming, setRenaming] = useState(false)
   return (
     <div className={s.wrap} data-bleed>
       <TopBar>
@@ -45,7 +48,18 @@ function SpaceView({ spaceId, pages }: { spaceId: string; pages: (NodeSummary & 
           <span className={s.here} aria-current="page">{space?.name ?? 'Space'}</span>
         </nav>
       </TopBar>
-      <h1 className={s.title}>{space?.name ?? 'Space'}</h1>
+      {renaming && space ? (
+        <>
+          <h1 className="sr-only">{space.name}</h1>
+          <SpaceNameInput spaceId={spaceId} name={space.name} className={`${s.title} ${s.titleInput}`} errorClass={s.error} onDone={() => setRenaming(false)} />
+        </>
+      ) : (
+        <h1 className={s.title}>
+          {space && canRenameSpace(space)
+            ? <button type="button" className={s.titleBtn} aria-label={`Rename space: ${space.name}`} title="Rename space" onClick={() => setRenaming(true)}>{space.name}</button>
+            : space?.name ?? 'Space'}
+        </h1>
+      )}
       {pages.length > 0 ? (
         <>
           {editable && <button type="button" className={s.mainBtn} onClick={() => void create(null)}><Icon name="plus" />New page</button>}

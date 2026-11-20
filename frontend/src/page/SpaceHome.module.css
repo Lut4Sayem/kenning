@@ -16,3 +16,8 @@
 .error { margin: 12px 0 0; font-size: 13px; color: var(--error-text); }
 @media (max-width: 640px) { .wrap { padding: 32px 16px 48px; } }
 .pages { margin-top: 24px; }
+/* Rename in place (team admins and editors): the title is a button, then an input in the same type */
+.titleBtn { display: inline; padding: 0; border: 0; border-radius: 6px; background: none; font: inherit; color: inherit; letter-spacing: inherit; text-align: left; cursor: text; }
+@media (min-width: 640px) { .titleBtn:hover { background: var(--hover); } }
+.titleBtn:focus-visible, .titleInput:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.titleInput { display: block; width: 100%; padding: 0; border: 0; border-radius: 6px; background: transparent; font-family: var(--font-title); font-size: 28px; font-weight: 500; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); }

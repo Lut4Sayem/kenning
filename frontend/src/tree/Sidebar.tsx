@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { createNode } from '../api/nodes'
 import mark from '../assets/brand/kenning-mark-small.svg'
-import { canEditSpace, getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
+import { canEditSpace, canRenameSpace, getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
 import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
@@ -18,6 +18,7 @@ import FormDialog from '../ui/FormDialog'
 import { useRemembered } from '../ui/useRemembered'
 import { useCreatePage } from './useCreatePage'
 import { openRowMenu, useRowTouch } from './useRowTouch'
+import SpaceNameInput from './SpaceName'
 
 const cx = (...c: (string | false)[]) => c.filter(Boolean).join(' ')
 
@@ -241,22 +242,27 @@ function TeamActions({ team, label }: { team: MyTeam; label: string }) {
 function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }) {
   const [open, toggle] = useRemembered(`kf.sidebar.space.${space.id}`)
   const drop = useSpaceDrop(space.id)
+  const [renaming, setRenaming] = useState(false)
   return (
     <section className={s.group} data-space={space.id} aria-label={space.name}>
       <div ref={drop.setNodeRef} className={cx(s.groupRow, drop.isOver && s.dropOver)} data-row onContextMenu={openRowMenu}>
         <button type="button" className={s.chevBtn} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${space.name}`} onClick={toggle}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
-        <Link to={`/s/${space.id}`} className={s.groupLink} title={space.name}>{space.name}</Link>
-        <SpaceActions space={space} />
+        {renaming
+          ? <SpaceNameInput spaceId={space.id} name={space.name} className={s.renameInput} errorClass={s.renameError} onDone={() => setRenaming(false)} />
+          : <>
+              <Link to={`/s/${space.id}`} className={s.groupLink} title={space.name}>{space.name}</Link>
+              <SpaceActions space={space} onRename={() => setRenaming(true)} />
+            </>}
       </div>
       {open && <PageTree spaceId={space.id} activeId={activeId} canEdit={canEditSpace(space)} label={`Pages in ${space.name}`} />}
     </section>
   )
 }
 
-/** "+" (new page in this space) and "..." (Archived, Trash): shown on hover or focus of the space row. */
-function SpaceActions({ space }: { space: MySpace }) {
+/** "+" (new page in this space) and "..." (Rename, Archived, Trash): shown on hover or focus of the space row. */
+function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => void }) {
   const { create, message } = useCreatePage(space.id)
   const [open, setOpen] = useState(false)
   const btn = useRef<HTMLButtonElement>(null)
@@ -278,6 +284,7 @@ function SpaceActions({ space }: { space: MySpace }) {
       </button>
       {open && (
         <div className={s.menu} role="menu" aria-label={`${space.name} actions`} onClick={() => setOpen(false)}>
+          {onRename && canRenameSpace(space) && <button type="button" role="menuitem" className={s.menuItem} onClick={onRename}>Rename</button>}
           <Link to={`/s/${space.id}/trash?tab=archived`} role="menuitem" className={s.menuItem}>Archived</Link>
           <Link to={`/s/${space.id}/trash`} role="menuitem" className={s.menuItem}>Trash</Link>
         </div>

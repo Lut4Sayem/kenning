@@ -116,4 +116,42 @@ public class SpaceService {
         return out;
     }
 
+    static final int MAX_NAME = 200; // the page title limit
+
+    /** Team ADMINs and EDITORs; same rules as a page title (trimmed, at most 200), but a space needs a name. */
+    public Space renameSpace(String spaceId, RenameSpaceRequest req) {
+        Space space = teamSpaceFor(spaceId, "renamed");
+        if (!teamMemberRepository.canEdit(space.getTeamId(), currentUserId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only a team admin or editor can rename a space");
+        }
+        String name = req == null || req.name() == null ? "" : req.name().trim();
+        if (name.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A space needs a name");
+        if (name.codePointCount(0, name.length()) > MAX_NAME) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A space name can be at most " + MAX_NAME + " characters");
+        }
+        space.setName(name);
+        space.setUpdatedAt(new Date());
+        return spaceRepository.save(space);
+    }
+
+    /** A team space the current user is a member of (else 404). The personal space is the owner's only: 400 for them, 404 for others. */
+    private Space teamSpaceFor(String spaceId, String verb) {
+        String userId = currentUserId();
+        Space space = spaceRepository.findById(spaceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Space not found"));
+        if (space.getOwnerType() == Space.OwnerType.USER) {
+            if (!userId.equals(space.getOwnerUserId())) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Space not found");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Your Private space can’t be " + verb);
+        }
+        if (!teamMemberRepository.existsByTeamIdAndUserId(space.getTeamId(), userId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Space not found");
+        }
+        return space;
+    }
+
+    private String currentUserId() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found")).getId();
+    }
 }

@@ -7,7 +7,7 @@ import SpaceHome from './SpaceHome'
 
 const nodes = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodes)
-const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn() }))
+const spaces = vi.hoisted(() => ({ getMySpaces: vi.fn(), renameSpace: vi.fn() }))
 vi.mock('../api/spaces', async (orig) => ({ ...(await orig<typeof import('../api/spaces')>()), ...spaces }))
 vi.mock('../app/ShellSlots', () => ({ TopBar: ({ children }: { children: React.ReactNode }) => <header>{children}</header> }))
 const sp = (myRole: string) => [{ id: 's1', name: 'Experiments', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis Group', myRole }]
@@ -67,5 +67,28 @@ describe('space home', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Experiments' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'New page' })).toBeNull()
     expect(screen.getByText(/An editor of Thesis Group can write the first one/)).toBeTruthy()
+  })
+
+  // Admins and editors rename the space from its title; viewers see plain text.
+  it('editorsRenameTheSpaceFromItsTitle', async () => {
+    nodes.getTree.mockResolvedValue([])
+    spaces.getMySpaces.mockResolvedValue(sp('EDITOR'))
+    spaces.renameSpace.mockRejectedValueOnce(new Error('A space needs a name')).mockResolvedValue({ id: 's1', name: 'Lab' })
+    setup()
+    await userEvent.click(await screen.findByRole('button', { name: 'Rename space: Experiments' }))
+    const field = screen.getByLabelText('Space name')
+    await userEvent.clear(field)
+    await userEvent.type(field, '{Enter}')
+    expect((await screen.findByRole('alert')).textContent).toBe('A space needs a name') // the field stays open
+    await userEvent.type(field, 'Lab{Enter}')
+    await waitFor(() => expect(spaces.renameSpace).toHaveBeenLastCalledWith('s1', 'Lab'))
+  })
+
+  it('viewersCannotRenameTheSpace', async () => {
+    nodes.getTree.mockResolvedValue([])
+    spaces.getMySpaces.mockResolvedValue(sp('VIEWER'))
+    setup()
+    await screen.findByRole('heading', { level: 1, name: 'Experiments' })
+    expect(screen.queryByRole('button', { name: /Rename space/ })).toBeNull()
   })
 })

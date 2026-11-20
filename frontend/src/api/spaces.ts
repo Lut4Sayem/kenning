@@ -29,3 +29,7 @@ export const canEditSpace = (s: MySpace) => s.ownerType === 'USER' || s.myRole =
 export const getMySpaces = () => api<MySpace[]>('/api/me/spaces')
 export const getMyTeams = () => api<MyTeam[]>('/api/me/teams')
 export const getMe = () => api<Me>('/api/me')
+export const renameSpace = (id: string, name: string) =>
+  api<{ id: string; name: string }>(`/api/spaces/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) })
+/** Team spaces only; the private space is the owner's and keeps its name (the server checks again). */
+export const canRenameSpace = (s: MySpace) => s.ownerType === 'TEAM' && canEditSpace(s)

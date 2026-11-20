@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConfirmHost } from '../ui/ConfirmDialog'
 import Sidebar from './Sidebar'
 
-const api = vi.hoisted(() => ({ getMe: vi.fn(), getMyTeams: vi.fn(), getMySpaces: vi.fn() }))
+const api = vi.hoisted(() => ({ getMe: vi.fn(), getMyTeams: vi.fn(), getMySpaces: vi.fn(), renameSpace: vi.fn() }))
 vi.mock('../api/spaces', async (orig) => ({ ...(await orig<typeof import('../api/spaces')>()), ...api }))
 const nodes = vi.hoisted(() => ({ getTree: vi.fn(), createNode: vi.fn(), moveNode: vi.fn() }))
 vi.mock('../api/nodes', () => nodes)
@@ -132,6 +132,34 @@ describe('Sidebar', () => {
     await userEvent.type(field, 'Thesis Lab')
     await userEvent.click(screen.getByRole('button', { name: 'Rename' }))
     await waitFor(() => expect(teamsApi.updateTeam).toHaveBeenCalledWith('t1', { teamName: 'Thesis Lab' }))
+  })
+
+  // A team space is renamed in place from its row: Enter saves, Escape cancels; the private space and viewers get no Rename.
+  it('aSpaceIsRenamedInPlaceFromItsRow', async () => {
+    api.getMySpaces.mockResolvedValue([space('s1', 'Requirements', 't1'), { ...space('s2', 'Hardware', 't2'), myRole: 'VIEWER' }, space('p1', 'My drafts', null)])
+    api.renameSpace.mockResolvedValue({ id: 's1', name: 'Specs' })
+    renderSidebar()
+    await screen.findByRole('link', { name: 'Requirements' })
+    for (const other of ['Hardware', 'My drafts']) {
+      await userEvent.click(screen.getByRole('button', { name: `More actions for ${other}` }))
+      expect(screen.queryByRole('menuitem', { name: 'Rename' })).toBeNull()
+      await userEvent.keyboard('{Escape}')
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Requirements' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Rename' }))
+    let field = await screen.findByLabelText('Space name') as HTMLInputElement
+    expect(field.value).toBe('Requirements')
+    await userEvent.type(field, 'Nope{Escape}')
+    expect(screen.queryByLabelText('Space name')).toBeNull()
+    expect(api.renameSpace).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Requirements' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Rename' }))
+    field = await screen.findByLabelText('Space name') as HTMLInputElement
+    await userEvent.clear(field)
+    await userEvent.type(field, 'Specs{Enter}')
+    await waitFor(() => expect(api.renameSpace).toHaveBeenCalledWith('s1', 'Specs'))
+    await waitFor(() => expect(screen.queryByLabelText('Space name')).toBeNull())
   })
 
   // QA-68: any member leaves a team from its row's menu, after a confirm; then Home, and the team is gone.

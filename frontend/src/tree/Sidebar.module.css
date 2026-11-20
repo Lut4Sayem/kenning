@@ -31,7 +31,7 @@
 .labelRow:hover .rowBtn, .labelRow:focus-within .rowBtn, .labelRow[data-touched] .rowBtn { opacity: 1; }
 .label { margin: 0; padding: 16px 10px 4px; font-family: var(--font-sans); color: var(--ink-muted); font-size: 12px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .group { display: flex; flex-direction: column; gap: 2px; }
-.groupRow { display: flex; align-items: center; gap: 2px; height: 32px; padding-right: var(--space-1); border-radius: var(--r-row); }
+.groupRow { position: relative; display: flex; align-items: center; gap: 2px; height: 32px; padding-right: var(--space-1); border-radius: var(--r-row); }
 @media (min-width: 640px) { .groupRow:hover { background: var(--hover); } } /* docked sidebar only: no sticky hover in the drawer */
 .groupRow.dropOver { outline: 2px solid var(--primary); }
 .chevBtn { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-row); background: none; color: var(--ink-muted); cursor: pointer; }
@@ -62,3 +62,7 @@
 .trash { position: relative; }
 .navBtn { width: 100%; border: 0; background: none; font: inherit; cursor: pointer; text-align: left; }
 .trash .menu { top: auto; bottom: 36px; }
+/* Inline space rename: Enter saves, Escape cancels; the error floats under the row */
+.renameInput { flex: 1; min-width: 0; height: 26px; padding: 0 6px; border: 1px solid var(--line); border-radius: var(--r-row); background: var(--canvas); font: inherit; font-weight: 500; color: var(--ink); }
+.renameInput:focus-visible { outline: 2px solid var(--primary); outline-offset: 0; }
+.renameError { position: absolute; top: 32px; left: 24px; right: 0; z-index: 20; margin: 0; padding: 6px 8px; border-radius: var(--r-row); background: var(--canvas); box-shadow: var(--shadow-3); font-size: 12px; color: var(--error-text); }
