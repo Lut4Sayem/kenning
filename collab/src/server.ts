@@ -1,4 +1,6 @@
 import { Server, type Document } from '@hocuspocus/server'
+import { timingSafeEqual } from 'node:crypto'
+import type { IncomingMessage } from 'node:http'
 import * as Y from 'yjs'
 import type { Config } from './config.js'
 import { extractText } from './extractText.js'
@@ -29,6 +31,9 @@ export interface Options {
   debounce: number
   maxDebounce: number
   backoff: number[]
+  /** A connection older than this is closed, so the client comes back with a fresh ticket. */
+  maxAgeMs: number
+  sweepMs: number
 }
 
 export const FRAGMENT = 'document-store'
@@ -38,12 +43,35 @@ export const EMPTY_PAGE_STATE =
 
 export const CLOSE = { accessChanged: 4403, restored: 4409, tooMany: 4429 } as const
 
-const DEFAULTS: Options = { debounce: 2000, maxDebounce: 10_000, backoff: [1000, 2000, 5000, 10_000, 30_000] }
+const DEFAULTS: Options = {
+  debounce: 2000,
+  maxDebounce: 10_000,
+  backoff: [1000, 2000, 5000, 10_000, 30_000],
+  maxAgeMs: 30 * 60_000,
+  sweepMs: 60_000,
+}
 
 /** Rejects a connection; the provider gets onAuthenticationFailed({reason}). */
 const deny = (reason: string) => ({ reason })
 const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64')
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+function sameSecret(header: string | string[] | undefined, secret: string) {
+  if (typeof header !== 'string') return false
+  const a = Buffer.from(header)
+  const b = Buffer.from(secret)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = []
+  for await (const c of req) chunks.push(c as Buffer)
+  try {
+    return chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {}
+  } catch {
+    return {}
+  }
+}
 
 /** Closes the whole socket (one provider = one socket = one page), so the client sees the code. */
 export function closeAll(doc: Document, code: number, reason: string, only?: (ctx: Ctx) => boolean) {
@@ -76,6 +104,47 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     const key = `onStoreDocument-${doc.name}`
     if (server.hocuspocus.debouncer.isDebounced(key)) server.hocuspocus.debouncer.executeNow(key) // a no-op store: dropped
     await server.hocuspocus.unloadDocument(doc)
+  }
+
+  /** Stores now if anything is waiting (or being) stored; resolves when the page is stored. */
+  async function flush(name: string) {
+    const doc = server.hocuspocus.documents.get(name)
+    const meta = metas.get(name)
+    if (!doc || !meta || meta.dropped) return null
+    const key = `onStoreDocument-${name}`
+    const { debouncer } = server.hocuspocus
+    if (debouncer.isDebounced(key)) await debouncer.executeNow(key)
+    while (debouncer.isCurrentlyExecuting(key)) await sleep(20)
+    if (meta.sv !== b64(Y.encodeStateVector(doc))) await store(doc, meta)
+    return meta.revision
+  }
+
+  /** Spring's calls: reset after a restore, revalidate after access changes, flush before a version. */
+  async function internal(req: IncomingMessage): Promise<[number, unknown]> {
+    if (!sameSecret(req.headers['x-collab-secret'], config.secret)) return [403, { message: 'Forbidden' }]
+    const body = await readJson(req)
+    const node = /^\/internal\/nodes\/([^/]+)\/(reset|flush)$/.exec(req.url ?? '')
+    if (req.method === 'POST' && node) {
+      const name = decodeURIComponent(node[1])
+      if (node[2] === 'flush') return [200, { revision: await flush(name) }]
+      prefetched.delete(name)
+      const doc = server.hocuspocus.documents.get(name)
+      if (doc) await drop(doc, CLOSE.restored, 'restored')
+      log('reset', { nodeId: name })
+      return [204, null]
+    }
+    if (req.method === 'POST' && req.url === '/internal/revalidate') {
+      const nodeIds = Array.isArray(body.nodeIds) ? body.nodeIds.map(String) : []
+      const userId = typeof body.userId === 'string' ? body.userId : null
+      for (const id of nodeIds) {
+        const doc = server.hocuspocus.documents.get(id)
+        if (doc) closeAll(doc, CLOSE.accessChanged, 'access-changed')
+      }
+      if (userId) for (const doc of server.hocuspocus.documents.values()) closeAll(doc, CLOSE.accessChanged, 'access-changed', (c) => c?.userId === userId)
+      log('revalidate', { nodes: nodeIds.length, userId })
+      return [204, null]
+    }
+    return [404, { message: 'Not found' }]
   }
 
   /** Stores until it works (doc stays loaded meanwhile), except when Spring says the page was restored. */
@@ -185,7 +254,23 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
         response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"status":"UP"}')
         throw null // handled: skip the default response
       }
+      if (request.url?.startsWith('/internal/')) {
+        const [status, body] = await internal(request)
+        response.writeHead(status, { 'Content-Type': 'application/json' }).end(body === null ? undefined : JSON.stringify(body))
+        throw null
+      }
+    },
+
+    async onDestroy() {
+      clearInterval(sweep)
     },
   })
+
+  // Safety net for anything Spring could not tell us: every connection gets a fresh ticket at least every 30 minutes.
+  const sweep = setInterval(() => {
+    const cutoff = Date.now() - o.maxAgeMs
+    for (const doc of server.hocuspocus.documents.values()) closeAll(doc, CLOSE.accessChanged, 'refresh', (c) => c?.connectedAt < cutoff)
+  }, o.sweepMs)
+  sweep.unref()
   return server
 }
