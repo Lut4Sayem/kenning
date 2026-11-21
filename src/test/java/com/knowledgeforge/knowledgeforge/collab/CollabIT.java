@@ -64,6 +64,7 @@ class CollabIT extends NodeIntegrationTest {
         assertEquals(admin.getId(), d.getString("userId"));
         assertEquals("EDIT", d.getString("access"));
         assertEquals(0, d.getInteger("epoch"));
+        assertEquals(60_000, ((Number) d.get("exp")).longValue() - ((Number) d.get("iat")).longValue());
         long left = ((Number) d.get("exp")).longValue() - System.currentTimeMillis();
         assertTrue(left > 55_000 && left <= 60_000, "exp in " + left + " ms");
 

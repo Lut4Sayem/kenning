@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { verifyTicket } from '../src/ticket.js'
 
 // Same vector as CollabTicketServiceTest on the Spring side: both must produce and accept exactly this token.
-const VECTOR = 'eyJub2RlSWQiOiJuMSIsInVzZXJJZCI6InUxIiwibmFtZSI6IkFubiIsImFjY2VzcyI6IkVESVQiLCJlcG9jaCI6MCwiZXhwIjo0MTAyNDQ0ODAwMDAwfQ.H6_6A7cmoKmEboIf9zCwPQcmSvkMF1kA0xzbWx2Qpqw'
+const VECTOR = 'eyJub2RlSWQiOiJuMSIsInVzZXJJZCI6InUxIiwibmFtZSI6IkFubiIsImFjY2VzcyI6IkVESVQiLCJlcG9jaCI6MCwiaWF0Ijo0MTAyNDQ0NzQwMDAwLCJleHAiOjQxMDI0NDQ4MDAwMDB9.yQGvp-wv_3sQndXhpz_t80qElFv5Ma-im9QxE-paRLg'
 const NOW = 1_700_000_000_000
 
 describe('verifyTicket', () => {
   it('acceptsValidTicket', () => {
     expect(verifyTicket(VECTOR, 'test-secret', NOW)).toEqual({
-      nodeId: 'n1', userId: 'u1', name: 'Ann', access: 'EDIT', epoch: 0, exp: 4102444800000,
+      nodeId: 'n1', userId: 'u1', name: 'Ann', access: 'EDIT', epoch: 0, iat: 4102444740000, exp: 4102444800000,
     })
   })
   it('rejectsBadSignature', () => {

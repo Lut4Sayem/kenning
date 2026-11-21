@@ -101,6 +101,14 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
   const prefetched = new Map<string, Promise<Loaded>>()
   const socketsOf = new Map<string, Set<string>>() // userId -> socket ids
   const buckets = new Map<string, { tokens: number; at: number }>() // socket id -> rate limit
+  // When Spring last said access changed, per page ("n:id") and per user ("u:id"). A ticket issued before that
+  // (they live 60 s) must not open a socket: the client fetches a fresh one, which tells the truth.
+  const revoked = new Map<string, number>()
+  const revoke = (key: string) => {
+    const at = Date.now()
+    revoked.set(key, at)
+    setTimeout(() => revoked.get(key) === at && revoked.delete(key), 120_000).unref()
+  }
 
   /** Past the size limit: nobody can add more; tell every client. */
   function readOnlyForEveryone(doc: Document, meta: Meta) {
@@ -160,6 +168,8 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     if (req.method === 'POST' && req.url === '/internal/revalidate') {
       const nodeIds = Array.isArray(body.nodeIds) ? body.nodeIds.map(String) : []
       const userId = typeof body.userId === 'string' ? body.userId : null
+      nodeIds.forEach((id: string) => revoke(`n:${id}`))
+      if (userId) revoke(`u:${userId}`)
       for (const id of nodeIds) {
         const doc = server.hocuspocus.documents.get(id)
         if (doc) closeAll(doc, CLOSE.accessChanged, 'access-changed')
@@ -237,6 +247,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
         throw deny((e as Error).message)
       }
       if (t.nodeId !== documentName) throw deny('bad-ticket')
+      if (t.iat <= (revoked.get(`n:${t.nodeId}`) ?? -1) || t.iat <= (revoked.get(`u:${t.userId}`) ?? -1)) throw deny('stale-ticket')
       const open = server.hocuspocus.documents.get(documentName)
       if ((open?.getConnectionsCount() ?? 0) >= o.maxPerPage || (socketsOf.get(t.userId)?.size ?? 0) >= o.maxPerUser) {
         log('too-many', { nodeId: documentName, userId: t.userId })

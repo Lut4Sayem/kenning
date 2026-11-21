@@ -7,6 +7,7 @@ export interface Ticket {
   name: string
   access: 'EDIT' | 'VIEW'
   epoch: number
+  iat: number // epoch ms, when Spring issued it
   exp: number // epoch ms
 }
 
@@ -26,7 +27,7 @@ export function verifyTicket(token: string, secret: string, now: number): Ticket
     throw new Error('bad-ticket')
   }
   const ok = typeof t?.nodeId === 'string' && typeof t.userId === 'string' && typeof t.name === 'string'
-    && (t.access === 'EDIT' || t.access === 'VIEW') && Number.isInteger(t.epoch) && typeof t.exp === 'number'
+    && (t.access === 'EDIT' || t.access === 'VIEW') && Number.isInteger(t.epoch) && typeof t.iat === 'number' && typeof t.exp === 'number'
   if (!ok) throw new Error('bad-ticket')
   if (now > t.exp) throw new Error('expired')
   return t

@@ -8,12 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CollabTicketServiceTest {
     // Same vector as collab/test/ticket.test.ts: both sides must produce and accept exactly this token.
-    static final String VECTOR = "eyJub2RlSWQiOiJuMSIsInVzZXJJZCI6InUxIiwibmFtZSI6IkFubiIsImFjY2VzcyI6IkVESVQiLCJlcG9jaCI6MCwiZXhwIjo0MTAyNDQ0ODAwMDAwfQ.H6_6A7cmoKmEboIf9zCwPQcmSvkMF1kA0xzbWx2Qpqw";
+    static final String VECTOR = "eyJub2RlSWQiOiJuMSIsInVzZXJJZCI6InUxIiwibmFtZSI6IkFubiIsImFjY2VzcyI6IkVESVQiLCJlcG9jaCI6MCwiaWF0Ijo0MTAyNDQ0NzQwMDAwLCJleHAiOjQxMDI0NDQ4MDAwMDB9.yQGvp-wv_3sQndXhpz_t80qElFv5Ma-im9QxE-paRLg";
 
     @Test
     void signMatchesVector() {
         CollabTicketService s = new CollabTicketService("test-secret", null, null, null);
-        assertEquals(VECTOR, s.sign("{\"nodeId\":\"n1\",\"userId\":\"u1\",\"name\":\"Ann\",\"access\":\"EDIT\",\"epoch\":0,\"exp\":4102444800000}"));
+        assertEquals(VECTOR, s.sign("{\"nodeId\":\"n1\",\"userId\":\"u1\",\"name\":\"Ann\",\"access\":\"EDIT\",\"epoch\":0,\"iat\":4102444740000,\"exp\":4102444800000}"));
     }
 
     @Test

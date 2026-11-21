@@ -53,8 +53,10 @@ public class CollabTicketService {
         // resolve applies the page's state: a locked page is VIEW even for its editors
         String level = access.resolve(me.getId(), node) == Access.EDIT ? "EDIT" : "VIEW";
         int epoch = contents.findById(nodeId).map(NodeContent::getContentEpoch).orElse(0);
+        long now = clock.millis();
+        // iat: collab refuses a ticket issued before it was told this page's or user's access changed
         Document payload = new Document("nodeId", nodeId).append("userId", me.getId()).append("name", me.getDisplayName())
-                .append("access", level).append("epoch", epoch).append("exp", clock.millis() + TTL.toMillis());
+                .append("access", level).append("epoch", epoch).append("iat", now).append("exp", now + TTL.toMillis());
         return new TicketDTO(sign(payload.toJson(JSON)), level, epoch);
     }
 

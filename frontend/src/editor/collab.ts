@@ -112,6 +112,11 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
       onAuthenticationFailed: ({ reason }) => {
         if (reason === 'restored') setProblem('restored')
         if (reason === 'too-many') tooMany()
+        // a ticket from just before an access change: come back with a fresh one
+        if (reason === 'stale-ticket') {
+          p.disconnect()
+          void p.connect()
+        }
       },
       onClose: ({ event }) => {
         if (event.code === CLOSE_RESTORED) setProblem('restored')

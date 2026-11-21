@@ -54,6 +54,16 @@ describe('internal routes', () => {
     await until(() => tickets === 2) // reconnected with a fresh ticket
   })
 
+  it('aTicketIssuedBeforeARevalidateIsRefused', async () => {
+    const port = await start(fakeSpring())
+    const early = ticket({ iat: Date.now() - 1000 }) // fetched just before the page was trashed
+    await call(port, '/internal/revalidate', { nodeIds: ['n1'] })
+    const c = connect(port, 'n1', early)
+    clients.push(c)
+    expect(await c.failed).toBe('stale-ticket')
+    await join(port) // a fresh ticket is fine
+  })
+
   it('revalidateUserClosesItsSockets', async () => {
     const port = await start(fakeSpring())
     const gone = await join(port, { userId: 'removed' })

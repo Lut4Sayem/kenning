@@ -12,7 +12,7 @@ export const testConfig = (over: Partial<Config> = {}): Config =>
   ({ port: 0, secret: SECRET, appOrigin: ORIGIN, springUrl: 'http://spring.test', ...over })
 
 export function ticket(over: Partial<Ticket> = {}, secret = SECRET): string {
-  const t: Ticket = { nodeId: 'n1', userId: 'u1', name: 'Ann', access: 'EDIT', epoch: 0, exp: Date.now() + 60_000, ...over }
+  const t: Ticket = { nodeId: 'n1', userId: 'u1', name: 'Ann', access: 'EDIT', epoch: 0, iat: Date.now(), exp: Date.now() + 60_000, ...over }
   const payload = Buffer.from(JSON.stringify(t)).toString('base64url')
   return `${payload}.${sign(payload, secret)}`
 }
