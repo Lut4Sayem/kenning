@@ -201,7 +201,7 @@ Wireframes `Sidebar` and `Main`. Plain layout.
 **Files:** `app/Shell.tsx`, `tree/Sidebar.tsx`, `tree/PageTree.tsx`, `tree/buildTree.ts`, `page/PageView.tsx`, `page/Breadcrumbs.tsx`, `api/nodes.ts`, `api/spaces.ts`. Routes: `/app` (dashboard placeholder until Phase 9), `/app/p/:nodeId`.
 **Produces:** `buildTree(nodes: NodeSummary[]): TreeNode[]` (hash map id -> node, children sorted by `rank` then `id`). Sidebar: team switcher, "Search Ctrl K" button, PROJECTS = team spaces of the selected team, PRIVATE = personal space, each with expandable tree, `+` new page under a node and at top, "Archived" and "Trash" links per project. Drag-and-drop with dnd-kit (reorder + nest, keyboard sensor enabled) calls `move` with `beforeId/afterId`. Expanded state remembered per space in `localStorage` (try/catch).
 - [x] Vitest: `buildTreeNestsAndSorts`, `buildTreeHandlesOrphansAtTop` (parent not in list -> top level), `newPageButtonCreatesAndNavigates`.
-- [ ] Playwright `tree.spec.ts`: create page, create sub-page, drag sub-page to top level, breadcrumbs update.
+- [x] Playwright `tree.spec.ts`: create page, create sub-page, drag sub-page to top level, breadcrumbs update.
 - [x] Commit `feat: sidebar page tree and page route`.
 
 ---
@@ -389,7 +389,7 @@ Port Dashboard, Team, Profile pages to React (same behaviour as today, plain CSS
 ### Task 10.2: Release checks
 - [x] Seed 10,000 pages (`kf.seed` dev profile): sidebar tree, page open < 2 s, search measured and recorded. Tree 0.5-0.7 s, page open 0.07 s, search 0.12-0.47 s; local Atlas-local, 3-level tree, about 2 KB text per page, empty editor state (page open was measured without a Yjs payload), not measured on the VM. The tree is 2.0 MB uncompressed: fine now, load children lazily above ~20k pages.
 - [x] Security pass (OWASP Top 10, backend: `NonMemberApiIT`, `AuthRateLimiter`, XSS review): every `/api/nodes/**` endpoint has a test for non-member 403/404; rate limit login/register (10/min per IP, `shortcut: in-memory bucket`); XSS check on titles, tags, bookmark data, snippets.
-- [ ] Accessibility pass: keyboard-only walk through tree, editor, palette, history, trash; axe check in Playwright (no serious violations).
+- [x] Accessibility pass: keyboard-only walk through tree, editor, palette, history, trash; axe check in Playwright (no serious violations). `e2e/a11y.spec.ts`; fixed: sidebar tree rows (the row is the treeitem, so its buttons are not direct children of the tree).
 - [ ] 360 px check of every screen (no horizontal scroll).
 - [ ] Fresh-start deploy (D7): `mongodump` backup of production (keep 30 days), drop all old collections and this week's test data, deploy 1a on the empty database, smoke test. Then README update, tag `v1.0-1a`.
 - [ ] Old-DB cleanup (do after the new site is verified; the app already runs on the new database `knowledgeforge_v1`):

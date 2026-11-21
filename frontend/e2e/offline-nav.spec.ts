@@ -42,8 +42,10 @@ test('offline edits survive in-app navigation and are sent when back online', as
   const elsewhere = await other.newPage()
   await expect(async () => {
     await elsewhere.goto(methodology)
+    // A fresh load takes up to ~3.5 s under 6 workers; a 2 s cap per reload could then never pass. Only the text check is short.
+    await expect(editor(elsewhere)).toBeVisible({ timeout: 10_000 })
     await expect(editor(elsewhere)).toContainText('Saved online. Typed offline.', { timeout: 2000 })
-  }).toPass({ timeout: 15_000 })
+  }).toPass({ timeout: 30_000 })
   await other.close()
 
   await sidebar.getByRole('treeitem', { name: 'Methodology' }).click()

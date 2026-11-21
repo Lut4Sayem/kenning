@@ -26,6 +26,8 @@ interface Props {
   tabIndex?: number
   defaultOpen?: boolean
   className?: string
+  /** The tree row's copy: Rename edits the row's name in place (the page header has its own title field). */
+  onRename?: () => void
 }
 
 interface Item {
@@ -34,6 +36,8 @@ interface Item {
   run: () => Promise<string | void>
   /** Why it cannot be used right now. */
   blocked?: string
+  /** The action puts focus somewhere itself (Rename's field): do not send it back to the menu button. */
+  ownFocus?: boolean
 }
 
 /** Unarchives the page and refreshes it; returns a notice when it had to move to the top level. Also the archived banner's button. */
@@ -50,7 +54,7 @@ export function useUnarchive(node: Pick<NodeDetail, 'id' | 'spaceId'>) {
 }
 
 /** The "..." menu of a page (wireframe Main). Only for page editors, even when the page is locked or archived. */
-export default function PageMenu({ node, unsaved, personal, label = 'Page actions', buttonClass = m.btn, tabIndex, defaultOpen = false, className }: Props) {
+export default function PageMenu({ node, unsaved, personal, label = 'Page actions', buttonClass = m.btn, tabIndex, defaultOpen = false, className, onRename }: Props) {
   const qc = useQueryClient()
   const trash = useTrashPage(node)
   const unarchive = useUnarchive(node)
@@ -97,6 +101,9 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
   if (node.status === 'ARCHIVED') {
     items.push({ label: 'Unarchive', run: unarchive })
   } else {
+    if (onRename) {
+      items.push({ label: 'Rename', blocked: node.access === 'EDIT' ? undefined : lockedNote ?? 'You can only read this page', ownFocus: true, run: async () => onRename() })
+    }
     if (node.publishState === 'PUBLISHED') {
       items.push({ label: 'Unpublish', blocked: lockedNote, run: async () => (await unpublishNode(node.id), await refresh()) })
     }
@@ -135,7 +142,7 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not work.')
     }
-    button.current?.focus()
+    if (!item.ownFocus) button.current?.focus()
   }
 
   function onKeyDown(e: React.KeyboardEvent) {

@@ -39,8 +39,9 @@ export default function TeamOverview() {
 
   async function addSpace(name: string, description: string) {
     await createTeamSpace(teamId, name, description)
-    await Promise.all(['team-spaces', 'team-summary', 'team-pages', 'spaces'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
+    // Close on the server's yes: waiting for four refetches left the modal up (page inert) after the space already showed.
     setNewSpace(false)
+    void Promise.all(['team-spaces', 'team-summary', 'team-pages', 'spaces'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
   }
 
   return (

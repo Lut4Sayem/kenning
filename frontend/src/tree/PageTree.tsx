@@ -1,14 +1,16 @@
 import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core'
-import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getNode, getTree, type NodeSummary } from '../api/nodes'
+import { getNode, getTree, updateNode, type NodeSummary } from '../api/nodes'
 import PageMenu from '../page/PageMenu'
 import Icon from '../ui/Icon'
 import { dotColour } from '../ui/pageColour'
 import { buildTree, type TreeNode } from './buildTree'
 import TreeDnd, { useTreeDnd } from './TreeDnd'
 import s from './PageTree.module.css'
+import side from './Sidebar.module.css'
+import { NameInput } from './SpaceName'
 import { useCreatePage } from './useCreatePage'
 import { inDialog, openRowMenu } from './useRowTouch'
 
@@ -130,6 +132,7 @@ function Tree({ spaceId, activeId, canEdit = true, label = 'Pages', personal }: 
         if (open) toggle(node.id)
         else next = items.find((el) => el.getAttribute('data-id') === node.parentId)
         break
+      case 'Enter': (e.target as HTMLElement).querySelector('a')?.click(); break
       default: return
     }
     e.preventDefault()
@@ -178,28 +181,46 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
   const title = node.title || 'Untitled'
   const tab = node.id === tabStop ? 0 : -1
   const { onTouchStart, ...gripListeners } = drag.listeners ?? {} // a finger drags the whole row (long press), the mouse the grip
+  // QA-18: Rename from the row's menu edits the name in place, with the page header's rules (EDIT access, 200 chars).
+  const qc = useQueryClient()
+  const rowEl = useRef<HTMLDivElement | null>(null)
+  const [renaming, setRenaming] = useState(false)
+  const saveTitle = async (v: string) => {
+    const updated = await updateNode(node.id, { title: v.trim() })
+    qc.setQueryData(['node', updated.id], updated)
+    await qc.invalidateQueries({ queryKey: ['tree', updated.spaceId] })
+  }
+  const doneRenaming = () => {
+    setRenaming(false)
+    if (rowEl.current?.contains(document.activeElement)) rowEl.current.focus() // Enter/Escape: back to the row; a click elsewhere keeps its focus
+  }
   return (
     <li role="none" className={cx(s.item, drag.isDragging && s.dragging)}>
+      {/* The row is the treeitem, not the link: a tree may only own treeitems and groups, and the row holds buttons (axe) */}
       <div
-        ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el) }}
+        ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el); rowEl.current = el }}
         className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
         style={{ paddingLeft: depth * 12 }} data-row
+        role="treeitem" aria-label={title} data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
+        aria-selected={node.id === activeId} onFocus={() => onFocusRow(node.id)}
         onTouchStart={canEdit ? (e) => { if (!inDialog(e)) (onTouchStart as React.TouchEventHandler)(e) } : undefined} onContextMenu={openRowMenu}
       >
-        <button type="button" tabIndex={-1} className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
+        <button type="button" tabIndex={-1} aria-hidden="true" className={s.toggle} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
         <span className={s.dot} style={{ background: dotColour(node.color) }} aria-hidden="true" />
-        <Link to={`/p/${node.id}`} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined}
-          role="treeitem" data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
-          onFocus={() => onFocusRow(node.id)}>
-          {title}
-        </Link>
+        {renaming ? (
+          <NameInput label={`Rename ${title}`} name={node.title} save={saveTitle} className={side.renameInput} errorClass={side.renameError} onDone={doneRenaming} />
+        ) : (
+          <Link to={`/p/${node.id}`} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined} tabIndex={-1}>
+            {title}
+          </Link>
+        )}
         {canEdit && (
           <>
             <button type="button" tabIndex={tab} className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
-            <RowMenu id={node.id} title={title} personal={personal} tabIndex={tab} />
+            <RowMenu id={node.id} title={title} personal={personal} tabIndex={tab} onRename={() => setRenaming(true)} />
             <button type="button" className={cx(s.btn, s.grip)} aria-label={`Drag to move ${title}`} title="Drag to move"
               {...gripListeners} {...drag.attributes} tabIndex={tab}><Icon name="grip" /></button>
           </>
@@ -219,13 +240,13 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
 }
 
 /** QA-18: the page's own "…" menu on its row. The tree only has summaries, so the page loads when the menu is first asked for. */
-function RowMenu({ id, title, personal, tabIndex }: { id: string; title: string; personal?: boolean; tabIndex: number }) {
+function RowMenu({ id, title, personal, tabIndex, onRename }: { id: string; title: string; personal?: boolean; tabIndex: number; onRename: () => void }) {
   const [wanted, setWanted] = useState(false)
   const { data, isError, refetch } = useQuery({ queryKey: ['node', id], queryFn: () => getNode(id), enabled: wanted })
   // Written by the open page's PageView (no query function: the cache is the store); false for pages not open.
   const { data: unsaved = false } = useQuery<boolean>({ queryKey: ['unsaved', id], queryFn: () => false, enabled: false })
   const label = `More actions for ${title}`
-  if (data) return <PageMenu node={data} unsaved={unsaved} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} className={s.menuHost} />
+  if (data) return <PageMenu node={data} unsaved={unsaved} personal={personal} label={label} buttonClass={s.btn} tabIndex={tabIndex} defaultOpen={wanted} className={s.menuHost} onRename={onRename} />
   return (
     <button type="button" tabIndex={tabIndex} className={s.btn} aria-label={label} aria-haspopup="menu" aria-expanded={false}
       title={isError ? 'Could not load the page menu. Click to try again.' : undefined} onClick={() => (isError ? void refetch() : setWanted(true))}>

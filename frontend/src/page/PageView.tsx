@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
 import { useLocation, useParams } from 'react-router-dom'
@@ -148,7 +148,8 @@ export default function PageView() {
   // emptied the field in this mount (a remount mid-edit, e.g. a dev hot reload, once saved "" over a real title).
   const loaded = useRef(new Set<string>())
   const cleared = useRef(new Set<string>())
-  useEffect(() => {
+  // Layout effect: the field must never paint (or be seen by a test) empty before the server title arrives in it.
+  useLayoutEffect(() => {
     const server = node.data?.title ?? ''
     const prev = synced.current
     setTitle((t) => (prev.id !== nodeId || t === prev.title ? server : t))
