@@ -48,8 +48,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(csrfHandler)
-                        // login/register have no session token yet; /internal/** joins here in Phase 9 (own secret)
-                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/register"))
+                        // login/register have no session token yet; /internal/** has no session at all (X-Collab-Secret instead)
+                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/register", "/internal/**"))
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository)
                         .requireExplicitSave(true)
@@ -68,7 +68,8 @@ public class SecurityConfig {
                                 "/login", "/register", "/login.html", "/register.html", "/dashboard.html", "/team.html", "/space.html", "/document.html", "/join.html", "/search.html", "/profile.html", // redirected to /app by LegacyRedirects
                                 "/actuator/health", // uptime monitor; details are off (application.properties)
                                 "/error", // so real errors (e.g. 500) aren't masked as 401 on public endpoints
-                                "/google557de5fbfde00618.html"
+                                "/google557de5fbfde00618.html",
+                                "/internal/**" // collaboration service; CollabController checks X-Collab-Secret on every call
 
                         ).permitAll()
                         // invite preview: the login page names the team the link is for (QA-04); joining still needs a login
