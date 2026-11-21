@@ -160,6 +160,8 @@ export class Autosave {
   private recover: boolean
   private dirty: boolean
   private connected = false
+  /** The browser says it is online. A socket can look open for a while after the network went away. */
+  private online = typeof navigator === 'undefined' || navigator.onLine !== false
   private version = 0 // bumped on every local change, to tell whether an async step is still current
   private attempt = 0
   private stopped = false
@@ -184,6 +186,8 @@ export class Autosave {
     provider?.on('stateless', this.onStateless)
     provider?.on('status', this.onProviderStatus)
     window.addEventListener('beforeunload', this.onBeforeUnload)
+    window.addEventListener('offline', this.onNetwork)
+    window.addEventListener('online', this.onNetwork)
     // Under this session's slot first, and only then remove the old ones: never a moment without a copy.
     const adopt = opened.adopt ?? []
     if (adopt.length) void this.storePending().then(async (ok) => { if (ok) for (const id of adopt) await opened.store.clear(id) })
@@ -198,6 +202,8 @@ export class Autosave {
     this.provider?.off('stateless', this.onStateless)
     this.provider?.off('status', this.onProviderStatus)
     window.removeEventListener('beforeunload', this.onBeforeUnload)
+    window.removeEventListener('offline', this.onNetwork)
+    window.removeEventListener('online', this.onNetwork)
     clearTimeout(this.timer)
     this.stopped = true
     this.opened.release() // from here on the slot counts as orphaned
@@ -259,12 +265,21 @@ export class Autosave {
     this.text = this.readText()
     void this.storePending()
     if (this.recover) return // keepPrivately picks the change up
-    this.setState(this.connected ? 'saving' : 'offline')
+    this.showConnection()
+  }
+
+  private showConnection() {
+    if (this.dirty && !this.recover) this.setState(this.connected && this.online ? 'saving' : 'offline')
   }
 
   private onProviderStatus = ({ status }: { status: string }) => {
     this.connected = status === 'connected'
-    if (this.dirty && !this.recover) this.setState(this.connected ? 'saving' : 'offline')
+    this.showConnection()
+  }
+
+  private onNetwork = () => {
+    this.online = navigator.onLine !== false
+    this.showConnection()
   }
 
   private onStateless = ({ payload }: { payload: string }) => {

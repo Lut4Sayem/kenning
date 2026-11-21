@@ -379,6 +379,18 @@ describe('autosave', () => {
     await expect(openContent(NODE, true, USER)).rejects.toThrow('Page not found')
   })
 
+  it('theBrowserGoingOfflineShowsOfflineEvenWhileTheSocketLooksOpen', async () => {
+    const { a, doc } = await openTab()
+    setOnline(false)
+    window.dispatchEvent(new Event('offline'))
+    type(doc, 'typed offline')
+    await tick(0)
+    expect(a.state).toBe('offline')
+    setOnline(true)
+    window.dispatchEvent(new Event('online'))
+    expect(a.state).toBe('saving')
+  })
+
   it('offlineWithoutALocalCopyDoesNotClaimOne', async () => {
     const { a, doc, seen, provider } = await openTab()
     idb.broken = true // IndexedDB blocked or full
