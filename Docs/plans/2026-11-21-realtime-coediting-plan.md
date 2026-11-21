@@ -74,11 +74,11 @@
   - `GET /health` -> `200 {"status":"UP"}` (via `onRequest`).
   - Shared test vector (used again in Task 2): secret `test-secret`, payload JSON `{"nodeId":"n1","userId":"u1","name":"Ann","access":"EDIT","epoch":0,"exp":4102444800000}`; compute the token once here and paste it as a constant into both tests.
 
-- [ ] **Step 1: Write failing tests** `ticket.test.ts`: `acceptsValidTicket` (vector -> fields equal), `rejectsBadSignature` (last char changed -> `bad-ticket`), `rejectsExpired` (`now = exp + 1` -> `expired`), `rejectsMalformed` (`"abc"` -> `bad-ticket`). `auth.test.ts` (real server on port 0, `HocuspocusProvider` + `ws` in Node, or `onAuthenticate` called directly with a fake payload if the docs allow): `wrongNodeRejected` (ticket nodeId `n1`, documentName `n2`), `badOriginRejected` (`Origin` other than `appOrigin`), `viewIsReadOnly` (VIEW ticket -> `connection.readOnly === true`, its update does not reach a second EDIT client), `healthIsUp`.
-- [ ] **Step 2:** `npm test -- --run` in `collab/` -> FAIL (modules missing).
-- [ ] **Step 3: Implement** `ticket.ts`, `config.ts`, `server.ts` (`onAuthenticate`: verify, nodeId == `documentName`, `Origin` == `appOrigin`, VIEW -> readOnly, return context; `onConnect`/`onDisconnect` log lines), `main.ts`. `spring` is unused until Task 3 (pass a stub in tests).
-- [ ] **Step 4:** tests PASS; `npm run typecheck` clean.
-- [ ] **Step 5: Commit** `feat(collab): add the collaboration service with ticket auth`
+- [x] **Step 1: Write failing tests** `ticket.test.ts`: `acceptsValidTicket` (vector -> fields equal), `rejectsBadSignature` (last char changed -> `bad-ticket`), `rejectsExpired` (`now = exp + 1` -> `expired`), `rejectsMalformed` (`"abc"` -> `bad-ticket`). `auth.test.ts` (real server on port 0, `HocuspocusProvider` + `ws` in Node, or `onAuthenticate` called directly with a fake payload if the docs allow): `wrongNodeRejected` (ticket nodeId `n1`, documentName `n2`), `badOriginRejected` (`Origin` other than `appOrigin`), `viewIsReadOnly` (VIEW ticket -> `connection.readOnly === true`, its update does not reach a second EDIT client), `healthIsUp`.
+- [x] **Step 2:** `npm test -- --run` in `collab/` -> FAIL (modules missing).
+- [x] **Step 3: Implement** `ticket.ts`, `config.ts`, `server.ts` (`onAuthenticate`: verify, nodeId == `documentName`, `Origin` == `appOrigin`, VIEW -> readOnly, return context; `onConnect`/`onDisconnect` log lines), `main.ts`. `spring` is unused until Task 3 (pass a stub in tests).
+- [x] **Step 4:** tests PASS; `npm run typecheck` clean.
+- [x] **Step 5: Commit** `feat(collab): add the collaboration service with ticket auth`
 
 ### Task 2: Spring ticket endpoint + internal content API
 
@@ -97,11 +97,11 @@
   - Every `/internal/**` call needs header `X-Collab-Secret` equal to `kf.collab.secret` (`MessageDigest.isEqual`), else 403; empty configured secret -> always 403.
   - `NodeContentService.storeFromCollab(String nodeId, StoreRequest req): SavedDTO`: same update pipeline as `save` but filter `{_id, revision: baseRevision, contentEpoch: baseEpoch}`, session authors = union with `req.authors()` (ObjectIds), `Node.updatedBy` = last id in `authors` (skip the node update when `authors` is empty). Keep `save` for now (removed in Task 5).
 
-- [ ] **Step 1: Write failing tests**: `CollabTicketServiceTest.signMatchesVector` (vector payload -> token constant from Task 1). `CollabIT`: `collabTicketNeedsView` (non-member 403/404), `ticketAccessMatchesRole` (editor -> EDIT; viewer -> VIEW; locked page + editor -> VIEW; parsed payload has nodeId, userId, epoch, `exp - now` within 55..60 s), `internalApiRejectsWithoutSecret` (GET/PUT without header and with wrong header -> 403), `staleEpochStoreRejected` (bump `contentEpoch` in Mongo, PUT with old `baseEpoch` -> 409 `EPOCH`, state unchanged), `storeKeepsRules` (good PUT -> revision +1, `search.title` set, `editSession.authors` contains both given ids, `updatedBy` = last author).
-- [ ] **Step 2:** `./mvnw -q test -Dtest='CollabTicketServiceTest,CollabIT'` -> FAIL.
-- [ ] **Step 3: Implement** as in Interfaces; Jackson writes the payload JSON in a fixed field order (`@JsonPropertyOrder`).
-- [ ] **Step 4:** same command PASS, then `./mvnw -q test` PASS.
-- [ ] **Step 5: Commit** `feat(collab): ticket endpoint and internal content API for the collaboration service`
+- [x] **Step 1: Write failing tests**: `CollabTicketServiceTest.signMatchesVector` (vector payload -> token constant from Task 1). `CollabIT`: `collabTicketNeedsView` (non-member 403/404), `ticketAccessMatchesRole` (editor -> EDIT; viewer -> VIEW; locked page + editor -> VIEW; parsed payload has nodeId, userId, epoch, `exp - now` within 55..60 s), `internalApiRejectsWithoutSecret` (GET/PUT without header and with wrong header -> 403), `staleEpochStoreRejected` (bump `contentEpoch` in Mongo, PUT with old `baseEpoch` -> 409 `EPOCH`, state unchanged), `storeKeepsRules` (good PUT -> revision +1, `search.title` set, `editSession.authors` contains both given ids, `updatedBy` = last author).
+- [x] **Step 2:** `./mvnw -q test -Dtest='CollabTicketServiceTest,CollabIT'` -> FAIL.
+- [x] **Step 3: Implement** as in Interfaces; Jackson writes the payload JSON in a fixed field order (`@JsonPropertyOrder`).
+- [x] **Step 4:** same command PASS, then `./mvnw -q test` PASS.
+- [x] **Step 5: Commit** `feat(collab): ticket endpoint and internal content API for the collaboration service`
 
 ### Task 3: Collab loads and stores through Spring
 
@@ -120,11 +120,11 @@
   - Per-doc meta kept in a `Map<string, { revision: number; epoch: number; authors: Set<string>; tooLarge: boolean; dropped: boolean }>`.
   - Stateless messages (JSON strings) sent to all connections of a doc: `{"type":"saved","revision":n,"sv":"<base64 Y.encodeStateVector>"}`, `{"type":"retrying"}`.
 
-- [ ] **Step 1: Write failing tests** (`store.test.ts`, fake `SpringApi`, Vitest fake timers): `loadsServerState` (doc content equals loaded state); `emptyPageUsesFixedState` (`state: null` -> doc equals `EMPTY_PAGE_STATE`); `storesAfterDebounce` (one edit -> no store at 1.9 s, one store by 2.1 s with `baseRevision`, `baseEpoch`, authors = editing userId); `storeRetriesWithBackoff` (store rejects 3 times -> attempts at +1, +2, +5 s, sends `retrying`, then `saved`); `savedCarriesStateVector`; `epochConflictDropsDoc` (`EpochError` -> no retry, connections closed `4409`, meta `dropped`); `revisionConflictMerges` (`RevisionError` -> `load` called, server state applied, store again with new revision). `extractText.test.ts`: each fixture -> expected text.
-- [ ] **Step 2:** `npm test -- --run` -> FAIL.
-- [ ] **Step 3: Implement** `onLoadDocument` (load, apply, set meta), `onChange` (add `lastContext`/connection userId to `authors` unless readOnly), `onStoreDocument` (skip when `dropped`; encode state, `extractText(doc.getXmlFragment('document-store'))`, store with backoff loop, update revision, clear authors, broadcast `saved`), `unloadImmediately` behaviour per v4 docs so the doc unloads after the last client leaves and the final store succeeded. Server options `debounce: 2000, maxDebounce: 10000`.
-- [ ] **Step 4:** collab tests PASS; `npm test -- --run` in `frontend/` PASS (parity).
-- [ ] **Step 5: Commit** `feat(collab): load and store pages through the internal API`
+- [x] **Step 1: Write failing tests** (`store.test.ts`, fake `SpringApi`, Vitest fake timers): `loadsServerState` (doc content equals loaded state); `emptyPageUsesFixedState` (`state: null` -> doc equals `EMPTY_PAGE_STATE`); `storesAfterDebounce` (one edit -> no store at 1.9 s, one store by 2.1 s with `baseRevision`, `baseEpoch`, authors = editing userId); `storeRetriesWithBackoff` (store rejects 3 times -> attempts at +1, +2, +5 s, sends `retrying`, then `saved`); `savedCarriesStateVector`; `epochConflictDropsDoc` (`EpochError` -> no retry, connections closed `4409`, meta `dropped`); `revisionConflictMerges` (`RevisionError` -> `load` called, server state applied, store again with new revision). `extractText.test.ts`: each fixture -> expected text.
+- [x] **Step 2:** `npm test -- --run` -> FAIL.
+- [x] **Step 3: Implement** `onLoadDocument` (load, apply, set meta), `onChange` (add `lastContext`/connection userId to `authors` unless readOnly), `onStoreDocument` (skip when `dropped`; encode state, `extractText(doc.getXmlFragment('document-store'))`, store with backoff loop, update revision, clear authors, broadcast `saved`), `unloadImmediately` behaviour per v4 docs so the doc unloads after the last client leaves and the final store succeeded. Server options `debounce: 2000, maxDebounce: 10000`.
+- [x] **Step 4:** collab tests PASS; `npm test -- --run` in `frontend/` PASS (parity).
+- [x] **Step 5: Commit** `feat(collab): load and store pages through the internal API`
 
 ### Task 4: Frontend provider + presence (browser stops PUTting)
 
@@ -142,11 +142,11 @@
   - Awareness user: `{ name, color, viewer: boolean }`. Viewers clear their `cursor` field; cursor updates throttled to 10/s (wrap the awareness `setLocalStateField('cursor', …)` with a 100 ms trailing throttle).
   - `<Presence provider={...} />`: up to 4 initials circles + `+N`, `title` lists names, viewers get an eye badge; one entry per user (dedupe same userId across tabs).
 
-- [ ] **Step 1: Write failing tests**: `userColor.test.ts`: `stablePerUser` (same id -> same colour), `alwaysInPalette`, `spreadsAcrossPalette` (100 ids hit at least 6 colours). `Presence.test.tsx` with a fake awareness: `showsFourPlusN` (6 users -> 4 circles + "+2"), `viewerHasEyeBadge`, `sameUserTwoTabsShownOnce`.
-- [ ] **Step 2:** `npm test -- --run` -> FAIL.
-- [ ] **Step 3: Implement** per Interfaces. Remove the `saveContent` call from `Autosave` (the local copy still gets written; it is cleared in Task 5). Edit mode comes from `useCollab().access === 'EDIT'` and the existing lock/role flags; switching rebuilds the editor (never flip `editable` live).
-- [ ] **Step 4:** `npm run lint && npm run typecheck && npm test -- --run` PASS. Manual check with dev servers (Spring, collab `npm run dev`, Vite): two browsers on one page see each other's text and cursor. Existing e2e may fail on PUT expectations until Task 5; note which.
-- [ ] **Step 5: Commit** `feat(editor): live co-editing through the collaboration service, with presence`
+- [x] **Step 1: Write failing tests**: `userColor.test.ts`: `stablePerUser` (same id -> same colour), `alwaysInPalette`, `spreadsAcrossPalette` (100 ids hit at least 6 colours). `Presence.test.tsx` with a fake awareness: `showsFourPlusN` (6 users -> 4 circles + "+2"), `viewerHasEyeBadge`, `sameUserTwoTabsShownOnce`.
+- [x] **Step 2:** `npm test -- --run` -> FAIL.
+- [x] **Step 3: Implement** per Interfaces. Remove the `saveContent` call from `Autosave` (the local copy still gets written; it is cleared in Task 5). Edit mode comes from `useCollab().access === 'EDIT'` and the existing lock/role flags; switching rebuilds the editor (never flip `editable` live).
+- [x] **Step 4:** `npm run lint && npm run typecheck && npm test -- --run` PASS. Manual check with dev servers (Spring, collab `npm run dev`, Vite): two browsers on one page see each other's text and cursor. Existing e2e may fail on PUT expectations until Task 5; note which.
+- [x] **Step 5: Commit** `feat(editor): live co-editing through the collaboration service, with presence`
 
 ### Task 5: Offline and local copy rework; public PUT removed
 
@@ -165,11 +165,11 @@
   - `sendAllPending` and `useSendPendingWhenOnline` use `pushCopy` (signatures unchanged).
   - Open rules (7.4): same-epoch copy applied before connecting (already done by `openContent`); older-epoch copy -> `saveRecovered`, notice, server state.
 
-- [ ] **Step 1: Write failing tests**: `coversLocalTrueWhenServerHasAll`, `coversLocalFalseWhenOwnClockAhead`, `coversLocalFalseWhenAdoptedClientMissing` (pure, in `autosave.test.tsx`); `copyClearedOnlyOnCoveringSaved` (fake provider emits `saved` with a short sv -> slot kept; full sv -> slot cleared); `offlineStateWhenDisconnected`; `retryingStateAfterRetryMessage`; `pushCopyOlderEpochGoesToRecovered`; `pushCopyTimesOutFalse`. Backend: `NodeContentServiceIT` asserts `PUT /api/nodes/{id}/content` -> 405.
-- [ ] **Step 2:** run frontend tests + `./mvnw -q test -Dtest=NodeContentServiceIT` -> FAIL.
-- [ ] **Step 3: Implement**; update `autosave.spec.ts` / `offline-nav.spec.ts` to wait on the indicator text instead of PUT requests.
-- [ ] **Step 4:** `npm run lint && npm run typecheck && npm test -- --run`, `./mvnw -q test`, `npx playwright test autosave offline-nav` PASS.
-- [ ] **Step 5: Commit** `feat(editor): keep the local copy until the collaboration server confirms it; remove the content PUT`
+- [x] **Step 1: Write failing tests**: `coversLocalTrueWhenServerHasAll`, `coversLocalFalseWhenOwnClockAhead`, `coversLocalFalseWhenAdoptedClientMissing` (pure, in `autosave.test.tsx`); `copyClearedOnlyOnCoveringSaved` (fake provider emits `saved` with a short sv -> slot kept; full sv -> slot cleared); `offlineStateWhenDisconnected`; `retryingStateAfterRetryMessage`; `pushCopyOlderEpochGoesToRecovered`; `pushCopyTimesOutFalse`. Backend: `NodeContentServiceIT` asserts `PUT /api/nodes/{id}/content` -> 405.
+- [x] **Step 2:** run frontend tests + `./mvnw -q test -Dtest=NodeContentServiceIT` -> FAIL.
+- [x] **Step 3: Implement**; update `autosave.spec.ts` / `offline-nav.spec.ts` to wait on the indicator text instead of PUT requests.
+- [x] **Step 4:** `npm run lint && npm run typecheck && npm test -- --run`, `./mvnw -q test`, `npx playwright test autosave offline-nav` PASS.
+- [x] **Step 5: Commit** `feat(editor): keep the local copy until the collaboration server confirms it; remove the content PUT`
 
 ### Task 6: Spring calls collab on restore, access changes and named versions
 
@@ -182,11 +182,11 @@
 - Produces: `CollabClient.reset(String nodeId)`, `revalidate(String nodeId)`, `revalidateUser(String userId)` (all log and swallow failures; the 30-min sweep is the safety net), `OptionalLong flush(String nodeId)` (empty = unreachable). Collab routes (built in Task 7): `POST /internal/nodes/{id}/reset|revalidate|flush`, `POST /internal/users/{id}/revalidate`; flush answers `{"revision":n}`.
   - `revalidateUser` is the builder's call for member/role changes (spec 7.1.5 says "per page"; a member change touches every page of the team, and closing that user's sockets is exact and cheap).
 
-- [ ] **Step 1: Write failing tests**: `restoreCallsCollabReset` (after the restore the stored epoch is +1 and `reset(nodeId)` was called once, after the DB write: `InOrder` not needed, check epoch inside an `answer`), `memberRemovalCallsRevalidate` (`revalidateUser(removedId)`), `roleChangeCallsRevalidate`, `lockCallsRevalidate`, `trashCallsRevalidateForBranch` (parent + child ids), `namedVersionFlushesFirst` (`flush` called before the version insert; `flush` returns empty -> `flushFailed == true`, version still created).
-- [ ] **Step 2:** `./mvnw -q test -Dtest=CollabCallsIT` FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4:** `./mvnw -q test` PASS.
-- [ ] **Step 5: Commit** `feat(collab): reset, revalidate and flush the collaboration service when pages or access change`
+- [x] **Step 1: Write failing tests**: `restoreCallsCollabReset` (after the restore the stored epoch is +1 and `reset(nodeId)` was called once, after the DB write: `InOrder` not needed, check epoch inside an `answer`), `memberRemovalCallsRevalidate` (`revalidateUser(removedId)`), `roleChangeCallsRevalidate`, `lockCallsRevalidate`, `trashCallsRevalidateForBranch` (parent + child ids), `namedVersionFlushesFirst` (`flush` called before the version insert; `flush` returns empty -> `flushFailed == true`, version still created).
+- [x] **Step 2:** `./mvnw -q test -Dtest=CollabCallsIT` FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4:** `./mvnw -q test` PASS.
+- [x] **Step 5: Commit** `feat(collab): reset, revalidate and flush the collaboration service when pages or access change`
 
 ### Task 7: Collab internal routes + 30-min sweep
 
@@ -198,9 +198,9 @@
 - Consumes: routes listed in Task 6.
 - Produces: `onRequest` handles `/internal/*` (403 without matching `X-Collab-Secret`); `reset`: meta `dropped = true`, close all doc connections `4409`, unload without storing; `revalidate`: close doc connections `4403`; `revalidateUser`: close every connection whose context `userId` matches with `4403`; `flush`: store now if open (await), answer `{revision}`, `{revision:null}` when not open. Sweep every 60 s: close connections with `connectedAt` older than 30 min, code `4403`.
 
-- [ ] **Step 1: Write failing tests**: `internalNeedsSecret`, `resetClosesWith4409AndSkipsStore`, `revalidateClosesWith4403`, `revalidateUserClosesItsSockets` (other user's socket stays), `flushStoresNow`, `sweepClosesOldConnections` (fake timers, 31 min).
-- [ ] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** `npm test -- --run` PASS.
-- [ ] **Step 5: Commit** `feat(collab): internal reset, revalidate and flush routes, and a 30-minute reconnect`
+- [x] **Step 1: Write failing tests**: `internalNeedsSecret`, `resetClosesWith4409AndSkipsStore`, `revalidateClosesWith4403`, `revalidateUserClosesItsSockets` (other user's socket stays), `flushStoresNow`, `sweepClosesOldConnections` (fake timers, 31 min).
+- [x] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** `npm test -- --run` PASS.
+- [x] **Step 5: Commit** `feat(collab): internal reset, revalidate and flush routes, and a 30-minute reconnect`
 
 ### Task 8: Client handling of restore (4409) and access change (4403)
 
@@ -211,9 +211,9 @@
 - Consumes: close codes from Task 7; `saveRecovered`; `RECOVERED_NOTICE`; `openContent`.
 - Produces: on `4409`: if the local copy is not covered by the last `saved`, `saveRecovered({state, text, baseEpoch})` (slot cleared only after success, as in D6), show `RECOVERED_NOTICE`, reopen the page (`openContent` again -> new ydoc + provider). On `4403`: the provider reconnects; the token function fetches a new ticket; access may drop to VIEW (editor rebuilt read-only) or the ticket call fails (403/404/410 -> existing forbidden/gone page state).
 
-- [ ] **Step 1: Write failing tests** (fake provider): `restoredWithLocalEditsSavesRecovered`, `restoredWithoutLocalEditsJustReloads`, `accessChangeToViewRebuildsReadOnly`, `accessLostShowsForbidden`.
-- [ ] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** lint, typecheck, tests PASS.
-- [ ] **Step 5: Commit** `feat(editor): handle page restore and access changes during a live session`
+- [x] **Step 1: Write failing tests** (fake provider): `restoredWithLocalEditsSavesRecovered`, `restoredWithoutLocalEditsJustReloads`, `accessChangeToViewRebuildsReadOnly`, `accessLostShowsForbidden`.
+- [x] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** lint, typecheck, tests PASS.
+- [x] **Step 5: Commit** `feat(editor): handle page restore and access changes during a live session`
 
 ### Task 9: Remove the soft lock
 
@@ -221,10 +221,10 @@
 - Delete: `editlock/` package (5 files), `src/test/.../editlock/EditLockServiceIT.java`, `frontend/src/editor/SoftLockBanner.tsx`, `SoftLock.module.css`, `softLock.test.tsx`, `frontend/e2e/softlock.spec.ts`
 - Modify: `node/TrashService.java` (drop the `EditLock` removal line), `common/SchemaSetup.java` (remove `edit_locks` indexes; drop the collection at startup if it exists), `SchemaSetupTest`, `frontend/src/api/content.ts` (remove edit-lock calls/types), `frontend/src/page/PageView.tsx` (remove `useEditLock`, banners; read-only only from access/lock)
 
-- [ ] **Step 1: Write failing test**: `SchemaSetupTest.dropsEditLocks` (collection present before -> absent after setup).
-- [ ] **Step 2:** FAIL. **Step 3:** delete and edit; `grep -ri "editlock\|edit-lock\|SoftLock" src frontend/src frontend/e2e` returns nothing.
-- [ ] **Step 4:** `./mvnw -q test`, frontend lint/typecheck/tests PASS.
-- [ ] **Step 5: Commit** `refactor: remove the soft lock, live editing replaces it`
+- [x] **Step 1: Write failing test**: `SchemaSetupTest.dropsEditLocks` (collection present before -> absent after setup).
+- [x] **Step 2:** FAIL. **Step 3:** delete and edit; `grep -ri "editlock\|edit-lock\|SoftLock" src frontend/src frontend/e2e` returns nothing.
+- [x] **Step 4:** `./mvnw -q test`, frontend lint/typecheck/tests PASS.
+- [x] **Step 5: Commit** `refactor: remove the soft lock, live editing replaces it`
 
 ### Task 10: Limits
 
@@ -235,9 +235,9 @@
 **Interfaces:**
 - Produces: `websocketOptions: { maxPayload: 1024 * 1024 }`; in `onAuthenticate` reject with close `4429` (reason `too-many`) when the doc has 25 connections or the user has 10 sockets (counter by userId, decremented in `onDisconnect`); `beforeHandleMessage` token bucket 50 messages, refill 50/s, overflow -> close `4429`; after each store, if the encoded state > 4 MB: meta `tooLarge`, every connection `readOnly = true`, stateless `{"type":"too-large"}`. Client: `4429` -> notice "Too many people on this page right now." (no auto-retry loop: one retry after 30 s); `too-large` -> notice with the exact copy, editor read-only.
 
-- [ ] **Step 1: Write failing tests**: `rejects26thConnection`, `rejects11thSocketOfUser`, `rateLimitCloses4429`, `oversizedPayloadRejected`, `tooLargeMakesReadOnly`; client `tooManyShowsNotice`, `tooLargeShowsNotice`.
-- [ ] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** both test suites PASS.
-- [ ] **Step 5: Commit** `feat(collab): connection, rate and size limits`
+- [x] **Step 1: Write failing tests**: `rejects26thConnection`, `rejects11thSocketOfUser`, `rateLimitCloses4429`, `oversizedPayloadRejected`, `tooLargeMakesReadOnly`; client `tooManyShowsNotice`, `tooLargeShowsNotice`.
+- [x] **Step 2:** FAIL. **Step 3:** implement. **Step 4:** both test suites PASS.
+- [x] **Step 5: Commit** `feat(collab): connection, rate and size limits`
 
 ### Task 11: Compose, Caddy, deploy
 
@@ -245,9 +245,9 @@
 - Create: `collab/Dockerfile` (node:20-alpine multi-stage, `npm ci`, `npm run build`, prune dev deps, `USER node`, `EXPOSE 1234`, `HEALTHCHECK` on `/health`), `collab/.dockerignore`
 - Modify: `deploy/docker-compose.yml` (service `collab`: image `ghcr.io/lut4sayem/knowledgeforge-collab:latest`, `env_file: .env`, `environment: NODE_OPTIONS=--max-old-space-size=128, SPRING_INTERNAL_URL=http://app:8080, PORT=1234`, `mem_limit: 192m`, `ports: 127.0.0.1:1234:1234` for the health check only; `app` gets `COLLAB_INTERNAL_URL=http://collab:1234`; caddy `depends_on: [app, collab]`), `deploy/Caddyfile` (`handle /collab* { reverse_proxy collab:1234 }` before the app proxy; `/internal/*` answered 404 by Caddy), `deploy/update.sh` (pull both, compare both image ids, health check both `:8080/actuator/health` and `:1234/health`, roll back both), `.github/workflows/deploy.yml` (second build-push for `collab/`), `deploy/README.md` (`.env` gains `COLLAB_SECRET` (32+ random chars) and `APP_ORIGIN`)
 
-- [ ] **Step 1:** `docker build collab` and `docker compose -f deploy/docker-compose.yml config` succeed locally; `sh -n deploy/update.sh` clean.
-- [ ] **Step 2:** Local stack smoke (throwaway Mongo, app + collab containers, as in the local test stack notes): `/health` UP, a ticketed provider connects, an edit is stored (revision +1 in Mongo).
-- [ ] **Step 3: Commit** `build(deploy): run the collaboration service next to the app behind Caddy`
+- [x] **Step 1:** `docker build collab` and `docker compose -f deploy/docker-compose.yml config` succeed locally; `sh -n deploy/update.sh` clean.
+- [x] **Step 2:** Local stack smoke (throwaway Mongo, app + collab containers, as in the local test stack notes): `/health` UP, a ticketed provider connects, an edit is stored (revision +1 in Mongo).
+- [x] **Step 3: Commit** `build(deploy): run the collaboration service next to the app behind Caddy`
 - [ ] **Step 4 (owner, after merge):** add `COLLAB_SECRET` and `APP_ORIGIN` to `~/kf/.env`, copy the new compose/Caddyfile/update.sh, measure memory with 2-3 open pages (`docker stats --no-stream`) and record it in PROJECT_CONTEXT.
 
 ### Task 12: Playwright two-user tests
@@ -256,10 +256,10 @@
 - Create: `frontend/e2e/coedit.spec.ts`
 - Modify: `frontend/playwright.config.ts` only if a second base user fixture is needed; e2e helpers for creating two users in one team (reuse the existing e2e setup helpers).
 
-- [ ] **Step 1: Write the tests** (two browser contexts, real collab): `bothTypeAndSeeEachOther` (each sees the other's sentence within 2 s); `cursorNameVisible` (the other user's name tag shows); `viewerWatchesReadOnly` (viewer sees live text, typing changes nothing, no viewer name tag in the editor's view); `removedMemberLosesAccess` (admin removes B mid-session -> B's tab read-only or forbidden within 5 s, B's later typing never reaches A); `offlineEditsMerge` (B `context.setOffline(true)`, types, indicator says "Offline: changes kept on this device", back online -> A sees B's text and B shows "Saved"); `restoreWhileOpen` (A restores an older version -> B shows `RECOVERED_NOTICE` if B had unconfirmed edits, and the restored text); `twoTabsSameUser` (two pages of one context, both edit, both texts merged, one avatar).
-- [ ] **Step 2:** `npx playwright test coedit` locally against app + collab: PASS; full `npx playwright test` PASS.
-- [ ] **Step 3: Commit** `test(e2e): two-user live editing, viewers, removal, offline and restore`
-- [ ] **Step 4:** push the branch, open the PR (no merge), wait for all CI jobs green; fix and re-push in new small commits if not.
+- [x] **Step 1: Write the tests** (two browser contexts, real collab): `bothTypeAndSeeEachOther` (each sees the other's sentence within 2 s); `cursorNameVisible` (the other user's name tag shows); `viewerWatchesReadOnly` (viewer sees live text, typing changes nothing, no viewer name tag in the editor's view); `removedMemberLosesAccess` (admin removes B mid-session -> B's tab read-only or forbidden within 5 s, B's later typing never reaches A); `offlineEditsMerge` (B `context.setOffline(true)`, types, indicator says "Offline: changes kept on this device", back online -> A sees B's text and B shows "Saved"); `restoreWhileOpen` (A restores an older version -> B shows `RECOVERED_NOTICE` if B had unconfirmed edits, and the restored text); `twoTabsSameUser` (two pages of one context, both edit, both texts merged, one avatar).
+- [x] **Step 2:** `npx playwright test coedit` locally against app + collab: PASS; full `npx playwright test` PASS.
+- [x] **Step 3: Commit** `test(e2e): two-user live editing, viewers, removal, offline and restore`
+- [x] **Step 4:** push the branch, open the PR (no merge), wait for all CI jobs green; fix and re-push in new small commits if not.
 
 ---
 
