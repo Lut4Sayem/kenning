@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import * as Y from 'yjs'
 import { createServer, type Options } from '../src/server.js'
 import { TooLargeError } from '../src/spring.js'
 import { connect, fakeSpring, ticket, testConfig, typeIn, until, type Client, type FakeSpring } from './helpers.js'
@@ -67,11 +68,15 @@ describe('limits', () => {
     typeIn(a.doc, 'y'.repeat(300))
     await until(() => a.messages.some((m) => m.type === 'too-large') && b.messages.some((m) => m.type === 'too-large'))
     await until(() => spring.stores.length === 1) // what was typed before the limit is still stored
+    // then every client is told the store after the cap is done: its edits not in a `saved` were refused
+    await until(() => a.messages.some((m) => m.type === 'too-large' && m.final))
+    const types = a.messages.map((m) => (m.final ? 'final' : m.type))
+    expect(types.lastIndexOf('saved')).toBeLessThan(types.indexOf('final'))
     typeIn(b.doc, 'refused')
     await new Promise((r) => setTimeout(r, 300))
     expect(text(a)).not.toContain('refused')
     const late = open(port, 'n1', { userId: 'c' })
-    await until(() => late.messages.some((m) => m.type === 'too-large')) // newcomers are told too
+    await until(() => late.messages.some((m) => m.type === 'too-large' && m.final)) // newcomers are told too
   })
 
   it('springRefusingTheSizeStopsRetrying', async () => {
@@ -83,8 +88,25 @@ describe('limits', () => {
     const c = open(port, 'n1')
     await c.synced
     typeIn(c.doc, 'big')
-    await until(() => c.messages.some((m) => m.type === 'too-large'))
+    await until(() => c.messages.some((m) => m.type === 'too-large' && m.final))
     await new Promise((r) => setTimeout(r, 300))
     expect(spring.stores).toHaveLength(1)
+    expect(c.messages.some((m) => m.type === 'saved')).toBe(false)
+  })
+
+  it('warnsAt90PercentAndClearsBelow85', async () => {
+    const spring = fakeSpring()
+    const port = await start(spring, { maxStateBytes: 4000 })
+    const a = open(port, 'n1', { userId: 'a' })
+    await a.synced
+    typeIn(a.doc, 'y'.repeat(3700)) // over 90 % of 4000
+    await until(() => a.messages.some((m) => m.type === 'size' && m.near === true))
+    expect(a.messages.some((m) => m.type === 'too-large')).toBe(false)
+    const late = open(port, 'n1', { userId: 'b' })
+    await until(() => late.messages.some((m) => m.type === 'size' && m.near === true)) // newcomers are told too
+    await until(() => spring.stores.length === 1)
+    const paragraph = ((a.doc.getXmlFragment('document-store').get(0) as Y.XmlElement).get(0) as Y.XmlElement).get(0) as Y.XmlElement
+    paragraph.delete(0, paragraph.length) // the page shrinks
+    await until(() => a.messages.some((m) => m.type === 'size' && m.near === false))
   })
 })

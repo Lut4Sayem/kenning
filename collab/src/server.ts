@@ -31,6 +31,10 @@ interface Meta {
   chain: Promise<void>
   /** At the size limit: everyone is read-only from now on (copying text out still works). */
   tooLarge: boolean
+  /** The store after reaching the limit is done: edits a client sees no `saved` for were refused. */
+  settled: boolean
+  /** At 90 % of the limit (cleared below 85 %): clients show a warning. */
+  near: boolean
 }
 
 export interface Options {
@@ -116,10 +120,24 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
 
   /** Past the size limit: nobody can add more; tell every client. */
   function readOnlyForEveryone(doc: Document, meta: Meta) {
-    if (!meta.tooLarge) log('too-large', { nodeId: doc.name })
+    if (meta.tooLarge) return
+    log('too-large', { nodeId: doc.name })
     meta.tooLarge = true
     for (const conn of doc.getConnections()) conn.readOnly = true
     doc.broadcastStateless(JSON.stringify({ type: 'too-large' }))
+    // store what came in before the limit, then say so: a client's edits not covered by a `saved` were refused
+    void serial(doc, meta).then(() => {
+      meta.settled = true
+      doc.broadcastStateless(JSON.stringify({ type: 'too-large', final: true }))
+    })
+  }
+
+  /** Warns at 90 % of the limit, clears below 85 % (so it does not flicker around one size). */
+  function checkSize(doc: Document, meta: Meta) {
+    const near = meta.bytes >= o.maxStateBytes * 0.9 || (meta.near && meta.bytes >= o.maxStateBytes * 0.85)
+    if (near === meta.near) return
+    meta.near = near
+    doc.broadcastStateless(JSON.stringify({ type: 'size', near }))
   }
 
   const prefetch = (name: string) => {
@@ -198,12 +216,13 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       const snap = b64(Y.encodeSnapshot(Y.snapshot(doc)))
       const state = Y.encodeStateAsUpdate(doc)
       const text = extractText(doc.getXmlFragment(FRAGMENT))
-      if ((state.length > o.maxStateBytes || text.length > MAX_TEXT) && !meta.tooLarge) readOnlyForEveryone(doc, meta)
+      if (state.length > o.maxStateBytes || text.length > MAX_TEXT) readOnlyForEveryone(doc, meta)
       const body = { baseRevision: meta.revision, baseEpoch: meta.epoch, state: b64(state), text, authors }
       try {
         const { revision } = await spring.store(doc.name, body)
         meta.revision = revision
         meta.bytes = state.length
+        checkSize(doc, meta)
         doc.broadcastStateless(JSON.stringify({ type: 'saved', revision, snap }))
         log('store', { nodeId: doc.name, revision, authors: authors.length })
         return
@@ -217,7 +236,8 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
           return
         }
         if (e instanceof TooLargeError) {
-          // the edits stay in the live doc and on the clients' devices; Spring can take no more of this page
+          // Spring can take no more of this page: nothing more is stored, and clients are told their edits were not
+          meta.changed = false
           readOnlyForEveryone(doc, meta)
           return
         }
@@ -291,7 +311,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       prefetched.delete(documentName)
       Y.applyUpdate(document, loaded.state ?? Buffer.from(EMPTY_PAGE_STATE, 'base64'), 'spring')
       const bytes = Y.encodeStateAsUpdate(document).length
-      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, changed: false, bytes, chain: Promise.resolve(), tooLarge: false })
+      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, changed: false, bytes, chain: Promise.resolve(), tooLarge: false, settled: false, near: bytes >= o.maxStateBytes * 0.9 })
     },
 
     async onChange({ documentName, document, context, update }) {
@@ -301,7 +321,8 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       meta.bytes += update.length
       if (context?.userId && context.access === 'EDIT') meta.authors.add(context.userId)
       // checked on every change, not only when storing: one fast client must not grow a page past the cap for 10 s
-      if (meta.bytes > o.maxStateBytes && !meta.tooLarge) readOnlyForEveryone(document, meta)
+      if (meta.bytes > o.maxStateBytes) readOnlyForEveryone(document, meta)
+      else checkSize(document, meta)
     },
 
     async onStoreDocument({ documentName, document }) {
@@ -315,7 +336,10 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
 
     async connected({ documentName, context, connection, socketId }) {
       socketsOf.set(context.userId, (socketsOf.get(context.userId) ?? new Set()).add(socketId))
-      if (metas.get(documentName)?.tooLarge) connection.sendStateless(JSON.stringify({ type: 'too-large' }))
+      const meta = metas.get(documentName)
+      if (meta?.tooLarge) connection.sendStateless(JSON.stringify({ type: 'too-large' }))
+      if (meta?.settled) connection.sendStateless(JSON.stringify({ type: 'too-large', final: true }))
+      else if (meta?.near) connection.sendStateless(JSON.stringify({ type: 'size', near: true }))
       log('connect', { nodeId: documentName, userId: context.userId, access: context.access })
     },
 

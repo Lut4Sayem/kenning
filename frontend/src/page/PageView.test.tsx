@@ -158,6 +158,16 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     await waitFor(() => expect(screen.getByText('You are no longer a member of this team')).toBeTruthy(), { timeout: 5000 })
   })
 
+  it('nearTheSizeLimitWarnsButStaysEditable', async () => {
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: null, message: null, nearLimit: true }))
+    await waitFor(() => expect(screen.getByText('This page is almost at its size limit. Move some sections into sub-pages.')).toBeTruthy())
+    expect(editorDom(view.container)).not.toBeNull()
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: null, message: null, nearLimit: false }))
+    await waitFor(() => expect(screen.queryByText(/almost at its size limit/)).toBeNull())
+  })
+
   it.each([
     ['too-large', 'This page reached its size limit. Move some sections into sub-pages.'],
     ['too-many', 'Too many people on this page right now.'],

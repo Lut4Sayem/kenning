@@ -339,13 +339,15 @@ export class Autosave {
   }
 
   private onStateless = ({ payload }: { payload: string }) => {
-    let m: { type?: string; snap?: string }
+    let m: { type?: string; snap?: string; final?: boolean }
     try {
       m = JSON.parse(payload)
     } catch {
       return
     }
     if (this.recover || this.lostEdits) return
+    // at the size limit and the last store is done: what it did not cover was refused
+    if (m.type === 'too-large' && m.final) return void this.lost()
     if (m.type === 'retrying' && this.dirty) this.setState('retrying')
     if (m.type !== 'saved' || !m.snap) return
     if (!this.dirty) return this.setState('saved')

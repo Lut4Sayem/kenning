@@ -90,6 +90,8 @@ function fakeProvider() {
     /** The service stored this doc's state and says so. */
     saved: (doc: Y.Doc) => emit('stateless', { payload: JSON.stringify({ type: 'saved', revision: 9, snap: toBase64(Y.encodeSnapshot(Y.snapshot(doc))) }) }),
     retrying: () => emit('stateless', { payload: JSON.stringify({ type: 'retrying' }) }),
+    /** At the size limit, after the last store: edits without a covering `saved` were refused. */
+    capSettled: () => emit('stateless', { payload: JSON.stringify({ type: 'too-large', final: true }) }),
   }
 }
 
@@ -450,6 +452,31 @@ describe('autosave', () => {
     expect(a.state).toBe('failed')
     expect(pending()).toBeUndefined()
     expect(server.recovered).toHaveLength(0) // no recovered version
+  })
+
+  it('editsRefusedAtTheSizeLimitAreNotSaved', async () => {
+    const { a, doc, provider } = await openTab()
+    type(doc, 'stored ')
+    const stored = new Y.Doc()
+    Y.applyUpdate(stored, Y.encodeStateAsUpdate(doc))
+    type(doc, 'refused')
+    await tick(0)
+    provider.saved(stored)
+    provider.capSettled()
+    await tick(0)
+    expect(a.state).toBe('failed')
+    expect(a.message).toBe(LOST_NOTICE)
+    expect(pending()).toBeUndefined()
+  })
+
+  it('editsStoredBeforeTheSizeLimitAreSaved', async () => {
+    const { a, doc, provider } = await openTab()
+    type(doc, 'all stored')
+    await tick(0)
+    provider.saved(doc)
+    provider.capSettled()
+    await tick(0)
+    expect(a.state).toBe('saved')
   })
 
   it('lostWithNothingUnsavedChangesNothing', async () => {

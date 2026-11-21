@@ -16,6 +16,7 @@ export type CollabProblem = 'restored' | 'gone' | 'too-large' | 'too-many'
 
 export const TOO_LARGE = 'This page reached its size limit. Move some sections into sub-pages.'
 export const TOO_MANY = 'Too many people on this page right now.'
+export const NEAR_LIMIT = 'This page is almost at its size limit. Move some sections into sub-pages.'
 
 export interface Collab {
   /** undefined while starting, null when this copy does not join the live session. */
@@ -25,6 +26,8 @@ export interface Collab {
   problem: CollabProblem | null
   /** The server's reason when access is gone (e.g. "This page is in the trash"). */
   message: string | null
+  /** At 90 % of the size limit (until it shrinks below 85 %). */
+  nearLimit: boolean
 }
 
 export const CLOSE_RESTORED = 4409
@@ -66,6 +69,7 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
   const [access, setAccess] = useState<Collab['access']>(null)
   const [problem, setProblem] = useState<CollabProblem | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [nearLimit, setNearLimit] = useState(false)
 
   useEffect(() => {
     if (!enabled) {
@@ -124,7 +128,14 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
         if (event.code === CLOSE_TOO_MANY) tooMany()
       },
       onStateless: ({ payload }) => {
-        if (payload.includes('"too-large"')) setProblem('too-large')
+        let m: { type?: string; near?: boolean }
+        try {
+          m = JSON.parse(payload)
+        } catch {
+          return
+        }
+        if (m.type === 'too-large') setProblem('too-large')
+        if (m.type === 'size') setNearLimit(!!m.near)
       },
     })
     if (p.awareness) guardCursor(p.awareness, () => viewer)
@@ -135,5 +146,5 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
     }
   }, [nodeId, ydoc, userId, enabled, epoch])
 
-  return { provider, access, problem, message }
+  return { provider, access, problem, message, nearLimit }
 }

@@ -12,7 +12,7 @@ import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
 import { toBase64 } from '../editor/base64'
 import { LOST_NOTICE, openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
-import { TOO_LARGE, TOO_MANY, useCollab } from '../editor/collab'
+import { NEAR_LIMIT, TOO_LARGE, TOO_MANY, useCollab } from '../editor/collab'
 import Editor, { useKfEditor } from '../editor/Editor'
 import { userColor } from '../editor/userColor'
 import { extractText } from '../editor/extractText'
@@ -559,7 +559,7 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
   const editor = useKfEditor(opened.ydoc, me, editable, files, collab.provider)
   useEndSessionOnLeave(node.id, canEdit)
   const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit || lost, collab.provider)
-  const live = collab.problem === 'too-large' ? TOO_LARGE : collab.problem === 'too-many' ? TOO_MANY : collab.problem === 'gone' ? collab.message ?? undefined : undefined
+  const live = collab.problem === 'too-large' ? TOO_LARGE : collab.problem === 'too-many' ? TOO_MANY : collab.problem === 'gone' ? collab.message ?? undefined : collab.nearLimit ? NEAR_LIMIT : undefined
   const saveProblem = save.state === 'failed' ? (save.message === LOST_NOTICE ? LOST_NOTICE : `Not saved: ${save.message}`)
     : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined
 
