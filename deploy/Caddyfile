@@ -1,4 +1,14 @@
 knowledgeforge-lrs.eastasia.cloudapp.azure.com {
 	encode gzip
-	reverse_proxy app:8080
+	# live editing (WebSockets pass through)
+	handle /collab* {
+		reverse_proxy collab:1234
+	}
+	# the app and the collaboration service talk on the Docker network only
+	handle /internal/* {
+		respond 404
+	}
+	handle {
+		reverse_proxy app:8080
+	}
 }

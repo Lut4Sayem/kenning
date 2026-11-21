@@ -39,13 +39,14 @@ Endpoints: `POST /api/nodes/{id}/ai/summary`, `POST /api/spaces/{id}/ai/ask` wit
 | Backend | Java 17, Spring Boot 4.1, Spring Security (session login, CSRF, BCrypt) |
 | Frontend | React + TypeScript (Vite), BlockNote editor, served by Spring Boot under `/app` |
 | Database | MongoDB Atlas (database `knowledgeforge_v1`), Atlas Search for full-text search |
-| Hosting | One Azure VM (1 GB RAM): the app and Caddy (automatic HTTPS) in Docker Compose |
+| Hosting | One Azure VM (1 GB RAM): the app, the collaboration service (Node, Hocuspocus, live editing) and Caddy (automatic HTTPS) in Docker Compose |
 | Deploy | Pull-based: a push to `main` builds an image and pushes it to GHCR; the VM pulls it every 5 minutes and rolls back if the health check fails |
 | Backups | Nightly `mongodump`, encrypted with `age`, kept 7 days as a workflow artifact |
 | Monitoring | `/actuator/health` (public, no details) for an uptime monitor |
 
 ```
 frontend/                      React app (built into target/classes/static/app)
+collab/                        live-editing service (Node, Hocuspocus): tickets, load/store through Spring, limits
 src/main/java/.../knowledgeforge/
   access/ node/ nodecontent/ nodeversion/ collab/     pages, content, history, live-editing tickets
   team/ space/ user/ auth/ comment/ attachment/       teams, spaces, accounts, comments, files
