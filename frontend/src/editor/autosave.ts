@@ -26,6 +26,7 @@ export interface SaveStatus {
 }
 
 export const RECOVERED_NOTICE = 'Your unsaved changes were kept as a private version because this page was restored'
+export const LOST_NOTICE = "You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving."
 
 export interface Opened {
   ydoc: Y.Doc
@@ -203,6 +204,9 @@ export class Autosave {
   private timer: ReturnType<typeof setTimeout> | undefined
   private text: string | undefined // as of the last change; the editor may be gone later
   private need: Need = { clocks: new Map(), deletes: new Map() }
+  /** Edits here can never be stored any more (see lost()). */
+  private lostEdits = false
+  private writing: Promise<boolean> = Promise.resolve(true)
 
   constructor(
     private nodeId: string,
@@ -256,6 +260,22 @@ export class Autosave {
     return false
   }
 
+  /**
+   * Edit rights are gone (or the edits were refused at the size limit): what is unconfirmed here can never be sent.
+   * The text stays on screen and leaving still asks first, but the local copy goes and no version is made.
+   * Returns true when nothing was unconfirmed.
+   */
+  lost(): boolean {
+    if (!this.dirty || this.recover) return !this.dirty
+    if (this.lostEdits) return false
+    this.lostEdits = true
+    clearTimeout(this.timer)
+    const slots = [this.opened.slot, ...(this.opened.adopt ?? [])]
+    void this.writing.then(() => Promise.all(slots.map((id) => this.opened.store.clear(id))))
+    this.setState('failed', LOST_NOTICE)
+    return false
+  }
+
   private readText(): string {
     try {
       return this.getText()
@@ -272,13 +292,13 @@ export class Autosave {
   // typing on very large pages becomes slow.
   private storePending(): Promise<boolean> {
     const copy = { ...this.snapshot(), baseRevision: this.opened.revision, epoch: this.opened.epoch, at: Date.now() }
-    return this.opened.store.put(this.opened.slot, copy).then((ok) => {
+    return (this.writing = this.opened.store.put(this.opened.slot, copy).then((ok) => {
       if (ok !== this.local) {
         this.local = ok
         this.emit()
       }
       return ok
-    })
+    }))
   }
 
   private emit() {
@@ -293,7 +313,7 @@ export class Autosave {
   }
 
   private onUpdate = (update: Uint8Array, origin: unknown) => {
-    if (origin === this.provider) return // someone else's edit, from the server
+    if (origin === this.provider || this.lostEdits) return // someone else's edit, from the server
     this.version++
     this.dirty = true
     this.need.clocks.set(this.ydoc.clientID, Y.decodeStateVector(Y.encodeStateVector(this.ydoc)).get(this.ydoc.clientID) ?? 0)
@@ -325,7 +345,7 @@ export class Autosave {
     } catch {
       return
     }
-    if (this.recover) return
+    if (this.recover || this.lostEdits) return
     if (m.type === 'retrying' && this.dirty) this.setState('retrying')
     if (m.type !== 'saved' || !m.snap) return
     if (!this.dirty) return this.setState('saved')
@@ -381,7 +401,7 @@ export function useAutosave(
   getText: () => string,
   enabled: boolean,
   provider: ProviderEvents | null | undefined,
-): SaveStatus & { restored: () => boolean } {
+): SaveStatus & { restored: () => boolean; lost: () => boolean } {
   const [status, setStatus] = useState<SaveStatus>({ state: opened.state, local: true })
   const [text] = useState(() => ({ read: getText }))
   text.read = getText
@@ -398,6 +418,6 @@ export function useAutosave(
     }
   }, [nodeId, opened, enabled, text, provider])
 
-  /** See Autosave.restored; true without edit access (nothing is kept here). */
-  return { ...status, restored: () => live.current?.restored() ?? true }
+  /** See Autosave.restored / Autosave.lost; true without edit access (nothing is kept here). */
+  return { ...status, restored: () => live.current?.restored() ?? true, lost: () => live.current?.lost() ?? true }
 }

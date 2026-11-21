@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
 import { ApiError } from '../api/client'
-import { Autosave, covers, openContent, RECOVERED_NOTICE, type Opened, type SaveState, type SaveStatus } from './autosave'
+import { Autosave, covers, openContent, LOST_NOTICE, RECOVERED_NOTICE, type Opened, type SaveState, type SaveStatus } from './autosave'
 import { fromBase64, toBase64 } from './base64'
 import type { Pending } from './pendingStore'
 import SaveIndicator from './SaveIndicator'
@@ -66,6 +66,12 @@ const stateOf = (doc: Y.Doc) => toBase64(Y.encodeStateAsUpdate(doc))
 const textOf = (doc: Y.Doc) => doc.getText('t').toString()
 const type = (doc: Y.Doc, s: string) => doc.getText('t').insert(doc.getText('t').length, s)
 const tick = (ms: number) => vi.advanceTimersByTimeAsync(ms)
+/** True when leaving now would ask first. */
+const leave = () => {
+  const e = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(e)
+  return e.defaultPrevented
+}
 /** A copy of the server's document, like another client would hold. */
 const serverDoc = () => {
   const doc = new Y.Doc()
@@ -416,11 +422,6 @@ describe('autosave', () => {
 
   it('leavePromptOnlyWhileChangesAreUnconfirmed', async () => {
     const { doc, provider } = await openTab()
-    const leave = () => {
-      const e = new Event('beforeunload', { cancelable: true })
-      window.dispatchEvent(e)
-      return e.defaultPrevented
-    }
     expect(leave()).toBe(false) // saved: no prompt
     type(doc, 'a')
     expect(leave()).toBe(true) // not confirmed yet
@@ -430,6 +431,32 @@ describe('autosave', () => {
     type(doc, 'b')
     provider.retrying()
     expect(leave()).toBe(true)
+  })
+
+  // Edit rights gone (removed, dropped to view, trashed): the edits can never be sent. Text stays on screen.
+  it('lostEditRightsDropsTheCopyAndSaysNotSaved', async () => {
+    const { a, doc, provider } = await openTab()
+    type(doc, 'never stored')
+    await tick(0)
+    expect(a.lost()).toBe(false)
+    await tick(0)
+    expect(a.state).toBe('failed')
+    expect(a.message).toBe(LOST_NOTICE)
+    expect(pending()).toBeUndefined()
+    expect(leave()).toBe(true) // the text is still only on screen
+    provider.saved(serverDoc())
+    type(doc, ' more')
+    await tick(0)
+    expect(a.state).toBe('failed')
+    expect(pending()).toBeUndefined()
+    expect(server.recovered).toHaveLength(0) // no recovered version
+  })
+
+  it('lostWithNothingUnsavedChangesNothing', async () => {
+    const { a } = await openTab()
+    expect(a.lost()).toBe(true)
+    expect(a.state).toBe('saved')
+    expect(leave()).toBe(false)
   })
 
   it('leavingThePageKeepsTheUnconfirmedCopyAndStopsListening', async () => {

@@ -88,22 +88,32 @@ function mount(entry: string | { pathname: string; state: unknown } = '/p/n1') {
 const editorDom = (c: HTMLElement) => c.querySelector('[contenteditable="true"]')
 
 describe('an open page that is trashed, archived or locked meanwhile', () => {
-  it('keepsTheEditorTheTextAndTheLocalCopyAndShowsTheServersMessage', async () => {
-    // A copy typed earlier that the server never confirmed (what an interrupted session leaves behind).
+  // A copy typed earlier that the server never confirmed (what an interrupted session leaves behind).
+  const unconfirmed = async (text: string) => {
     const unsaved = new Y.Doc()
-    unsaved.getText('t').insert(0, 'typed before the page was trashed')
-    await pendingFor('u1', 'n1').put('old-tab', { state: toBase64(Y.encodeStateAsUpdate(unsaved)), text: 'typed before the page was trashed', baseRevision: 0, epoch: 0, at: Date.now() })
-    collab.state = { provider: null, access: 'EDIT', problem: 'gone', message: TRASHED } // the page was trashed by someone else
+    unsaved.getText('t').insert(0, text)
+    await pendingFor('u1', 'n1').put('old-tab', { state: toBase64(Y.encodeStateAsUpdate(unsaved)), text, baseRevision: 0, epoch: 0, at: Date.now() })
+  }
+  const LOST = "You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving."
+  const leave = () => {
+    const e = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(e)
+    return e.defaultPrevented
+  }
 
+  it('lostAccessWithUnsavedEditsKeepsTheTextOnScreenButDropsTheCopy', async () => {
+    await unconfirmed('typed before the page was trashed')
     const { qc, view } = mount()
-    await waitFor(() => expect(view.container.querySelector('.bn-editor')).not.toBeNull(), { timeout: 5000 })
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED })) // trashed by someone else
 
-    // The live session refuses this page now and says why. The text and the copy are still there, read-only.
-    await waitFor(() => expect(screen.getByText(`Not saved: ${TRASHED}`)).toBeTruthy(), { timeout: 5000 })
-    expect(editorDom(view.container)).toBeNull()
-    const kept = Object.values(await pendingFor('u1', 'n1').all())
-    expect(kept.length).toBeGreaterThan(0) // never dropped unsent
-    expect(kept.some((p) => p.text.includes('typed before the page was trashed'))).toBe(true)
+    await waitFor(() => expect(screen.getByText(LOST)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.getByText(TRASHED)).toBeTruthy()
+    expect(screen.getByText('Not saved')).toBeTruthy()
+    expect(editorDom(view.container)).toBeNull() // read-only, text still there
+    await waitFor(async () => expect(Object.keys(await pendingFor('u1', 'n1').all())).toHaveLength(0))
+    expect(leave()).toBe(true)
+    expect(contentApi.saveRecovered).not.toHaveBeenCalled()
 
     // The page itself can no longer be read either: the message appears, the editor does not unmount.
     nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
@@ -111,8 +121,35 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     await waitFor(() => expect(screen.getAllByText(TRASHED).length).toBeGreaterThan(0))
     expect(screen.queryByText('This page does not exist.')).toBeNull()
     expect(view.container.querySelector('.bn-editor')).not.toBeNull()
-    expect(Object.values(await pendingFor('u1', 'n1').all()).length).toBeGreaterThan(0)
   }, 20_000)
+
+  it('editDroppedToViewWithUnsavedEditsKeepsTheTextUntilLeaving', async () => {
+    await unconfirmed('typed before the role changed')
+    const { qc, view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    const opens = contentApi.getContent.mock.calls.length
+    act(() => collab.set({ provider: null, access: 'VIEW', problem: null, message: null }))
+    await waitFor(() => expect(screen.getByText(LOST)).toBeTruthy(), { timeout: 5000 })
+
+    // The page is fetched again and says VIEW now: the content must not reload over the unsaved text.
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW' })
+    await qc.invalidateQueries({ queryKey: ['node', 'n1'] })
+    await new Promise((r) => setTimeout(r, 300))
+    expect(contentApi.getContent.mock.calls.length).toBe(opens)
+    expect(view.container.querySelector('.bn-editor')).not.toBeNull() // same opened copy, not loaded again
+    expect(screen.getByText(LOST)).toBeTruthy()
+    expect(leave()).toBe(true)
+  }, 20_000)
+
+  it('lostAccessWithNothingUnsavedOnlyShowsTheReason', async () => {
+    await clearPendingOf('u1')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED }))
+    await waitFor(() => expect(screen.getByText(TRASHED)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.queryByText(LOST)).toBeNull()
+    expect(leave()).toBe(false)
+  })
 
   it('aViewerWhoLostAccessIsToldWhy', async () => {
     nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW' })

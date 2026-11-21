@@ -69,13 +69,14 @@ Yjs is a CRDT: every client's edits are small updates that merge in any order to
 - The browser no longer `PUT`s content. The public `PUT /api/nodes/{id}/content` is removed (internal endpoint replaces it). `POST .../versions/recovered` stays.
 - Search text: collab builds `text` by walking the `Y.XmlFragment('document-store')` in a small pure function (`collab/src/extractText.ts`), no BlockNote/React in Node. A parity test checks it matches the browser `extractText` on fixture pages (headings, lists, tables, status chips, bookmarks). Builder's call to share the fixtures.
 - Size cap live: if the doc grows past 4 MB, collab rejects further updates for that page and sends a stateless message; every connection becomes read-only (owner, 2026-11-21) and clients show "This page reached its size limit. Move some sections into sub-pages." (edits already made stay; copying text out still works).
+- Edit rights lost with unconfirmed edits (`4403` or revalidate: access gone, or EDIT dropped to VIEW; owner, 2026-11-22): the editor turns read-only at once and the unsaved text stays on screen so it can be copied. Banner: "You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving." SaveIndicator shows `Not saved`; the `beforeunload` prompt stays while that text is on screen; the content is not reloaded over it. The local copy for that page is deleted (it can never be sent) and no recovered version is made.
 
 ### 7.4 Offline and the local copy
 - Keep the per-tab local copy (pendingStore, Web Lock ownership, quarantine) but it now stores the local Y.Doc state + `epoch`, written on every local update.
 - Socket down -> SaveIndicator "Offline: changes kept on this device"; typing continues. On reconnect the provider syncs; Yjs merges the offline edits; once the server confirms (provider `synced` and the next collab store is done, signalled by a stateless `saved {revision}` message), the local copy is cleared.
 - Opening a page with a local copy of the **same** epoch: apply it to the doc before connecting; the sync merges it.
 - Local copy of an **older** epoch (page was restored while you were offline): send it to `POST /versions/recovered` (D6), show the existing notice, start from the server state.
-- SaveIndicator states map: `Saved` (server confirmed), `Saving…` (local changes not yet confirmed), `Offline: changes kept on this device`, `Couldn't save, retrying` (connected but store failing, sent by collab).
+- SaveIndicator states map: `Saved` (server confirmed), `Saving…` (local changes not yet confirmed), `Offline: changes kept on this device`, `Couldn't save, retrying` (connected but store failing, sent by collab), `Not saved` (the edits can never be stored, see 7.3).
 - Logout and `beforeunload` keep the 1a rules, based on "unconfirmed local changes exist".
 
 ### 7.5 Restore and the epoch rule (D6 still holds)
@@ -124,3 +125,6 @@ One collab instance is fine for this VM. Beyond it: Hocuspocus Redis extension s
 
 ## 11. Calls made without the owner (review these)
 Ticket instead of cookie auth; collab as the only writer (browser PUT removed); server-side text extraction by walking the Y.XmlFragment; store debounce 2 s / max 10 s; 30-min forced reconnect; limits in 7.9; viewers shown in avatars but without cursors; colour per user from 8 tokens.
+
+## 12. Known issues
+- The per-page (25) and per-user (10) connection limits are checked on connect, so connections arriving at the same instant can slightly exceed them.
