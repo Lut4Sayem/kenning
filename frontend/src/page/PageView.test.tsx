@@ -40,9 +40,9 @@ const collab = vi.hoisted(() => {
   }
   return c
 })
-vi.mock('../editor/collab', async () => {
+vi.mock('../editor/collab', async (original) => {
   const { useSyncExternalStore } = await import('react')
-  return { useCollab: () => useSyncExternalStore(collab.subscribe, () => collab.state) }
+  return { ...(await original<object>()), useCollab: () => useSyncExternalStore(collab.subscribe, () => collab.state) }
 })
 
 const NODE: NodeDetail = {
@@ -119,6 +119,17 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     collab.state = { provider: null, access: 'VIEW', problem: 'gone', message: 'You are no longer a member of this team' }
     mount()
     await waitFor(() => expect(screen.getByText('You are no longer a member of this team')).toBeTruthy(), { timeout: 5000 })
+  })
+
+  it.each([
+    ['too-large', 'This page reached its size limit. Move some sections into sub-pages.'],
+    ['too-many', 'Too many people on this page right now.'],
+  ])('%s: says so and the page turns read-only', async (problem, text) => {
+    collab.state = { provider: null, access: 'EDIT', problem, message: null }
+    const { view } = mount()
+    await waitFor(() => expect(screen.getByText(text)).toBeTruthy(), { timeout: 5000 })
+    expect(view.container.querySelector('.bn-editor')).not.toBeNull()
+    expect(editorDom(view.container)).toBeNull()
   })
 
   // D6: the page was restored while open. Nothing unconfirmed here: it simply loads again from the server.

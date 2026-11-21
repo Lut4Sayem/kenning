@@ -17,6 +17,8 @@ export interface StoreBody {
 
 /** The page was restored since this doc was loaded: it must never be stored (D6). */
 export class EpochError extends Error {}
+/** Over Spring's size caps (4 MB state, 1 MB text): retrying cannot help. */
+export class TooLargeError extends Error {}
 /** Someone else stored first (should not happen with one writer): merge the stored state and store again. */
 export class RevisionError extends Error {}
 
@@ -41,6 +43,7 @@ export function springApi(config: Config): SpringApi {
         const b = (await res.json().catch(() => ({}))) as { message?: string }
         throw b.message === 'EPOCH' ? new EpochError() : new RevisionError()
       }
+      if (res.status === 413) throw new TooLargeError()
       if (!res.ok) throw new Error(`store failed: ${res.status}`)
       return { revision: ((await res.json()) as { revision: number }).revision }
     },

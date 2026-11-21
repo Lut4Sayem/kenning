@@ -12,7 +12,7 @@ import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
 import { toBase64 } from '../editor/base64'
 import { openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
-import { useCollab } from '../editor/collab'
+import { TOO_LARGE, TOO_MANY, useCollab } from '../editor/collab'
 import Editor, { useKfEditor } from '../editor/Editor'
 import { userColor } from '../editor/userColor'
 import { extractText } from '../editor/extractText'
@@ -551,7 +551,8 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveSt
   const editor = useKfEditor(opened.ydoc, me, editable, files, collab.provider)
   useEndSessionOnLeave(node.id, canEdit)
   const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit, collab.provider)
-  const gone = collab.problem !== 'gone' ? undefined : canEdit ? `Not saved: ${collab.message}` : collab.message ?? undefined
+  const live = collab.problem === 'too-large' ? TOO_LARGE : collab.problem === 'too-many' ? TOO_MANY : undefined
+  const gone = collab.problem !== 'gone' ? live : canEdit ? `Not saved: ${collab.message}` : collab.message ?? undefined
   const problem = gone ?? (save.state === 'failed' ? `Not saved: ${save.message}` : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined)
 
   useEffect(() => {

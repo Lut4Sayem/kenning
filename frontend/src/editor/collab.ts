@@ -7,8 +7,15 @@ import type * as Y from 'yjs'
 import { ApiError } from '../api/client'
 import { getTicket } from '../api/collab'
 
-/** restored = the page was restored since this copy was loaded; gone = no access any more (or the page is gone). */
-export type CollabProblem = 'restored' | 'gone'
+/**
+ * restored = the page was restored since this copy was loaded; gone = no access any more (or the page is gone);
+ * too-large = the page reached its size limit (read-only for everyone); too-many = the page or this user is at the
+ * connection limit.
+ */
+export type CollabProblem = 'restored' | 'gone' | 'too-large' | 'too-many'
+
+export const TOO_LARGE = 'This page reached its size limit. Move some sections into sub-pages.'
+export const TOO_MANY = 'Too many people on this page right now.'
 
 export interface Collab {
   /** undefined while starting, null when this copy does not join the live session. */
@@ -21,6 +28,8 @@ export interface Collab {
 }
 
 export const CLOSE_RESTORED = 4409
+export const CLOSE_TOO_MANY = 4429
+const RETRY_TOO_MANY_MS = 30_000
 
 export const collabUrl = () =>
   import.meta.env.VITE_COLLAB_URL || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/collab`
@@ -64,6 +73,17 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
       return
     }
     let viewer = false
+    let retry: ReturnType<typeof setTimeout> | undefined
+    // at the limit: stop knocking, try once more a little later
+    const tooMany = () => {
+      setProblem('too-many')
+      p.disconnect()
+      clearTimeout(retry)
+      retry = setTimeout(() => {
+        setProblem(null)
+        void p.connect()
+      }, RETRY_TOO_MANY_MS)
+    }
     const p: HocuspocusProvider = new HocuspocusProvider({
       url: collabUrl(),
       name: nodeId,
@@ -91,14 +111,22 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
       },
       onAuthenticationFailed: ({ reason }) => {
         if (reason === 'restored') setProblem('restored')
+        if (reason === 'too-many') tooMany()
       },
       onClose: ({ event }) => {
         if (event.code === CLOSE_RESTORED) setProblem('restored')
+        if (event.code === CLOSE_TOO_MANY) tooMany()
+      },
+      onStateless: ({ payload }) => {
+        if (payload.includes('"too-large"')) setProblem('too-large')
       },
     })
     if (p.awareness) guardCursor(p.awareness, () => viewer)
     setProvider(p)
-    return () => p.destroy()
+    return () => {
+      clearTimeout(retry)
+      p.destroy()
+    }
   }, [nodeId, ydoc, userId, enabled, epoch])
 
   return { provider, access, problem, message }

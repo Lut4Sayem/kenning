@@ -19,7 +19,7 @@ const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn
 vi.mock('../api/content', () => contentApi)
 // What the live session reports (the collaboration service is not part of these tests).
 const collab = vi.hoisted(() => ({ state: { provider: null, access: 'EDIT', problem: null, message: null } as Record<string, unknown> }))
-vi.mock('../editor/collab', () => ({ useCollab: () => collab.state }))
+vi.mock('../editor/collab', async (original) => ({ ...(await original<object>()), useCollab: () => collab.state }))
 const versionsApi = vi.hoisted(() => ({ listVersions: vi.fn(), getVersion: vi.fn(), restoreVersion: vi.fn(), nameVersion: vi.fn(), endSession: vi.fn() }))
 vi.mock('../api/versions', () => versionsApi)
 const extras = vi.hoisted(() => ({ getComments: vi.fn(), getAttachments: vi.fn(), addComment: vi.fn(), deleteComment: vi.fn(), deleteAttachment: vi.fn(), summarize: vi.fn(), ask: vi.fn() }))

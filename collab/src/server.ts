@@ -5,7 +5,7 @@ import * as Y from 'yjs'
 import type { Config } from './config.js'
 import { extractText } from './extractText.js'
 import { log } from './log.js'
-import { EpochError, RevisionError, type Loaded, type SpringApi } from './spring.js'
+import { EpochError, RevisionError, TooLargeError, type Loaded, type SpringApi } from './spring.js'
 import { verifyTicket } from './ticket.js'
 
 export interface Ctx {
@@ -25,6 +25,8 @@ interface Meta {
   dropped: boolean
   /** State vector (base64) Spring has: nothing to store while the doc still matches it. */
   sv: string
+  /** At the size limit: everyone is read-only from now on (copying text out still works). */
+  tooLarge: boolean
 }
 
 export interface Options {
@@ -34,6 +36,12 @@ export interface Options {
   /** A connection older than this is closed, so the client comes back with a fresh ticket. */
   maxAgeMs: number
   sweepMs: number
+  /** Live size limit. Below Spring's 4 MB cap, so what was typed before the page turned read-only can still be stored. */
+  maxStateBytes: number
+  maxPerPage: number
+  maxPerUser: number
+  /** Messages a connection may send in a burst, refilled at the same rate per second. */
+  burst: number
 }
 
 export const FRAGMENT = 'document-store'
@@ -49,7 +57,13 @@ const DEFAULTS: Options = {
   backoff: [1000, 2000, 5000, 10_000, 30_000],
   maxAgeMs: 30 * 60_000,
   sweepMs: 60_000,
+  maxStateBytes: 3_800_000,
+  maxPerPage: 25,
+  maxPerUser: 10,
+  burst: 50,
 }
+
+export const MAX_TEXT = 1_000_000 // Spring's cap on the search text
 
 /** Rejects a connection; the provider gets onAuthenticationFailed({reason}). */
 const deny = (reason: string) => ({ reason })
@@ -85,6 +99,16 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
   const metas = new Map<string, Meta>()
   // Content read while authenticating a page that is not open yet, reused by onLoadDocument (one read, not two).
   const prefetched = new Map<string, Promise<Loaded>>()
+  const socketsOf = new Map<string, Set<string>>() // userId -> socket ids
+  const buckets = new Map<string, { tokens: number; at: number }>() // socket id -> rate limit
+
+  /** Past the size limit: nobody can add more; tell every client. */
+  function readOnlyForEveryone(doc: Document, meta: Meta) {
+    if (!meta.tooLarge) log('too-large', { nodeId: doc.name })
+    meta.tooLarge = true
+    for (const conn of doc.getConnections()) conn.readOnly = true
+    doc.broadcastStateless(JSON.stringify({ type: 'too-large' }))
+  }
 
   const prefetch = (name: string) => {
     let p = prefetched.get(name)
@@ -153,13 +177,10 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       const authors = [...meta.authors]
       meta.authors.clear()
       const sv = Y.encodeStateVector(doc)
-      const body = {
-        baseRevision: meta.revision,
-        baseEpoch: meta.epoch,
-        state: b64(Y.encodeStateAsUpdate(doc)),
-        text: extractText(doc.getXmlFragment(FRAGMENT)),
-        authors,
-      }
+      const state = Y.encodeStateAsUpdate(doc)
+      const text = extractText(doc.getXmlFragment(FRAGMENT))
+      if (state.length > o.maxStateBytes || text.length > MAX_TEXT) readOnlyForEveryone(doc, meta)
+      const body = { baseRevision: meta.revision, baseEpoch: meta.epoch, state: b64(state), text, authors }
       try {
         const { revision } = await spring.store(doc.name, body)
         meta.revision = revision
@@ -170,6 +191,11 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
         return
       } catch (e) {
         authors.forEach((a) => meta.authors.add(a))
+        if (e instanceof TooLargeError) {
+          // the edits stay in the live doc and on the clients' devices; Spring can take no more of this page
+          readOnlyForEveryone(doc, meta)
+          return
+        }
         if (e instanceof EpochError) {
           log('store-epoch', { nodeId: doc.name })
           await drop(doc, CLOSE.restored, 'restored')
@@ -200,6 +226,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     stopOnSignals: true,
     debounce: o.debounce,
     maxDebounce: o.maxDebounce,
+    websocketOptions: { maxPayload: 1024 * 1024 }, // one message; a whole 4 MB page arrives in many
 
     async onAuthenticate({ token, documentName, requestHeaders, connectionConfig }) {
       if (requestHeaders.get('origin') !== config.appOrigin) throw deny('bad-origin')
@@ -210,13 +237,18 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
         throw deny((e as Error).message)
       }
       if (t.nodeId !== documentName) throw deny('bad-ticket')
+      const open = server.hocuspocus.documents.get(documentName)
+      if ((open?.getConnectionsCount() ?? 0) >= o.maxPerPage || (socketsOf.get(t.userId)?.size ?? 0) >= o.maxPerUser) {
+        log('too-many', { nodeId: documentName, userId: t.userId })
+        throw deny('too-many')
+      }
       // A restored page may still be unloading: wait for it, then compare epochs on fresh content.
       for (let i = 0; i < 50 && metas.get(documentName)?.dropped; i++) await sleep(50)
       const epoch = metas.get(documentName)?.epoch ?? (await prefetch(documentName)).epoch
       // A client from before a restore must not sync its old copy into the restored page (D6).
       if (epoch !== t.epoch) throw deny('restored')
       // VIEW: the server drops their document updates; awareness still works so they show in the avatar stack
-      connectionConfig.readOnly = t.access !== 'EDIT'
+      connectionConfig.readOnly = t.access !== 'EDIT' || !!metas.get(documentName)?.tooLarge
       return { userId: t.userId, name: t.name, access: t.access, epoch: t.epoch, connectedAt: Date.now() }
     },
 
@@ -225,7 +257,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       prefetched.delete(documentName)
       Y.applyUpdate(document, loaded.state ?? Buffer.from(EMPTY_PAGE_STATE, 'base64'), 'spring')
       const sv = b64(Y.encodeStateVector(document))
-      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, sv })
+      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, sv, tooLarge: false })
     },
 
     async onChange({ documentName, context }) {
@@ -241,12 +273,33 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       metas.delete(documentName)
     },
 
-    async connected({ documentName, context }) {
+    async connected({ documentName, context, connection, socketId }) {
+      socketsOf.set(context.userId, (socketsOf.get(context.userId) ?? new Set()).add(socketId))
+      if (metas.get(documentName)?.tooLarge) connection.sendStateless(JSON.stringify({ type: 'too-large' }))
       log('connect', { nodeId: documentName, userId: context.userId, access: context.access })
     },
 
-    async onDisconnect({ documentName, context }) {
+    async onDisconnect({ documentName, context, socketId }) {
+      const mine = context?.userId ? socketsOf.get(context.userId) : undefined
+      mine?.delete(socketId)
+      if (mine?.size === 0) socketsOf.delete(context.userId)
+      buckets.delete(socketId)
       log('disconnect', { nodeId: documentName, userId: context?.userId })
+    },
+
+    // A runaway client (a bug, a script) must not flood the page for everyone: a token bucket per connection.
+    async beforeHandleMessage({ connection, socketId }) {
+      const now = Date.now()
+      const b = buckets.get(socketId) ?? { tokens: o.burst, at: now }
+      b.tokens = Math.min(o.burst, b.tokens + ((now - b.at) / 1000) * o.burst)
+      b.at = now
+      buckets.set(socketId, b)
+      if (b.tokens < 1) {
+        log('rate-limit', { socketId })
+        connection.webSocket.close(CLOSE.tooMany, 'too-many')
+        throw { code: CLOSE.tooMany, reason: 'too-many' }
+      }
+      b.tokens -= 1
     },
 
     async onRequest({ request, response }) {
