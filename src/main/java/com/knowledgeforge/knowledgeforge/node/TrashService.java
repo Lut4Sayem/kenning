@@ -1,5 +1,6 @@
 package com.knowledgeforge.knowledgeforge.node;
 
+import com.knowledgeforge.knowledgeforge.collab.CollabClient;
 import com.knowledgeforge.knowledgeforge.access.Access;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
 import com.knowledgeforge.knowledgeforge.activity.ActivityLogService;
@@ -58,10 +59,13 @@ public class TrashService {
     private final TeamMemberRepository members;
     private final MongoTemplate mongo;
 
+    private final CollabClient collab;
+
     public TrashService(NodeRepository nodes, SpaceRepository spaces, UserRepository users, NodeAccessService access,
                         ActivityLogService activity, AttachmentRepository attachments, AttachmentStorageService storage,
                         CommentRepository comments, AiSummaryRepository summaries, AiAnswerRepository answers,
-                        TeamMemberRepository members, MongoTemplate mongo) {
+                        TeamMemberRepository members, MongoTemplate mongo, CollabClient collab) {
+        this.collab = collab;
         this.nodes = nodes;
         this.spaces = spaces;
         this.users = users;
@@ -116,6 +120,7 @@ public class TrashService {
         mongo.updateFirst(byIds(List.of(root.getId())), new Update()
                 .set("updatedBy", new UserRef(user.getId(), user.getDisplayName(), user.getProfilePicture()))
                 .set("updatedAt", now), Node.class);
+        collab.revalidate(ids); // open tabs on the branch lose their live session
         return ids.size() - 1;
     }
 

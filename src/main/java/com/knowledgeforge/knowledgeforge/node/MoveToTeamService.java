@@ -1,5 +1,6 @@
 package com.knowledgeforge.knowledgeforge.node;
 
+import com.knowledgeforge.knowledgeforge.collab.CollabClient;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersionService;
 import com.knowledgeforge.knowledgeforge.nodeversion.VersionKind;
@@ -29,9 +30,11 @@ public class MoveToTeamService {
     private final NodeService nodeService;
     private final NodeVersionService versions;
     private final MongoTemplate mongo;
+    private final CollabClient collab;
 
     public MoveToTeamService(NodeRepository nodes, NodeAccessService access, NodeService nodeService,
-                             NodeVersionService versions, MongoTemplate mongo) {
+                             NodeVersionService versions, MongoTemplate mongo, CollabClient collab) {
+        this.collab = collab;
         this.nodes = nodes;
         this.access = access;
         this.nodeService = nodeService;
@@ -102,6 +105,7 @@ public class MoveToTeamService {
                             new Document("$concatArrays", List.of(prefix, new Document("$slice",
                                     List.of("$ancestors", oldDepth, NodeService.MAX_DEPTH + 1))))))));
         }
+        collab.revalidate(ids); // another team now: other people may open it, the old team may not
         return nodeService.get(id);
     }
 }

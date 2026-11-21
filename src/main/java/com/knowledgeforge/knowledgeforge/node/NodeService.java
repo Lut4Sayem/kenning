@@ -1,5 +1,6 @@
 package com.knowledgeforge.knowledgeforge.node;
 
+import com.knowledgeforge.knowledgeforge.collab.CollabClient;
 import com.knowledgeforge.knowledgeforge.access.Access;
 import com.knowledgeforge.knowledgeforge.ai.AiAnswerRepository;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
@@ -47,13 +48,16 @@ public class NodeService {
     private final NodeAccessService access;
     private final TeamMemberRepository members;
     private final MongoTemplate mongo;
+    private final CollabClient collab;
     private final NodeVersionService versions;
     private final ActivityLogService activity;
     private final AiAnswerRepository answers;
 
     public NodeService(NodeRepository nodes, SpaceRepository spaces, NodeContentRepository contents,
                        NodeAccessService access, TeamMemberRepository members, MongoTemplate mongo,
-                       NodeVersionService versions, ActivityLogService activity, AiAnswerRepository answers) {
+                       NodeVersionService versions, ActivityLogService activity, AiAnswerRepository answers,
+                       CollabClient collab) {
+        this.collab = collab;
         this.nodes = nodes;
         this.spaces = spaces;
         this.contents = contents;
@@ -231,6 +235,7 @@ public class NodeService {
     /** Records the published content as a PUBLISHED version, then flips the state. */
     public NodeDTO publish(String id) {
         access.requireEdit(id);
+        collab.flush(id); // live edits first; if collab is down the version has what was stored last
         versions.createVersion(id, VersionKind.PUBLISHED, null); // first: a missing content (404) must leave the state alone
         NodeDTO published = setPublishState(id, PublishState.PUBLISHED);
         Node n = nodes.findById(id).orElseThrow();
@@ -274,7 +279,9 @@ public class NodeService {
         node.setLockedBy(locked ? user.getId() : null);
         node.setUpdatedBy(ref(user));
         node.setUpdatedAt(new Date());
-        return toDto(nodes.save(node), user);
+        NodeDTO dto = toDto(nodes.save(node), user);
+        collab.revalidate(List.of(id)); // locked: everyone becomes a viewer; unlocked: editors may type again
+        return dto;
     }
 
     /** ACTIVE pages with this tag in every space I can enter, newest first, only those I can at least view. */
