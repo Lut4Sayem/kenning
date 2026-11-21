@@ -116,6 +116,16 @@ class CollabIT extends NodeIntegrationTest {
     }
 
     @Test
+    void storeRefusedWhenThePageOrAnAuthorCanNoLongerBeEdited() {
+        NodeDTO p = createPage("A");
+        User viewer = newMember("VIEWER");
+        assertEquals(403, statusOf(() -> contents.storeFromCollab(p.id(), new StoreRequest(0L, 0, b64("x"), "x", List.of(viewer.getId())))));
+        nodeService.lock(p.id());
+        assertEquals(403, statusOf(() -> contents.storeFromCollab(p.id(), new StoreRequest(0L, 0, b64("x"), "x", List.of(admin.getId())))));
+        assertEquals(0, mongo.findById(p.id(), NodeContent.class).getRevision());
+    }
+
+    @Test
     void storeKeepsRules() {
         NodeDTO p = createPage("Title");
         User other = newMember("EDITOR");

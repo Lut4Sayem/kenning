@@ -130,14 +130,49 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
 }
 
 /** Clock per Yjs client: a state vector. */
-type Clocks = Map<number, number>
-const clocksOf = (doc: Y.Doc): Clocks => Y.decodeStateVector(Y.encodeStateVector(doc))
+type Ranges = Map<number, { clock: number; len: number }[]>
 
-/** True when what the service stored holds every edit this tab still has to see confirmed. */
-export function covers(stored: Clocks, need: Clocks): boolean {
-  for (const [client, clock] of need) if ((stored.get(client) ?? 0) < clock) return false
+/**
+ * What the collaboration service must have stored before a local copy may go: inserted items (a clock per Yjs
+ * client) AND deletions (they do not move a state vector, so clocks alone would let a deletion be lost).
+ */
+export interface Need {
+  clocks: Map<number, number>
+  deletes: Ranges
+}
+
+/** Everything in this doc. */
+export const needOf = (doc: Y.Doc): Need => {
+  const s = Y.snapshot(doc)
+  return { clocks: s.sv, deletes: s.ds.clients as Ranges }
+}
+
+function addDeletes(into: Ranges, from: Ranges) {
+  for (const [client, items] of from) into.set(client, [...(into.get(client) ?? []), ...items])
+}
+
+/** Every range in `need` lies inside the union of the ranges in `have`. */
+function rangesCovered(have: Ranges, need: Ranges): boolean {
+  for (const [client, items] of need) {
+    const ranges = [...(have.get(client) ?? [])].sort((a, b) => a.clock - b.clock)
+    for (const item of items) {
+      let from = item.clock
+      const end = item.clock + item.len
+      for (const r of ranges) if (r.clock <= from && r.clock + r.len > from) from = r.clock + r.len
+      if (from < end) return false
+    }
+  }
   return true
 }
+
+/** True when what the service stored holds every edit this tab still has to see confirmed. */
+export function covers(stored: Y.Snapshot, need: Need): boolean {
+  for (const [client, clock] of need.clocks) if ((stored.sv.get(client) ?? 0) < clock) return false
+  return rangesCovered(stored.ds.clients as Ranges, need.deletes)
+}
+
+/** The snapshot a `saved` message carries (base64 Y.encodeSnapshot). */
+export const storedSnapshot = (snap: string) => Y.decodeSnapshot(fromBase64(snap))
 
 /** The part of HocuspocusProvider the local copy listens to. */
 export interface ProviderEvents {
@@ -167,7 +202,7 @@ export class Autosave {
   private stopped = false
   private timer: ReturnType<typeof setTimeout> | undefined
   private text: string | undefined // as of the last change; the editor may be gone later
-  private need: Clocks = new Map()
+  private need: Need = { clocks: new Map(), deletes: new Map() }
 
   constructor(
     private nodeId: string,
@@ -181,7 +216,7 @@ export class Autosave {
     this.recover = opened.recover
     this.dirty = opened.state !== 'saved'
     this.text = opened.text
-    if (this.dirty && !this.recover) this.need = clocksOf(ydoc) // copies taken over on open: all of it must be stored
+    if (this.dirty && !this.recover) this.need = needOf(ydoc) // copies taken over on open: all of it must be stored
     ydoc.on('update', this.onUpdate)
     provider?.on('stateless', this.onStateless)
     provider?.on('status', this.onProviderStatus)
@@ -257,11 +292,12 @@ export class Autosave {
     this.emit()
   }
 
-  private onUpdate = (_update: Uint8Array, origin: unknown) => {
+  private onUpdate = (update: Uint8Array, origin: unknown) => {
     if (origin === this.provider) return // someone else's edit, from the server
     this.version++
     this.dirty = true
-    this.need.set(this.ydoc.clientID, clocksOf(this.ydoc).get(this.ydoc.clientID) ?? 0)
+    this.need.clocks.set(this.ydoc.clientID, Y.decodeStateVector(Y.encodeStateVector(this.ydoc)).get(this.ydoc.clientID) ?? 0)
+    addDeletes(this.need.deletes, Y.decodeUpdate(update).ds.clients as Ranges)
     this.text = this.readText()
     void this.storePending()
     if (this.recover) return // keepPrivately picks the change up
@@ -283,7 +319,7 @@ export class Autosave {
   }
 
   private onStateless = ({ payload }: { payload: string }) => {
-    let m: { type?: string; sv?: string }
+    let m: { type?: string; snap?: string }
     try {
       m = JSON.parse(payload)
     } catch {
@@ -291,11 +327,11 @@ export class Autosave {
     }
     if (this.recover) return
     if (m.type === 'retrying' && this.dirty) this.setState('retrying')
-    if (m.type !== 'saved' || !m.sv) return
+    if (m.type !== 'saved' || !m.snap) return
     if (!this.dirty) return this.setState('saved')
-    if (!covers(Y.decodeStateVector(fromBase64(m.sv)), this.need)) return
+    if (!covers(storedSnapshot(m.snap), this.need)) return
     this.dirty = false
-    this.need = new Map()
+    this.need = { clocks: new Map(), deletes: new Map() }
     const v = this.version
     // a change typed while the copy is being removed is written again right after
     void this.opened.store.clear(this.opened.slot).then(() => this.version !== v && this.storePending())

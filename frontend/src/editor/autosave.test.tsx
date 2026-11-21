@@ -82,7 +82,7 @@ function fakeProvider() {
     off: (event: string, cb: (d: never) => void) => void subs.get(event)?.delete(cb),
     status: (status: 'connected' | 'disconnected') => emit('status', { status }),
     /** The service stored this doc's state and says so. */
-    saved: (doc: Y.Doc) => emit('stateless', { payload: JSON.stringify({ type: 'saved', revision: 9, sv: toBase64(Y.encodeStateVector(doc)) }) }),
+    saved: (doc: Y.Doc) => emit('stateless', { payload: JSON.stringify({ type: 'saved', revision: 9, snap: toBase64(Y.encodeSnapshot(Y.snapshot(doc))) }) }),
     retrying: () => emit('stateless', { payload: JSON.stringify({ type: 'retrying' }) }),
   }
 }
@@ -543,11 +543,44 @@ describe('autosave', () => {
     expect(tabD.a.state).toBe('saved')
   })
 
-  it('coversNeedsEveryClock', () => {
-    expect(covers(new Map([[1, 5], [2, 3]]), new Map([[1, 5]]))).toBe(true)
-    expect(covers(new Map([[1, 4]]), new Map([[1, 5]]))).toBe(false)
-    expect(covers(new Map(), new Map([[7, 1]]))).toBe(false) // an adopted copy's client the service never saw
-    expect(covers(new Map(), new Map())).toBe(true)
+  // Review finding: a deletion does not move the state vector; a copy must not be cleared before it is stored.
+  it('aDeleteIsConfirmedOnlyOnceStored', async () => {
+    const { a, doc, provider } = await openTab()
+    type(doc, 'abc')
+    provider.saved(doc)
+    await tick(0)
+    expect(a.state).toBe('saved')
+    const before = new Y.Doc()
+    Y.applyUpdate(before, Y.encodeStateAsUpdate(doc)) // what the service stored: no deletion yet
+    doc.getText('t').delete(0, 2)
+    await tick(0)
+    provider.saved(before)
+    await tick(0)
+    expect(a.state).toBe('saving')
+    expect(pending()).toBeDefined()
+    provider.saved(doc)
+    await tick(0)
+    expect(a.state).toBe('saved')
+    expect(pending()).toBeUndefined()
+  })
+
+  it('coversNeedsEveryClockAndEveryDeletion', () => {
+    const snap = (sv: [number, number][], ds: [number, number, number][] = []) => {
+      const s = Y.snapshot(new Y.Doc())
+      s.sv = new Map(sv)
+      for (const [c, clock, len] of ds) s.ds.clients.set(c, [...(s.ds.clients.get(c) ?? []), { clock, len } as never])
+      return s
+    }
+    const need = (clocks: [number, number][], deletes: [number, number, number][] = []) => ({
+      clocks: new Map(clocks),
+      deletes: new Map(deletes.map(([c, clock, len]) => [c, [{ clock, len }]])),
+    })
+    expect(covers(snap([[1, 5], [2, 3]]), need([[1, 5]]))).toBe(true)
+    expect(covers(snap([[1, 4]]), need([[1, 5]]))).toBe(false)
+    expect(covers(snap([]), need([[7, 1]]))).toBe(false) // an adopted copy's client the service never saw
+    expect(covers(snap([]), need([]))).toBe(true)
+    expect(covers(snap([[1, 9]], [[1, 0, 4], [1, 4, 3]]), need([[1, 9]], [[1, 2, 5]]))).toBe(true) // inside two joined ranges
+    expect(covers(snap([[1, 9]], [[1, 0, 4]]), need([[1, 9]], [[1, 2, 5]]))).toBe(false) // half of it stored
   })
 
   it('saveIndicatorTextsAreExact', () => {

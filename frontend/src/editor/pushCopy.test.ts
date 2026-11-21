@@ -23,7 +23,7 @@ const docWith = (text: string) => {
   d.getText('t').insert(0, text)
   return d
 }
-const saved = (doc: Y.Doc) => JSON.stringify({ type: 'saved', revision: 2, sv: toBase64(Y.encodeStateVector(doc)) })
+const saved = (doc: Y.Doc) => JSON.stringify({ type: 'saved', revision: 2, snap: toBase64(Y.encodeSnapshot(Y.snapshot(doc))) })
 const token = () => (fake.last!.token as () => Promise<string>)()
 const stateless = (payload: string) => (fake.last!.onStateless as (d: { payload: string }) => void)({ payload })
 

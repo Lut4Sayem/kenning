@@ -3,15 +3,14 @@
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import * as Y from 'yjs'
 import { getTicket } from '../api/collab'
-import { covers } from './autosave'
-import { fromBase64 } from './base64'
+import { covers, needOf, storedSnapshot } from './autosave'
 import { collabUrl } from './collab'
 
 const TIMEOUT_MS = 15_000
 
 /** true = the service stored a state holding every edit in `doc`. Never throws. */
 export function pushDoc(nodeId: string, doc: Y.Doc, epoch: number, timeoutMs = TIMEOUT_MS): Promise<boolean> {
-  const need = Y.decodeStateVector(Y.encodeStateVector(doc))
+  const need = needOf(doc)
   return new Promise((resolve) => {
     let done = false
     const finish = (ok: boolean) => {
@@ -38,8 +37,8 @@ export function pushDoc(nodeId: string, doc: Y.Doc, epoch: number, timeoutMs = T
       onAuthenticationFailed: () => finish(false),
       onStateless: ({ payload }) => {
         try {
-          const m = JSON.parse(payload) as { type?: string; sv?: string }
-          if (m.type === 'saved' && m.sv && covers(Y.decodeStateVector(fromBase64(m.sv)), need)) finish(true)
+          const m = JSON.parse(payload) as { type?: string; snap?: string }
+          if (m.type === 'saved' && m.snap && covers(storedSnapshot(m.snap), need)) finish(true)
         } catch {
           // not ours to read
         }

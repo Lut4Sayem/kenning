@@ -4,15 +4,13 @@
 import * as Y from 'yjs'
 import { api } from '../api/client'
 import { getContent, saveRecovered } from '../api/content'
-import { covers } from './autosave'
+import { covers, needOf } from './autosave'
 import { fromBase64 } from './base64'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import { clearPendingOf, pendingFor, pendingPages, type PendingStore } from './pendingStore'
 import { EMPTY_PAGE_STATE } from './schema'
 import { pushDoc } from './pushCopy'
 import { isHeld } from './slotLock'
-
-const clocks = (doc: Y.Doc) => Y.decodeStateVector(Y.encodeStateVector(doc))
 
 /** Sends one page's local copies. true = nothing of it is left unsent. */
 async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean): Promise<boolean> {
@@ -38,7 +36,7 @@ async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean):
     }
     if (!sameEpoch.length) return true
     // Everything in the copies is stored already (only the bytes differed): nothing to send.
-    if (!covers(clocks(stored), clocks(doc)) && !(await pushDoc(nodeId, doc, server.contentEpoch))) return false
+    if (!covers(Y.snapshot(stored), needOf(doc)) && !(await pushDoc(nodeId, doc, server.contentEpoch))) return false
     for (const slot of sameEpoch) await store.clear(slot)
     return true
   } catch {

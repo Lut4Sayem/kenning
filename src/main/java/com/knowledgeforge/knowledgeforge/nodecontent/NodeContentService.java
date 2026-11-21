@@ -1,9 +1,11 @@
 package com.knowledgeforge.knowledgeforge.nodecontent;
 
+import com.knowledgeforge.knowledgeforge.access.Access;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
 import com.knowledgeforge.knowledgeforge.collab.StoreRequest;
 import com.knowledgeforge.knowledgeforge.common.UserRef;
 import com.knowledgeforge.knowledgeforge.node.Node;
+import com.knowledgeforge.knowledgeforge.node.NodeStatus;
 import com.knowledgeforge.knowledgeforge.user.User;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.ReturnDocument;
@@ -67,6 +69,12 @@ public class NodeContentService {
         byte[] state = decodeState(req.state(), text);
         List<String> ids = req.authors() == null ? List.of() : req.authors();
         List<ObjectId> authors = ids.stream().filter(ObjectId::isValid).map(ObjectId::new).toList();
+        // Defense in depth: collab is told about access changes, but if that call was lost these still hold.
+        if (node.getStatus() != NodeStatus.ACTIVE || node.isLocked())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This page cannot be edited now");
+        for (ObjectId a : authors)
+            if (access.resolve(a.toHexString(), node) != Access.EDIT)
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Someone who edited no longer has edit access");
         UserRef by = null;
         if (!authors.isEmpty()) {
             User last = mongo.findById(authors.get(authors.size() - 1), User.class);

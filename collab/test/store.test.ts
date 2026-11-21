@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 import { createServer, EMPTY_PAGE_STATE, type Options } from '../src/server.js'
 import { extractText } from '../src/extractText.js'
-import { EpochError, RevisionError } from '../src/spring.js'
+import { EpochError, RefusedError, RevisionError } from '../src/spring.js'
 import pages from './fixtures/pages.json' with { type: 'json' }
 import { connect, fakeSpring, ticket, testConfig, typeIn, until, type Client, type FakeSpring } from './helpers.js'
 
@@ -76,7 +76,7 @@ describe('storing', () => {
     expect(spring.stores[0].body.authors).toEqual(['u1'])
   })
 
-  it('savedCarriesStateVector', async () => {
+  it('savedCarriesTheStoredSnapshot', async () => {
     const spring = fakeSpring()
     const port = await start(spring)
     const c = await join(port)
@@ -84,8 +84,8 @@ describe('storing', () => {
     await until(() => c.messages.some((m) => m.type === 'saved'))
     const saved = c.messages.find((m) => m.type === 'saved')!
     expect(saved.revision).toBe(1)
-    const sv = Y.decodeStateVector(Buffer.from(saved.sv as string, 'base64'))
-    expect(sv.get(c.doc.clientID)).toBe(Y.decodeStateVector(Y.encodeStateVector(c.doc)).get(c.doc.clientID))
+    const snap = Y.decodeSnapshot(Buffer.from(saved.snap as string, 'base64'))
+    expect(snap.sv.get(c.doc.clientID)).toBe(Y.decodeStateVector(Y.encodeStateVector(c.doc)).get(c.doc.clientID))
   })
 
   it('storeRetriesWithBackoff', async () => {
@@ -105,6 +105,54 @@ describe('storing', () => {
     expect(gaps[1]).toBeGreaterThanOrEqual(190)
     expect(gaps[2]).toBeGreaterThanOrEqual(290)
     expect(spring.stores.at(-1)!.body.authors).toEqual(['u1']) // kept across the failures
+  })
+
+  // A deletion does not move the state vector: it must still be stored (review finding).
+  it('aDeleteOnlyChangeIsStored', async () => {
+    const spring = fakeSpring()
+    const port = await start(spring)
+    const c = await join(port)
+    typeIn(c.doc, 'keep this, drop that')
+    await until(() => spring.stores.length === 1)
+    const group = c.doc.getXmlFragment('document-store').get(0) as Y.XmlElement
+    const text = ((group.get(0) as Y.XmlElement).get(0) as Y.XmlElement).get(0) as Y.XmlText
+    text.delete(9, 11)
+    await until(() => spring.stores.length === 2)
+    expect(spring.stores[1].body.text).toBe('keep this')
+    const saved = c.messages.filter((m) => m.type === 'saved').at(-1)!
+    const snap = Y.decodeSnapshot(Buffer.from(saved.snap as string, 'base64'))
+    expect(Y.equalSnapshots(snap, Y.snapshot(c.doc))).toBe(true)
+  })
+
+  it('aStoreSpringRefusesForGoodIsNotRetried', async () => {
+    const spring = fakeSpring()
+    spring.storeImpl = async () => {
+      throw new RefusedError('store refused: 404')
+    }
+    const port = await start(spring, { debounce: 50, maxDebounce: 200, backoff: [20] })
+    const c = await join(port)
+    typeIn(c.doc, 'page was deleted meanwhile')
+    await until(() => c.closes.includes(4403))
+    await new Promise((r) => setTimeout(r, 200))
+    expect(spring.stores).toHaveLength(1)
+  })
+
+  it('aTicketFromBeforeARestoreIsRefused', async () => {
+    const port = await start(fakeSpring({ epoch: 2 }))
+    const c = connect(port, 'n1', ticket({ epoch: 1 }))
+    clients.push(c)
+    expect(await c.failed).toBe('restored')
+  })
+
+  it('aNewerTicketReplacesAnOpenDocWhoseResetWasLost', async () => {
+    const spring = fakeSpring({ epoch: 0 })
+    const port = await start(spring)
+    const old = await join(port, { userId: 'old' })
+    spring.loaded = { ...spring.loaded, epoch: 1, state: null } // restored; the reset call never arrived
+    const fresh = connect(port, 'n1', ticket({ userId: 'new', epoch: 1 }))
+    clients.push(fresh)
+    await fresh.synced
+    await until(() => old.closes.includes(4409))
   })
 
   it('epochConflictDropsDoc', async () => {

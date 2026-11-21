@@ -66,7 +66,7 @@ describe('limits', () => {
     await Promise.all([a.synced, b.synced])
     typeIn(a.doc, 'y'.repeat(300))
     await until(() => a.messages.some((m) => m.type === 'too-large') && b.messages.some((m) => m.type === 'too-large'))
-    expect(spring.stores).toHaveLength(1) // what was typed before the limit is still stored
+    await until(() => spring.stores.length === 1) // what was typed before the limit is still stored
     typeIn(b.doc, 'refused')
     await new Promise((r) => setTimeout(r, 300))
     expect(text(a)).not.toContain('refused')

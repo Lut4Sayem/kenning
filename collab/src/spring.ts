@@ -19,6 +19,8 @@ export interface StoreBody {
 export class EpochError extends Error {}
 /** Over Spring's size caps (4 MB state, 1 MB text): retrying cannot help. */
 export class TooLargeError extends Error {}
+/** Spring refuses this page for good (deleted, locked, an author lost access, bad data): retrying cannot help. */
+export class RefusedError extends Error {}
 /** Someone else stored first (should not happen with one writer): merge the stored state and store again. */
 export class RevisionError extends Error {}
 
@@ -44,6 +46,7 @@ export function springApi(config: Config): SpringApi {
         throw b.message === 'EPOCH' ? new EpochError() : new RevisionError()
       }
       if (res.status === 413) throw new TooLargeError()
+      if ([400, 403, 404, 410].includes(res.status)) throw new RefusedError(`store refused: ${res.status}`)
       if (!res.ok) throw new Error(`store failed: ${res.status}`)
       return { revision: ((await res.json()) as { revision: number }).revision }
     },

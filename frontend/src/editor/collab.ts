@@ -112,10 +112,11 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
       onAuthenticationFailed: ({ reason }) => {
         if (reason === 'restored') setProblem('restored')
         if (reason === 'too-many') tooMany()
-        // a ticket from just before an access change: come back with a fresh one
-        if (reason === 'stale-ticket') {
+        // a ticket from just before an access change, or the page is being replaced: come back with a fresh one
+        if (reason === 'stale-ticket' || reason === 'busy') {
           p.disconnect()
-          void p.connect()
+          clearTimeout(retry)
+          retry = setTimeout(() => void p.connect(), 500)
         }
       },
       onClose: ({ event }) => {

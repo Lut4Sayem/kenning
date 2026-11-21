@@ -5,7 +5,7 @@ import * as Y from 'yjs'
 import type { Config } from './config.js'
 import { extractText } from './extractText.js'
 import { log } from './log.js'
-import { EpochError, RevisionError, TooLargeError, type Loaded, type SpringApi } from './spring.js'
+import { EpochError, RefusedError, RevisionError, TooLargeError, type Loaded, type SpringApi } from './spring.js'
 import { verifyTicket } from './ticket.js'
 
 export interface Ctx {
@@ -23,8 +23,12 @@ interface Meta {
   authors: Set<string>
   /** Restored or refused: never stored again, unloaded as soon as possible. */
   dropped: boolean
-  /** State vector (base64) Spring has: nothing to store while the doc still matches it. */
-  sv: string
+  /** Changed since the last store started (a state vector does not move on deletions, so it cannot tell). */
+  changed: boolean
+  /** Upper bound of the doc's size: the last stored size plus every update since, so the cap holds between stores. */
+  bytes: number
+  /** Stores run one after another (debounced store, flush, merge after a conflict). */
+  chain: Promise<void>
   /** At the size limit: everyone is read-only from now on (copying text out still works). */
   tooLarge: boolean
 }
@@ -134,7 +138,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     if (meta) meta.dropped = true
     closeAll(doc, code, reason)
     const key = `onStoreDocument-${doc.name}`
-    if (server.hocuspocus.debouncer.isDebounced(key)) server.hocuspocus.debouncer.executeNow(key) // a no-op store: dropped
+    if (server.hocuspocus.debouncer.isDebounced(key)) await server.hocuspocus.debouncer.executeNow(key) // a no-op store: dropped
     await server.hocuspocus.unloadDocument(doc)
   }
 
@@ -146,8 +150,8 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     const key = `onStoreDocument-${name}`
     const { debouncer } = server.hocuspocus
     if (debouncer.isDebounced(key)) await debouncer.executeNow(key)
-    while (debouncer.isCurrentlyExecuting(key)) await sleep(20)
-    if (meta.sv !== b64(Y.encodeStateVector(doc))) await store(doc, meta)
+    if (meta.changed) await serial(doc, meta)
+    else await meta.chain
     return meta.revision
   }
 
@@ -160,6 +164,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       const name = decodeURIComponent(node[1])
       if (node[2] === 'flush') return [200, { revision: await flush(name) }]
       prefetched.delete(name)
+      revoke(`n:${name}`) // a ticket from before the restore must not join while the old doc unloads
       const doc = server.hocuspocus.documents.get(name)
       if (doc) await drop(doc, CLOSE.restored, 'restored')
       log('reset', { nodeId: name })
@@ -181,26 +186,36 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     return [404, { message: 'Not found' }]
   }
 
+  const serial = (doc: Document, meta: Meta) => (meta.chain = meta.chain.then(() => store(doc, meta)))
+
   /** Stores until it works (doc stays loaded meanwhile), except when Spring says the page was restored. */
   async function store(doc: Document, meta: Meta) {
-    for (let attempt = 0; !meta.dropped; attempt++) {
+    for (let attempt = 0; !meta.dropped && meta.changed; attempt++) {
+      meta.changed = false
       const authors = [...meta.authors]
       meta.authors.clear()
-      const sv = Y.encodeStateVector(doc)
+      // what was stored, deletions included: a client clears its local copy only when this holds all of its edits
+      const snap = b64(Y.encodeSnapshot(Y.snapshot(doc)))
       const state = Y.encodeStateAsUpdate(doc)
       const text = extractText(doc.getXmlFragment(FRAGMENT))
-      if (state.length > o.maxStateBytes || text.length > MAX_TEXT) readOnlyForEveryone(doc, meta)
+      if ((state.length > o.maxStateBytes || text.length > MAX_TEXT) && !meta.tooLarge) readOnlyForEveryone(doc, meta)
       const body = { baseRevision: meta.revision, baseEpoch: meta.epoch, state: b64(state), text, authors }
       try {
         const { revision } = await spring.store(doc.name, body)
         meta.revision = revision
-        meta.sv = b64(sv)
-        // sv tells each client whether ALL of its edits are in what was stored (then it may clear its local copy)
-        doc.broadcastStateless(JSON.stringify({ type: 'saved', revision, sv: b64(sv) }))
+        meta.bytes = state.length
+        doc.broadcastStateless(JSON.stringify({ type: 'saved', revision, snap }))
         log('store', { nodeId: doc.name, revision, authors: authors.length })
         return
       } catch (e) {
         authors.forEach((a) => meta.authors.add(a))
+        meta.changed = true
+        if (e instanceof RefusedError) {
+          // deleted, locked, an author lost access: clients come back with a fresh ticket, which tells them why
+          log('store-refused', { nodeId: doc.name, error: e.message })
+          await drop(doc, CLOSE.accessChanged, 'access-changed')
+          return
+        }
         if (e instanceof TooLargeError) {
           // the edits stay in the live doc and on the clients' devices; Spring can take no more of this page
           readOnlyForEveryone(doc, meta)
@@ -253,8 +268,16 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
         log('too-many', { nodeId: documentName, userId: t.userId })
         throw deny('too-many')
       }
+      // A newer ticket than the open doc: Spring restored the page and the reset never arrived. Drop the old doc.
+      const meta = metas.get(documentName)
+      const doc = server.hocuspocus.documents.get(documentName)
+      if (meta && doc && !meta.dropped && t.epoch > meta.epoch) {
+        prefetched.delete(documentName)
+        void drop(doc, CLOSE.restored, 'restored')
+      }
       // A restored page may still be unloading: wait for it, then compare epochs on fresh content.
       for (let i = 0; i < 50 && metas.get(documentName)?.dropped; i++) await sleep(50)
+      if (metas.get(documentName)?.dropped) throw deny('busy') // the provider comes back with a fresh ticket
       const epoch = metas.get(documentName)?.epoch ?? (await prefetch(documentName)).epoch
       // A client from before a restore must not sync its old copy into the restored page (D6).
       if (epoch !== t.epoch) throw deny('restored')
@@ -267,17 +290,23 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       const loaded = await prefetch(documentName)
       prefetched.delete(documentName)
       Y.applyUpdate(document, loaded.state ?? Buffer.from(EMPTY_PAGE_STATE, 'base64'), 'spring')
-      const sv = b64(Y.encodeStateVector(document))
-      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, sv, tooLarge: false })
+      const bytes = Y.encodeStateAsUpdate(document).length
+      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, changed: false, bytes, chain: Promise.resolve(), tooLarge: false })
     },
 
-    async onChange({ documentName, context }) {
-      if (context?.userId && context.access === 'EDIT') metas.get(documentName)?.authors.add(context.userId)
+    async onChange({ documentName, document, context, update }) {
+      const meta = metas.get(documentName)
+      if (!meta) return
+      meta.changed = true
+      meta.bytes += update.length
+      if (context?.userId && context.access === 'EDIT') meta.authors.add(context.userId)
+      // checked on every change, not only when storing: one fast client must not grow a page past the cap for 10 s
+      if (meta.bytes > o.maxStateBytes && !meta.tooLarge) readOnlyForEveryone(document, meta)
     },
 
     async onStoreDocument({ documentName, document }) {
       const meta = metas.get(documentName)
-      if (meta && !meta.dropped && meta.sv !== b64(Y.encodeStateVector(document))) await store(document, meta)
+      if (meta && !meta.dropped && meta.changed) await serial(document, meta)
     },
 
     async afterUnloadDocument({ documentName }) {
@@ -299,7 +328,13 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     },
 
     // A runaway client (a bug, a script) must not flood the page for everyone: a token bucket per connection.
-    async beforeHandleMessage({ connection, socketId }) {
+    async beforeHandleMessage({ connection, socketId, documentName, context }) {
+      // D6 at the message level: nothing from a connection of another epoch (or to a dropped doc) is applied
+      const meta = metas.get(documentName)
+      if (meta && (meta.dropped || context?.epoch !== meta.epoch)) {
+        connection.webSocket.close(CLOSE.restored, 'restored')
+        throw { code: CLOSE.restored, reason: 'restored' }
+      }
       const now = Date.now()
       const b = buckets.get(socketId) ?? { tokens: o.burst, at: now }
       b.tokens = Math.min(o.burst, b.tokens + ((now - b.at) / 1000) * o.burst)
