@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createServer } from '../src/server.js'
-import { connect, ticket, testConfig, until, type Client } from './helpers.js'
+import { connect, fakeSpring, ticket, testConfig, until, type Client } from './helpers.js'
 
 let server: ReturnType<typeof createServer>
 let port: number
@@ -12,7 +12,7 @@ const open = (...a: Parameters<typeof connect>) => {
 }
 
 beforeEach(async () => {
-  server = createServer(testConfig())
+  server = createServer(testConfig(), fakeSpring())
   await server.listen()
   port = server.address.port
 })
