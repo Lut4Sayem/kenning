@@ -63,6 +63,9 @@ jobs:
     env:
       SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/kf_e2e?directConnection=true
       KF_AUTH_RATE_LIMIT_PER_MINUTE: "1000" # every spec registers and logs in from one IP
+      COLLAB_SECRET: e2e-only-secret # shared by the app and the collaboration service
+      APP_ORIGIN: http://localhost:8080
+      VITE_COLLAB_URL: ws://localhost:1234 # no Caddy here: the browser talks to the collaboration service directly
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -72,9 +75,11 @@ jobs:
           cache: maven
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # the collaboration service needs 22
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            collab/package-lock.json
       # Builds the React app into the jar and leaves frontend/node_modules behind for Playwright.
       - run: ./mvnw -B -DskipTests package
       - name: Install Chromium
@@ -89,6 +94,17 @@ jobs:
           done
           cat app.log
           exit 1
+      - name: Start the collaboration service
+        working-directory: collab
+        run: |
+          npm ci && npm run build
+          node dist/main.js > ../collab.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:1234/health > /dev/null && exit 0
+            sleep 1
+          done
+          cat ../collab.log
+          exit 1
       - name: Run browser tests
         working-directory: frontend
         run: npx playwright test
@@ -100,4 +116,5 @@ jobs:
             frontend/playwright-report
             frontend/test-results
             app.log
+            collab.log
           retention-days: 7

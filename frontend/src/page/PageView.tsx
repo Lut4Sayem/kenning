@@ -12,7 +12,9 @@ import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
 import { toBase64 } from '../editor/base64'
 import { openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
+import { useCollab } from '../editor/collab'
 import Editor, { useKfEditor } from '../editor/Editor'
+import { userColor } from '../editor/userColor'
 import { extractText } from '../editor/extractText'
 import SaveIndicator, { ReadOnlyTag, SaveNotice } from '../editor/SaveIndicator'
 import { useEndSessionOnLeave } from '../editor/session'
@@ -28,6 +30,7 @@ import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
 import PageMenu, { useUnarchive } from './PageMenu'
+import Presence from './Presence'
 import { trashBlocked, useTrashPage } from './useTrashPage'
 import Properties from './Properties'
 
@@ -337,7 +340,7 @@ export default function PageView() {
               /* hidden, not unmounted: the editor keeps saving what was typed */
               <div hidden={!!viewing}>
                 <PageContent
-                  key={`${n.id}:${contentKey}`} node={n} userId={me.data.id} slots={{ head, banners }}
+                  key={`${n.id}:${contentKey}`} node={n} userId={me.data.id} userName={me.data.fullName ?? ''} slots={{ head, banners }}
                   onSaveState={setSaveState} onLock={setLockMode} stateRef={currentState} titleSaving={titleSaving}
                 />
               </div>
@@ -449,9 +452,10 @@ function ArchivedNote({ node }: { node: NodeDetail }) {
   )
 }
 
-function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, titleSaving }: {
+function PageContent({ node, userId, userName, slots, onSaveState, onLock, stateRef, titleSaving }: {
   node: NodeDetail
   userId: string
+  userName: string
   slots: Slots
   titleSaving: boolean
   onSaveState: (s: SaveState) => void
@@ -497,6 +501,7 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
       {opened ? (
         <PageEditor
           node={node}
+          user={{ id: userId, name: userName }}
           opened={opened}
           slots={slots}
           onSaveState={onSaveState}
@@ -519,8 +524,9 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
   )
 }
 
-function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, onLock, stateRef, titleSaving }: {
+function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveState, onLock, stateRef, titleSaving }: {
   node: NodeDetail
+  user: { id: string; name: string }
   opened: Opened
   slots: Slots
   titleSaving: boolean
@@ -533,17 +539,21 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
 }) {
   const canEdit = node.access === 'EDIT'
   const lock = useEditLock(node.id, canEdit)
-  const editable = canEdit && lock.mode === 'editing'
+  // a copy from before a restore never joins the live page: it is kept privately, then the page reloads
+  const collab = useCollab(node.id, opened.ydoc, user.id, !opened.recover, opened.epoch)
+  const editable = canEdit && lock.mode === 'editing' && collab.access !== 'VIEW'
   const [uploadError, setUploadError] = useState('')
   const qc = useQueryClient()
   const files = useMemo(
     () => ({ nodeId: node.id, onError: setUploadError, onUploaded: () => void qc.invalidateQueries({ queryKey: ['files', node.id] }) }),
     [node.id, qc],
   )
-  const editor = useKfEditor(opened.ydoc, 'Me', editable, files)
+  const me = useMemo(() => ({ name: user.name || 'Someone', color: userColor(user.id) }), [user.id, user.name])
+  const editor = useKfEditor(opened.ydoc, me, editable, files, collab.provider)
   useEndSessionOnLeave(node.id, canEdit)
-  const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit)
-  const problem = save.state === 'failed' ? `Not saved: ${save.message}` : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined
+  const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit, collab.provider)
+  const gone = canEdit && collab.problem === 'gone' ? `Not saved: ${collab.message}` : undefined
+  const problem = gone ?? (save.state === 'failed' ? `Not saved: ${save.message}` : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined)
 
   useEffect(() => {
     stateRef.current = () => toBase64(Y.encodeStateAsUpdate(opened.ydoc))
@@ -570,6 +580,7 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
   return (
     <>
       {canEdit && lock.mode !== 'blocked' && lock.mode !== 'readonly' && slots.head && createPortal(<SaveIndicator state={titleSaving && save.state === 'saved' ? 'saving' : save.state} local={save.local} />, slots.head)}
+      {collab.provider?.awareness && slots.head && createPortal(<Presence awareness={collab.provider.awareness} selfId={user.id} />, slots.head)}
       {uploadError && slots.banners && createPortal(<SaveNotice onDismiss={() => setUploadError('')}>{uploadError}</SaveNotice>, slots.banners)}
       {problem && slots.banners && createPortal(<SaveNotice>{problem}</SaveNotice>, slots.banners)}
       {lock.mode === 'blocked' && slots.banners && createPortal(

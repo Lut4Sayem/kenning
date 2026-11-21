@@ -18,7 +18,7 @@ const json = (status: number, body: unknown) => new Response(JSON.stringify(body
 
 function Harness({ editable = true, onEditor, onError = () => {}, onUploaded }: { editable?: boolean; onEditor: (e: KfEditor) => void; onError?: (m: string) => void; onUploaded?: () => void }) {
   const [ydoc] = useState(() => new Y.Doc())
-  const editor = useKfEditor(ydoc, 'Tester', editable, { nodeId: 'n1', onError, onUploaded })
+  const editor = useKfEditor(ydoc, { name: 'Tester', color: '#1d65a0' }, editable, { nodeId: 'n1', onError, onUploaded })
   onEditor(editor)
   return <Editor editor={editor} editable={editable} />
 }

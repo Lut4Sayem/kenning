@@ -1,15 +1,14 @@
-// No lost edits (domain spec 5.3): every change is written to IndexedDB at once, sent ~1 s after typing
-// stops, flushed when the tab hides, and picked up on the next open if the server never confirmed it.
+// No lost edits (domain spec 5.3): every change is written to IndexedDB at once and stays there until the
+// collaboration service confirms it stored it; a copy the server never confirmed is picked up on the next open.
 //
-// Stale saves (D6): this copy and the server's are Yjs documents of one lineage, so a 409 is answered by
-// MERGING the server state into the local document and saving again. The exception is a state that was
-// replaced wholesale (version restore): the server then has a new contentEpoch, and merging the
-// old lineage into it would bring back what the restore removed. Such a copy is kept as a private
-// "recovered" version instead, and the page loads the server state.
+// Copies of a page are Yjs documents of one lineage, so a kept copy is MERGED into the live page. The exception
+// is a state that was replaced wholesale (version restore): the server then has a new contentEpoch, and
+// merging the old lineage into it would bring back what the restore removed. Such a copy is kept as a private
+// "recovered" version instead, and the page loads the server state (D6).
 import { useEffect, useState } from 'react'
 import * as Y from 'yjs'
 import { ApiError } from '../api/client'
-import { getContent, saveContent, saveRecovered } from '../api/content'
+import { getContent, saveRecovered } from '../api/content'
 import { fromBase64, toBase64 } from './base64'
 import { pendingFor, type Pending, type PendingStore, type Slots } from './pendingStore'
 import { EMPTY_PAGE_STATE } from './schema'
@@ -130,20 +129,43 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
   return { ...current, state: 'saving', text, adopt: orphans.map((o) => o.id) }
 }
 
+/** Clock per Yjs client: a state vector. */
+type Clocks = Map<number, number>
+const clocksOf = (doc: Y.Doc): Clocks => Y.decodeStateVector(Y.encodeStateVector(doc))
+
+/** True when what the service stored holds every edit this tab still has to see confirmed. */
+export function covers(stored: Clocks, need: Clocks): boolean {
+  for (const [client, clock] of need) if ((stored.get(client) ?? 0) < clock) return false
+  return true
+}
+
+/** The part of HocuspocusProvider the local copy listens to. */
+export interface ProviderEvents {
+  on(event: 'stateless', cb: (data: { payload: string }) => void): unknown
+  on(event: 'status', cb: (data: { status: string }) => void): unknown
+  off(event: 'stateless', cb: (data: { payload: string }) => void): unknown
+  off(event: 'status', cb: (data: { status: string }) => void): unknown
+}
+
+/**
+ * The tab's local copy while the page is edited live. Every local change is written to IndexedDB at once; the
+ * collaboration service sends the changes on and stores them, then says `saved` with the state vector it stored.
+ * The copy is cleared only when that vector holds every edit made here (other people's edits do not count:
+ * they came from the server). A copy from before a restore is kept as a private version instead (D6).
+ */
 export class Autosave {
   state: SaveState
   message: string | undefined
   private local = true
-  private revision: number
   private recover: boolean
   private dirty: boolean
-  private version = 0 // bumped on every change, to tell whether a finished save is still current
-  private inFlight = false
-  private again = false // save once more as soon as the current attempt has finished
+  private connected = false
+  private version = 0 // bumped on every local change, to tell whether an async step is still current
   private attempt = 0
   private stopped = false
   private timer: ReturnType<typeof setTimeout> | undefined
-  private text: string | undefined // as of the last change; the editor may be gone at save time
+  private text: string | undefined // as of the last change; the editor may be gone later
+  private need: Clocks = new Map()
 
   constructor(
     private nodeId: string,
@@ -151,41 +173,46 @@ export class Autosave {
     private getText: () => string,
     private opened: Omit<Opened, 'ydoc'>,
     private onStatus: (status: SaveStatus) => void,
+    private provider: ProviderEvents | null,
   ) {
     this.state = opened.state
-    this.revision = opened.revision
     this.recover = opened.recover
     this.dirty = opened.state !== 'saved'
     this.text = opened.text
+    if (this.dirty && !this.recover) this.need = clocksOf(ydoc) // copies taken over on open: all of it must be stored
     ydoc.on('update', this.onUpdate)
-    window.addEventListener('online', this.onOnline)
-    window.addEventListener('pagehide', this.flush)
+    provider?.on('stateless', this.onStateless)
+    provider?.on('status', this.onProviderStatus)
     window.addEventListener('beforeunload', this.onBeforeUnload)
-    document.addEventListener('visibilitychange', this.onVisibility)
     // Under this session's slot first, and only then remove the old ones: never a moment without a copy.
     const adopt = opened.adopt ?? []
     if (adopt.length) void this.storePending().then(async (ok) => { if (ok) for (const id of adopt) await opened.store.clear(id) })
-    // A copy taken over on open: wait until the editor has rendered it, so its text can be read.
-    if (this.dirty) {
-      this.timer = setTimeout(() => {
-        this.text = this.readText()
-        void this.save()
-      }, DEBOUNCE_MS)
-    }
+    // A copy from before a restore: wait until the editor has rendered it, so its text can be read.
+    if (this.recover) this.timer = setTimeout(() => void this.keepPrivately(), DEBOUNCE_MS)
   }
 
-  /** Stops listening. A last change is still sent once; if that fails it stays in the pending store. */
+  /** Stops listening. Unconfirmed changes stay in the pending store and are picked up later (open, online, logout). */
   destroy() {
     if (this.stopped) return
     this.ydoc.off('update', this.onUpdate)
-    window.removeEventListener('online', this.onOnline)
-    window.removeEventListener('pagehide', this.flush)
+    this.provider?.off('stateless', this.onStateless)
+    this.provider?.off('status', this.onProviderStatus)
     window.removeEventListener('beforeunload', this.onBeforeUnload)
-    document.removeEventListener('visibilitychange', this.onVisibility)
     clearTimeout(this.timer)
-    const last = this.save()
     this.stopped = true
-    void last.finally(this.opened.release) // from here on the slot counts as orphaned
+    this.opened.release() // from here on the slot counts as orphaned
+  }
+
+  /**
+   * The page was restored while open (D6): unconfirmed edits here must not be merged into it, so they are kept as a
+   * private version ('recovered' follows). Returns true when there was nothing to keep and the page can reload now.
+   */
+  restored(): boolean {
+    if (!this.dirty) return true
+    this.recover = true
+    clearTimeout(this.timer)
+    void this.keepPrivately()
+    return false
   }
 
   private readText(): string {
@@ -203,7 +230,7 @@ export class Autosave {
   // shortcut: writes the whole encoded page on every change; store incremental Yjs updates instead if
   // typing on very large pages becomes slow.
   private storePending(): Promise<boolean> {
-    const copy = { ...this.snapshot(), baseRevision: this.revision, epoch: this.opened.epoch, at: Date.now() }
+    const copy = { ...this.snapshot(), baseRevision: this.opened.revision, epoch: this.opened.epoch, at: Date.now() }
     return this.opened.store.put(this.opened.slot, copy).then((ok) => {
       if (ok !== this.local) {
         this.local = ok
@@ -224,144 +251,96 @@ export class Autosave {
     this.emit()
   }
 
-  private schedule(ms: number) {
-    clearTimeout(this.timer)
-    this.timer = setTimeout(() => void this.save(), ms)
-  }
-
   private onUpdate = (_update: Uint8Array, origin: unknown) => {
-    if (origin === this) return // our own merge of the server state; stale() deals with it
+    if (origin === this.provider) return // someone else's edit, from the server
     this.version++
     this.dirty = true
+    this.need.set(this.ydoc.clientID, clocksOf(this.ydoc).get(this.ydoc.clientID) ?? 0)
     this.text = this.readText()
     void this.storePending()
-    if (this.state === 'saved' || this.state === 'failed') this.setState('saving')
-    this.schedule(DEBOUNCE_MS)
+    if (this.recover) return // keepPrivately picks the change up
+    this.setState(this.connected ? 'saving' : 'offline')
   }
 
-  private onOnline = () => {
-    if (this.dirty) this.schedule(0)
+  private onProviderStatus = ({ status }: { status: string }) => {
+    this.connected = status === 'connected'
+    if (this.dirty && !this.recover) this.setState(this.connected ? 'saving' : 'offline')
   }
 
-  private onVisibility = () => {
-    if (document.visibilityState === 'hidden') this.flush()
+  private onStateless = ({ payload }: { payload: string }) => {
+    let m: { type?: string; sv?: string }
+    try {
+      m = JSON.parse(payload)
+    } catch {
+      return
+    }
+    if (this.recover) return
+    if (m.type === 'retrying' && this.dirty) this.setState('retrying')
+    if (m.type !== 'saved' || !m.sv) return
+    if (!this.dirty) return this.setState('saved')
+    if (!covers(Y.decodeStateVector(fromBase64(m.sv)), this.need)) return
+    this.dirty = false
+    this.need = new Map()
+    const v = this.version
+    // a change typed while the copy is being removed is written again right after
+    void this.opened.store.clear(this.opened.slot).then(() => this.version !== v && this.storePending())
+    this.setState('saved')
   }
-
-  /** Tab is hiding or closing: send now with a request that survives the unload. */
-  private flush = () => void this.save(true)
 
   private onBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (this.state === 'saved' || this.state === 'recovered') return
+    if (!this.dirty) return
     e.preventDefault()
     e.returnValue = '' // older browsers need this to show the "Leave page?" prompt
   }
 
-  private async save(keepalive = false) {
-    if (this.inFlight || !this.dirty) return
-    clearTimeout(this.timer)
-    this.inFlight = true
-    const sentVersion = this.version
-    const sent = this.snapshot()
-    try {
-      if (this.recover) {
-        await this.keepPrivately(sent, sentVersion)
-      } else {
-        const saved = await saveContent(this.nodeId, { baseRevision: this.revision, ...sent }, keepalive)
-        this.confirmed(saved.revision, sentVersion)
-      }
-    } catch (e) {
-      if (!this.recover && e instanceof ApiError && e.status === 409) await this.stale(sent.state, sentVersion)
-      else this.failed(e)
-    } finally {
-      this.inFlight = false
-    }
-    if (this.again) {
-      this.again = false
-      await this.save()
-    }
-  }
-
-  private confirmed(revision: number, sentVersion: number) {
-    this.revision = revision
-    this.attempt = 0
-    if (this.version === sentVersion) {
-      this.dirty = false
-      void this.opened.store.clear(this.opened.slot)
-      this.setState('saved')
-    } else {
-      // Changed again while the save was in flight: the local copy now builds on the new revision.
-      void this.storePending()
-      this.setState('saving')
-      this.schedule(DEBOUNCE_MS)
-    }
-  }
-
-  private failed(e: unknown) {
-    if (this.stopped) return // page was left; the pending copy is picked up on the next open
-    const reason = e instanceof Error ? e.message : 'unknown error'
-    if (e instanceof ApiError && PERMANENT.has(e.status)) {
-      // Too large, no longer allowed, page gone: trying again would never work. The next change tries once more.
-      this.setState('failed', reason)
-      return
-    }
-    this.setState(
-      navigator.onLine === false ? 'offline' : 'retrying',
-      this.recover ? `Your unsaved changes could not be kept as a private version yet (${reason}). They are still on this device; trying again.` : undefined,
-    )
-    this.schedule(BACKOFF_MS[Math.min(this.attempt++, BACKOFF_MS.length - 1)])
-  }
-
-  /** 409: the server has a newer revision than the one this save was based on. */
-  private async stale(sentState: string, sentVersion: number) {
-    try {
-      const server = await getContent(this.nodeId)
-      // It is our own save: it reached the server but its answer was lost (network drop, closing tab).
-      if (server.state === sentState) return this.confirmed(server.revision, sentVersion)
-
-      if (server.contentEpoch !== this.opened.epoch) {
-        // Replaced wholesale since this copy was made: merging would resurrect what was removed.
-        this.recover = true
-        await this.keepPrivately(this.snapshot(), this.version)
-        return
-      }
-      // Same lineage: take in what the server has and save the union on top of its revision.
-      this.revision = server.revision
-      if (server.state) Y.applyUpdate(this.ydoc, fromBase64(server.state), this)
-      if (!this.stopped) this.text = this.readText()
-      this.version++
-      void this.storePending()
-      this.setState('saving')
-      this.again = true
-    } catch (e) {
-      this.failed(e) // could not look or could not keep; the retry comes back here
-    }
-  }
-
   /** The local copy must not go into the page: store it as a version only this user sees. */
-  private async keepPrivately(copy: { state: string; text: string }, sentVersion: number) {
-    await saveRecovered(this.nodeId, { ...copy, baseEpoch: this.opened.epoch })
-    if (this.version !== sentVersion) {
-      this.again = true // typed meanwhile: keep that too
-      return
+  private async keepPrivately(): Promise<void> {
+    if (this.stopped) return // the copy stays in the pending store; the next open sends it
+    const v = this.version
+    try {
+      await saveRecovered(this.nodeId, { ...this.snapshot(), baseEpoch: this.opened.epoch })
+    } catch (e) {
+      return this.failed(e)
     }
+    if (this.version !== v) return this.keepPrivately() // typed meanwhile: keep that too
     this.dirty = false
     await this.opened.store.clear(this.opened.slot) // only now: the copy is safe on the server
     this.setState('recovered', RECOVERED_NOTICE)
   }
+
+  private failed(e: unknown) {
+    if (this.stopped) return
+    const reason = e instanceof Error ? e.message : 'unknown error'
+    if (e instanceof ApiError && PERMANENT.has(e.status)) return this.setState('failed', reason)
+    this.setState(
+      navigator.onLine === false ? 'offline' : 'retrying',
+      `Your unsaved changes could not be kept as a private version yet (${reason}). They are still on this device; trying again.`,
+    )
+    this.timer = setTimeout(() => void this.keepPrivately(), BACKOFF_MS[Math.min(this.attempt++, BACKOFF_MS.length - 1)])
+  }
 }
 
-/** Runs autosave for an opened page while `enabled` (edit access). */
-export function useAutosave(nodeId: string, opened: Opened, getText: () => string, enabled: boolean): SaveStatus {
+/**
+ * Keeps the local copy of an opened page while `enabled` (edit access). Waits for the provider: undefined = still
+ * starting, null = this copy does not join the live session (a copy from before a restore).
+ */
+export function useAutosave(
+  nodeId: string,
+  opened: Opened,
+  getText: () => string,
+  enabled: boolean,
+  provider: ProviderEvents | null | undefined,
+): SaveStatus {
   const [status, setStatus] = useState<SaveStatus>({ state: opened.state, local: true })
   const [text] = useState(() => ({ read: getText }))
   text.read = getText
 
   useEffect(() => {
-    if (!enabled) return
-    const autosave = new Autosave(nodeId, opened.ydoc, () => text.read(), opened, setStatus)
+    if (!enabled || provider === undefined) return
+    const autosave = new Autosave(nodeId, opened.ydoc, () => text.read(), opened, setStatus, provider)
     setStatus({ state: autosave.state, local: true })
     return () => autosave.destroy()
-  }, [nodeId, opened, enabled, text])
+  }, [nodeId, opened, enabled, text, provider])
 
   return status
 }

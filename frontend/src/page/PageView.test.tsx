@@ -27,6 +27,9 @@ const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
 const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
 vi.mock('../api/content', () => contentApi)
+// The live session is the collaboration service's; here each test says what it reports.
+const collab = vi.hoisted(() => ({ state: { provider: null, access: 'EDIT', problem: null, message: null } as Record<string, unknown> }))
+vi.mock('../editor/collab', () => ({ useCollab: () => collab.state }))
 
 const NODE: NodeDetail = {
   id: 'n1', spaceId: 's1', parentId: null, title: 'Plan', icon: null, tags: [], publishState: 'PUBLISHED', locked: false,
@@ -41,6 +44,7 @@ beforeEach(() => {
   contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
   contentApi.acquireEditLock.mockResolvedValue({ mine: true, holder: { id: 'u1', name: 'Me' }, expiresAt: '' })
   contentApi.releaseEditLock.mockResolvedValue(null)
+  collab.state = { provider: null, access: 'EDIT', problem: null, message: null }
 })
 afterEach(() => {
   cleanup()
@@ -77,12 +81,12 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     const unsaved = new Y.Doc()
     unsaved.getText('t').insert(0, 'typed before the page was trashed')
     await pendingFor('u1', 'n1').put('old-tab', { state: toBase64(Y.encodeStateAsUpdate(unsaved)), text: 'typed before the page was trashed', baseRevision: 0, epoch: 0, at: Date.now() })
-    contentApi.saveContent.mockRejectedValue(new ApiError(404, TRASHED)) // the page was trashed by someone else
+    collab.state = { provider: null, access: 'EDIT', problem: 'gone', message: TRASHED } // the page was trashed by someone else
 
     const { qc, view } = mount()
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
 
-    // The replayed copy is saved, the server refuses, and says why. The editor is still there.
+    // The live session refuses this page now and says why. The editor and the copy are still there.
     await waitFor(() => expect(screen.getByText(`Not saved: ${TRASHED}`)).toBeTruthy(), { timeout: 5000 })
     expect(editorDom(view.container)).not.toBeNull()
     const kept = Object.values(await pendingFor('u1', 'n1').all())

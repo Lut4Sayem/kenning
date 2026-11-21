@@ -1,0 +1,13 @@
+.stack { display: inline-flex; align-items: center; }
+.person { position: relative; display: inline-flex; margin-left: -5px; }
+.person:first-child { margin-left: 0; }
+.ring { border: 2px solid var(--canvas); box-sizing: content-box; }
+.eye {
+  position: absolute; right: -3px; bottom: -3px; display: grid; place-items: center;
+  width: 14px; height: 14px; border-radius: 50%; background: var(--canvas); color: var(--ink-muted);
+}
+.more {
+  display: inline-grid; place-items: center; min-width: 24px; height: 24px; margin-left: -5px; padding: 0 4px;
+  border: 2px solid var(--canvas); border-radius: 999px; background: var(--surface-muted); color: var(--ink-label);
+  font-size: 11px; font-weight: 700; box-sizing: content-box;
+}
