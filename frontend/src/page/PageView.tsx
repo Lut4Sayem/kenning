@@ -18,7 +18,6 @@ import { userColor } from '../editor/userColor'
 import { extractText } from '../editor/extractText'
 import SaveIndicator, { ReadOnlyTag, SaveNotice } from '../editor/SaveIndicator'
 import { useEndSessionOnLeave } from '../editor/session'
-import SoftLockBanner, { TakenOverBanner, useEditLock, type LockMode } from '../editor/SoftLockBanner'
 import DiffView from '../history/DiffView'
 import HistoryPanel, { type Viewing } from '../history/HistoryPanel'
 import VersionBar from '../history/VersionBar'
@@ -73,7 +72,8 @@ export default function PageView() {
   const [head, setHead] = useState<HTMLElement | null>(null)
   const [banners, setBanners] = useState<HTMLElement | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('saved')
-  const [lockMode, setLockMode] = useState<LockMode>('checking')
+  // an editor whose live session allows reading only right now (access dropped to VIEW, page restored, access gone)
+  const [liveReadOnly, setLiveReadOnly] = useState(false)
   const [panel, setPanel] = useState<'details' | 'history'>('details')
   const [viewing, setViewing] = useState<Viewing | null>(null)
   const [contentKey, setContentKey] = useState(0) // bumped after a restore: the editor opens again on the server's state
@@ -227,7 +227,7 @@ export default function PageView() {
   const canEdit = n.access === 'EDIT'
   const editing = canEdit && n.status === 'ACTIVE'
   const space = spaces.data?.find((x) => x.id === n.spaceId)
-  const readingOnly = lockMode === 'blocked' || lockMode === 'taken' || lockMode === 'readonly' || lockMode === 'denied'
+  const readingOnly = liveReadOnly
   const published = n.publishState === 'PUBLISHED'
   // Draft, unsaved typing, or newer than the last published version. A published page with no version on record counts as clean.
   const changes = !published || (saveState !== 'saved' && saveState !== 'recovered') || (!!lastPublished && Date.parse(n.contentUpdatedAt) > Date.parse(lastPublished.createdAt))
@@ -341,7 +341,7 @@ export default function PageView() {
               <div hidden={!!viewing}>
                 <PageContent
                   key={`${n.id}:${contentKey}`} node={n} userId={me.data.id} userName={me.data.fullName ?? ''} slots={{ head, banners }}
-                  onSaveState={setSaveState} onLock={setLockMode} stateRef={currentState} titleSaving={titleSaving}
+                  onSaveState={setSaveState} onReadOnly={setLiveReadOnly} stateRef={currentState} titleSaving={titleSaving}
                 />
               </div>
             ) : (
@@ -452,14 +452,14 @@ function ArchivedNote({ node }: { node: NodeDetail }) {
   )
 }
 
-function PageContent({ node, userId, userName, slots, onSaveState, onLock, stateRef, titleSaving }: {
+function PageContent({ node, userId, userName, slots, onSaveState, onReadOnly, stateRef, titleSaving }: {
   node: NodeDetail
   userId: string
   userName: string
   slots: Slots
   titleSaving: boolean
   onSaveState: (s: SaveState) => void
-  onLock: (m: LockMode) => void
+  onReadOnly: (readOnly: boolean) => void
   stateRef: MutableRefObject<() => string>
 }) {
   const canEdit = node.access === 'EDIT'
@@ -505,7 +505,7 @@ function PageContent({ node, userId, userName, slots, onSaveState, onLock, state
           opened={opened}
           slots={slots}
           onSaveState={onSaveState}
-          onLock={onLock}
+          onReadOnly={onReadOnly}
           stateRef={stateRef}
           titleSaving={titleSaving}
           onReload={() => setReloads((r) => r + 1)}
@@ -524,7 +524,7 @@ function PageContent({ node, userId, userName, slots, onSaveState, onLock, state
   )
 }
 
-function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveState, onLock, stateRef, titleSaving }: {
+function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveState, onReadOnly, stateRef, titleSaving }: {
   node: NodeDetail
   user: { id: string; name: string }
   opened: Opened
@@ -534,14 +534,13 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveSt
   /** Opens the content again from the server. */
   onReload: () => void
   onSaveState: (s: SaveState) => void
-  onLock: (m: LockMode) => void
+  onReadOnly: (readOnly: boolean) => void
   stateRef: MutableRefObject<() => string>
 }) {
   const canEdit = node.access === 'EDIT'
-  const lock = useEditLock(node.id, canEdit)
   // a copy from before a restore never joins the live page: it is kept privately, then the page reloads
   const collab = useCollab(node.id, opened.ydoc, user.id, !opened.recover, opened.epoch)
-  const editable = canEdit && lock.mode === 'editing' && collab.access !== 'VIEW' && !collab.problem
+  const editable = canEdit && collab.access !== 'VIEW' && !collab.problem
   const [uploadError, setUploadError] = useState('')
   const qc = useQueryClient()
   const files = useMemo(
@@ -567,10 +566,10 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveSt
   }, [save.state])
 
   useEffect(() => {
-    onLock(lock.mode)
-    return () => onLock('checking')
+    onReadOnly(canEdit && !editable)
+    return () => onReadOnly(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lock.mode])
+  }, [canEdit, editable])
 
   // Restored while open (D6): unconfirmed edits become a private version first ('recovered' below), else reload now.
   useEffect(() => {
@@ -587,21 +586,11 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveSt
 
   return (
     <>
-      {canEdit && lock.mode !== 'blocked' && lock.mode !== 'readonly' && slots.head && createPortal(<SaveIndicator state={titleSaving && save.state === 'saved' ? 'saving' : save.state} local={save.local} />, slots.head)}
+      {editable && slots.head && createPortal(<SaveIndicator state={titleSaving && save.state === 'saved' ? 'saving' : save.state} local={save.local} />, slots.head)}
       {collab.provider?.awareness && slots.head && createPortal(<Presence awareness={collab.provider.awareness} selfId={user.id} />, slots.head)}
       {uploadError && slots.banners && createPortal(<SaveNotice onDismiss={() => setUploadError('')}>{uploadError}</SaveNotice>, slots.banners)}
       {problem && slots.banners && createPortal(<SaveNotice>{problem}</SaveNotice>, slots.banners)}
-      {lock.mode === 'blocked' && slots.banners && createPortal(
-        <SoftLockBanner holder={lock.holder} onReadOnly={lock.openReadOnly} onEditAnyway={lock.editAnyway} />,
-        slots.banners,
-      )}
-      {lock.mode === 'taken' && slots.banners && createPortal(
-        <TakenOverBanner holder={lock.holder} saved={save.state === 'saved' || save.state === 'recovered'} onReload={onReload} onTakeBack={lock.editAnyway} />,
-        slots.banners,
-      )}
       {!canEdit && node.status !== 'ARCHIVED' && <p className={s.note}>{node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
-      {lock.mode === 'readonly' && <p className={s.note}>Opened read-only: {lock.holder} is editing this page.</p>}
-      {lock.mode === 'denied' && <p className={s.error} role="alert">You can no longer edit this page{lock.reason ? `: ${lock.reason}` : '.'}</p>}
       <Editor editor={editor} editable={editable} />
     </>
   )

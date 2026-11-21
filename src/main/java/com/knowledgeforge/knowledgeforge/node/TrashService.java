@@ -11,7 +11,6 @@ import com.knowledgeforge.knowledgeforge.attachment.AttachmentRepository;
 import com.knowledgeforge.knowledgeforge.attachment.AttachmentStorageService;
 import com.knowledgeforge.knowledgeforge.comment.CommentRepository;
 import com.knowledgeforge.knowledgeforge.common.UserRef;
-import com.knowledgeforge.knowledgeforge.editlock.EditLock;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersion;
 import com.knowledgeforge.knowledgeforge.space.Space;
@@ -332,7 +331,6 @@ public class TrashService {
             comments.deleteByNodeIdIn(chunk);
             summaries.deleteByNodeIdIn(chunk);
             mongo.remove(Query.query(Criteria.where("nodeId").in(chunk)), NodeVersion.class); // every kind, RECOVERED included
-            mongo.remove(byIds(chunk), EditLock.class);
             List<ObjectId> oids = chunk.stream().map(ObjectId::new).toList();
             mongo.getCollection("users").updateMany(new Document("recentNodes.nodeId", new Document("$in", oids)),
                     new Document("$pull", new Document("recentNodes", new Document("nodeId", new Document("$in", oids)))));

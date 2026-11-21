@@ -25,7 +25,7 @@ const nodesApi = vi.hoisted(() => ({
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
-const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
+const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn() }))
 vi.mock('../api/content', () => contentApi)
 // The live session is the collaboration service's; here each test says what it reports.
 const collab = vi.hoisted(() => {
@@ -56,8 +56,6 @@ beforeEach(() => {
   spacesApi.getMe.mockResolvedValue({ id: 'u1', fullName: 'Me', email: 'm@x.test' })
   spacesApi.getMySpaces.mockResolvedValue([])
   contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
-  contentApi.acquireEditLock.mockResolvedValue({ mine: true, holder: { id: 'u1', name: 'Me' }, expiresAt: '' })
-  contentApi.releaseEditLock.mockResolvedValue(null)
   collab.state = { provider: null, access: 'EDIT', problem: null, message: null }
 })
 afterEach(() => {

@@ -30,16 +30,3 @@ export function saveRecovered(nodeId: string, body: { state: string; text: strin
     bytes(json),
   )
 }
-
-export interface EditLock {
-  mine: boolean
-  holder: { id: string; name: string; avatarUrl: string | null } | null
-  expiresAt: string
-}
-
-/** Soft lock (1a only). Acquires or renews for 60 s; `force` takes it over from someone else. */
-export const acquireEditLock = (nodeId: string, force: boolean) =>
-  api<EditLock>(`/api/nodes/${nodeId}/edit-lock`, { method: 'POST', body: JSON.stringify({ force }) })
-
-export const releaseEditLock = (nodeId: string, keepalive = false) =>
-  api<null>(`/api/nodes/${nodeId}/edit-lock`, { method: 'DELETE', keepalive, redirectOn401: false })

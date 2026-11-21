@@ -20,7 +20,7 @@ const editor = (page: Page) => page.locator('.bn-editor')
 const saveState = (page: Page) => page.locator('header [role="status"]')
 
 async function typeInEditor(page: Page, text: string) {
-  // The editor is read-only until the soft lock answers, and is rebuilt (losing focus) when it turns editable.
+  // The editor may be rebuilt (losing focus) once the live session says what this user may do: click first.
   await page.locator('.bn-editor[contenteditable="true"]').click()
   await page.keyboard.type(text)
 }

@@ -23,7 +23,7 @@ export default function SaveIndicator({ state, local }: { state: SaveState; loca
   )
 }
 
-/** Top-bar tag shown while the page can only be read: someone else is editing it, or "View only" for a Viewer. */
+/** Top-bar tag shown while the page can only be read: the live session allows reading only, or "View only" for a Viewer. */
 export function ReadOnlyTag({ label = 'Read-only' }: { label?: string }) {
   return <span className={s.readonly}><Icon name="eye" size={14} />{label}</span>
 }

@@ -7,7 +7,6 @@ import com.knowledgeforge.knowledgeforge.attachment.Attachment;
 import com.knowledgeforge.knowledgeforge.attachment.AttachmentStorageService;
 import com.knowledgeforge.knowledgeforge.comment.Comment;
 import com.knowledgeforge.knowledgeforge.common.UserRef;
-import com.knowledgeforge.knowledgeforge.editlock.EditLock;
 import com.knowledgeforge.knowledgeforge.node.CreateNodeRequest;
 import com.knowledgeforge.knowledgeforge.node.Node;
 import com.knowledgeforge.knowledgeforge.node.NodeDTO;
@@ -114,11 +113,6 @@ class TeamDeleteIT extends NodeIntegrationTest {
         a.setUploadedBy(u.getId());
         a.setUploadedAt(now);
         mongo.insert(a);
-        EditLock l = new EditLock();
-        l.setId(nodeId);
-        l.setHolder(new UserRef(u.getId(), "x", null));
-        l.setExpiresAt(Date.from(Instant.now().plusSeconds(600)));
-        mongo.insert(l);
         AiSummary s = new AiSummary();
         s.setNodeId(nodeId);
         s.setSummary("sum");
@@ -147,7 +141,6 @@ class TeamDeleteIT extends NodeIntegrationTest {
         n += mongo.count(Query.query(Criteria.where("spaceId").in(s.spaceIds())), Node.class);
         n += mongo.count(byId, Node.class);
         n += mongo.count(byId, NodeContent.class);
-        n += mongo.count(byId, EditLock.class);
         n += mongo.count(byNode, NodeVersion.class);
         n += mongo.count(byNode, Comment.class);
         n += mongo.count(byNode, Attachment.class);

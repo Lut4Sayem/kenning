@@ -15,8 +15,11 @@ const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publ
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
-const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
+const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn() }))
 vi.mock('../api/content', () => contentApi)
+// What the live session reports (the collaboration service is not part of these tests).
+const collab = vi.hoisted(() => ({ state: { provider: null, access: 'EDIT', problem: null, message: null } as Record<string, unknown> }))
+vi.mock('../editor/collab', () => ({ useCollab: () => collab.state }))
 const versionsApi = vi.hoisted(() => ({ listVersions: vi.fn(), getVersion: vi.fn(), restoreVersion: vi.fn(), nameVersion: vi.fn(), endSession: vi.fn() }))
 vi.mock('../api/versions', () => versionsApi)
 const extras = vi.hoisted(() => ({ getComments: vi.fn(), getAttachments: vi.fn(), addComment: vi.fn(), deleteComment: vi.fn(), deleteAttachment: vi.fn(), summarize: vi.fn(), ask: vi.fn() }))
@@ -45,8 +48,6 @@ beforeEach(() => {
   spacesApi.getMe.mockResolvedValue({ id: 'u1', fullName: 'Me', email: 'm@x.test' })
   spacesApi.getMySpaces.mockResolvedValue([{ id: 's1', name: 'Requirements', icon: null, ownerType: 'TEAM', teamId: 't1', teamName: 'Thesis Group', myRole: 'ADMIN' }])
   contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
-  contentApi.acquireEditLock.mockResolvedValue({ mine: true, holder: { id: 'u1', name: 'Me' }, expiresAt: '' })
-  contentApi.releaseEditLock.mockResolvedValue(null)
   versionsApi.listVersions.mockResolvedValue([])
   versionsApi.getVersion.mockResolvedValue({ ...PUBLISHED_VERSION, state: '', text: 'the published text' })
   extras.getComments.mockResolvedValue([])
@@ -151,15 +152,13 @@ describe('page top bar and properties', () => {
     expect(screen.queryByRole('button', { name: 'Compare' })).toBeNull()
   })
 
-  it('whenSomeoneElseIsEditingTheBarSaysReadOnlyAndPublishIsGone', async () => {
-    contentApi.acquireEditLock.mockResolvedValue({ mine: false, holder: { id: 'u2', name: 'Rafi Ahmed' }, expiresAt: '' })
+  it('whenTheLiveSessionAllowsReadingOnlyTheBarSaysReadOnlyAndPublishIsGone', async () => {
+    collab.state = { provider: null, access: 'VIEW', problem: null, message: null } // e.g. the page was locked meanwhile
     mount()
     await waitFor(() => expect(bar().getByText('Read-only')).toBeTruthy())
     expect(bar().queryByRole('button', { name: 'Publish' })).toBeNull()
     expect(bar().queryByText('Saved')).toBeNull()
-    expect(screen.getByText('is editing right now.', { exact: false }).textContent).toContain('Rafi Ahmed')
-    await userEvent.click(screen.getByRole('button', { name: 'Open read-only' }))
-    expect(bar().getByText('Read-only')).toBeTruthy() // still read-only after choosing to read
+    collab.state = { provider: null, access: 'EDIT', problem: null, message: null }
   })
 
   it('propertiesListStatusTagsAndLastEdited', async () => {

@@ -47,7 +47,7 @@ Endpoints: `POST /api/nodes/{id}/ai/summary`, `POST /api/spaces/{id}/ai/ask` wit
 ```
 frontend/                      React app (built into target/classes/static/app)
 src/main/java/.../knowledgeforge/
-  access/ node/ nodecontent/ nodeversion/ editlock/   pages, content, history, soft lock
+  access/ node/ nodecontent/ nodeversion/ collab/     pages, content, history, live-editing tickets
   team/ space/ user/ auth/ comment/ attachment/       teams, spaces, accounts, comments, files
   search/ dashboard/ activity/ ai/ linkpreview/       search, dashboard, activity log, summaries
 deploy/                        docker-compose.yml, Caddyfile, update script, VM setup notes
@@ -104,7 +104,7 @@ cd frontend && npm run e2e      # Playwright, needs the app running
 
 ## Known limits
 
-- No real-time co-editing; two people can edit the same page, and their changes are merged on save. A soft lock warns the second person.
+- One collaboration service instance: live editing does not scale out to several (the Hocuspocus Redis extension would be the next step).
 - The whole page tree of a space loads at once (about 2 MB for 10,000 pages before compression).
 - Rate limiting is in memory, so it assumes one app instance.
 - Trash, archive, restore and move-to-team update several documents without a database transaction: they work in chunks so large branches stay inside MongoDB's transaction limits, some steps are raw pipeline updates, and a repeat of trash, archive or restore finishes the job. If move-to-team fails half way, the branch needs a manual repair.
