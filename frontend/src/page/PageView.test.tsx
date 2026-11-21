@@ -25,11 +25,25 @@ const nodesApi = vi.hoisted(() => ({
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
-const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
+const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
 vi.mock('../api/content', () => contentApi)
 // The live session is the collaboration service's; here each test says what it reports.
-const collab = vi.hoisted(() => ({ state: { provider: null, access: 'EDIT', problem: null, message: null } as Record<string, unknown> }))
-vi.mock('../editor/collab', () => ({ useCollab: () => collab.state }))
+const collab = vi.hoisted(() => {
+  const listeners = new Set<() => void>()
+  const c = {
+    state: { provider: null, access: 'EDIT', problem: null, message: null } as Record<string, unknown>,
+    subscribe: (cb: () => void) => (listeners.add(cb), () => void listeners.delete(cb)),
+    set(state: Record<string, unknown>) {
+      c.state = state
+      listeners.forEach((l) => l())
+    },
+  }
+  return c
+})
+vi.mock('../editor/collab', async () => {
+  const { useSyncExternalStore } = await import('react')
+  return { useCollab: () => useSyncExternalStore(collab.subscribe, () => collab.state) }
+})
 
 const NODE: NodeDetail = {
   id: 'n1', spaceId: 's1', parentId: null, title: 'Plan', icon: null, tags: [], publishState: 'PUBLISHED', locked: false,
@@ -84,11 +98,11 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     collab.state = { provider: null, access: 'EDIT', problem: 'gone', message: TRASHED } // the page was trashed by someone else
 
     const { qc, view } = mount()
-    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    await waitFor(() => expect(view.container.querySelector('.bn-editor')).not.toBeNull(), { timeout: 5000 })
 
-    // The live session refuses this page now and says why. The editor and the copy are still there.
+    // The live session refuses this page now and says why. The text and the copy are still there, read-only.
     await waitFor(() => expect(screen.getByText(`Not saved: ${TRASHED}`)).toBeTruthy(), { timeout: 5000 })
-    expect(editorDom(view.container)).not.toBeNull()
+    expect(editorDom(view.container)).toBeNull()
     const kept = Object.values(await pendingFor('u1', 'n1').all())
     expect(kept.length).toBeGreaterThan(0) // never dropped unsent
     expect(kept.some((p) => p.text.includes('typed before the page was trashed'))).toBe(true)
@@ -98,9 +112,32 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     await qc.invalidateQueries({ queryKey: ['node', 'n1'] })
     await waitFor(() => expect(screen.getAllByText(TRASHED).length).toBeGreaterThan(0))
     expect(screen.queryByText('This page does not exist.')).toBeNull()
-    expect(editorDom(view.container)).not.toBeNull()
+    expect(view.container.querySelector('.bn-editor')).not.toBeNull()
     expect(Object.values(await pendingFor('u1', 'n1').all()).length).toBeGreaterThan(0)
   }, 20_000)
+
+  it('aViewerWhoLostAccessIsToldWhy', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW' })
+    collab.state = { provider: null, access: 'VIEW', problem: 'gone', message: 'You are no longer a member of this team' }
+    mount()
+    await waitFor(() => expect(screen.getByText('You are no longer a member of this team')).toBeTruthy(), { timeout: 5000 })
+  })
+
+  // D6: the page was restored while open. Nothing unconfirmed here: it simply loads again from the server.
+  it('aRestoreWhileOpenReloadsTheContent', async () => {
+    await clearPendingOf('u1')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    const opens = contentApi.getContent.mock.calls.length
+    contentApi.getContent.mockImplementation(async () => {
+      collab.state = { provider: null, access: 'EDIT', problem: null, message: null } // the new session starts clean
+      return { format: 'YJS_BLOCKNOTE_V1', state: '', revision: 2, contentEpoch: 1 }
+    })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'restored', message: null }))
+    await waitFor(() => expect(contentApi.getContent.mock.calls.length).toBeGreaterThan(opens))
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull())
+    expect(contentApi.saveRecovered).not.toHaveBeenCalled()
+  })
 
   // QA-53: no manual Try again needed once the connection is back.
   it('contentThatFailedOfflineLoadsByItselfWhenBackOnline', async () => {
@@ -193,7 +230,6 @@ describe('page title', () => {
   }
   async function open() {
     await clearPendingOf('u1')
-    contentApi.saveContent.mockResolvedValue({ revision: 1, savedAt: '' })
     nodesApi.updateNode.mockImplementation(async (id: string, body: { title: string }) => ({ ...NODE, id, title: body.title }))
     const m = mount()
     await waitFor(() => expect(within(m.topbar).getByRole('status').textContent).toBe('Saved'), { timeout: 5000 })

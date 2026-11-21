@@ -541,7 +541,7 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveSt
   const lock = useEditLock(node.id, canEdit)
   // a copy from before a restore never joins the live page: it is kept privately, then the page reloads
   const collab = useCollab(node.id, opened.ydoc, user.id, !opened.recover, opened.epoch)
-  const editable = canEdit && lock.mode === 'editing' && collab.access !== 'VIEW'
+  const editable = canEdit && lock.mode === 'editing' && collab.access !== 'VIEW' && !collab.problem
   const [uploadError, setUploadError] = useState('')
   const qc = useQueryClient()
   const files = useMemo(
@@ -552,7 +552,7 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveSt
   const editor = useKfEditor(opened.ydoc, me, editable, files, collab.provider)
   useEndSessionOnLeave(node.id, canEdit)
   const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit, collab.provider)
-  const gone = canEdit && collab.problem === 'gone' ? `Not saved: ${collab.message}` : undefined
+  const gone = collab.problem !== 'gone' ? undefined : canEdit ? `Not saved: ${collab.message}` : collab.message ?? undefined
   const problem = gone ?? (save.state === 'failed' ? `Not saved: ${save.message}` : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined)
 
   useEffect(() => {
@@ -571,6 +571,14 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onSaveSt
     return () => onLock('checking')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lock.mode])
+
+  // Restored while open (D6): unconfirmed edits become a private version first ('recovered' below), else reload now.
+  useEffect(() => {
+    if (collab.problem === 'restored' && save.restored()) onReload()
+    // No access any more (removed, trashed, ...): the page itself says why once it is fetched again.
+    if (collab.problem === 'gone') void qc.invalidateQueries({ queryKey: ['node', node.id] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collab.problem])
 
   useEffect(() => {
     if (save.state === 'recovered') onRecovered()

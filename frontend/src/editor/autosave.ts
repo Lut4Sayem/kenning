@@ -5,7 +5,7 @@
 // is a state that was replaced wholesale (version restore): the server then has a new contentEpoch, and
 // merging the old lineage into it would bring back what the restore removed. Such a copy is kept as a private
 // "recovered" version instead, and the page loads the server state (D6).
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as Y from 'yjs'
 import { ApiError } from '../api/client'
 import { getContent, saveRecovered } from '../api/content'
@@ -330,17 +330,23 @@ export function useAutosave(
   getText: () => string,
   enabled: boolean,
   provider: ProviderEvents | null | undefined,
-): SaveStatus {
+): SaveStatus & { restored: () => boolean } {
   const [status, setStatus] = useState<SaveStatus>({ state: opened.state, local: true })
   const [text] = useState(() => ({ read: getText }))
   text.read = getText
+  const live = useRef<Autosave | null>(null)
 
   useEffect(() => {
     if (!enabled || provider === undefined) return
     const autosave = new Autosave(nodeId, opened.ydoc, () => text.read(), opened, setStatus, provider)
+    live.current = autosave
     setStatus({ state: autosave.state, local: true })
-    return () => autosave.destroy()
+    return () => {
+      live.current = null
+      autosave.destroy()
+    }
   }, [nodeId, opened, enabled, text, provider])
 
-  return status
+  /** See Autosave.restored; true without edit access (nothing is kept here). */
+  return { ...status, restored: () => live.current?.restored() ?? true }
 }
