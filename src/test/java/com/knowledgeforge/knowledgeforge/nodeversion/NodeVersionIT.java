@@ -3,7 +3,6 @@ package com.knowledgeforge.knowledgeforge.nodeversion;
 import com.knowledgeforge.knowledgeforge.node.NodeDTO;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
-import com.knowledgeforge.knowledgeforge.nodecontent.SaveContentRequest;
 import com.knowledgeforge.knowledgeforge.support.ExplainAssert;
 import com.knowledgeforge.knowledgeforge.user.User;
 import org.junit.jupiter.api.Test;
@@ -27,7 +26,7 @@ class NodeVersionIT extends com.knowledgeforge.knowledgeforge.support.NodeIntegr
     }
 
     private void save(NodeDTO p, long baseRevision, String text) {
-        contentService.save(p.id(), new SaveContentRequest(baseRevision, b64(text), text));
+        store(p.id(), baseRevision, b64(text), text);
     }
 
     private NodeContent content(NodeDTO p) {

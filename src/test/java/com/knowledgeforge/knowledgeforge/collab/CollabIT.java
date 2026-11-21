@@ -24,6 +24,8 @@ import java.util.Base64;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -89,6 +91,14 @@ class CollabIT extends NodeIntegrationTest {
         mvc.perform(put(url).header("X-Collab-Secret", "test-secret").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"baseRevision\":0,\"baseEpoch\":0,\"state\":\"" + b64("x") + "\",\"text\":\"x\",\"authors\":[]}"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void publicContentPutIsGone() throws Exception {
+        NodeDTO p = createPage("A");
+        mvc.perform(put("/api/nodes/" + p.id() + "/content").with(user(admin.getEmail())).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"baseRevision\":0,\"state\":\"" + b64("x") + "\",\"text\":\"x\"}"))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test

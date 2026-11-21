@@ -47,8 +47,8 @@ public class CollabTicketService {
     }
 
     public TicketDTO ticket(String nodeId) {
+        Node node = access.requireView(nodeId); // first: nobody learns anything about a page they cannot see
         if (secret.isEmpty()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Live editing is not configured");
-        Node node = access.requireView(nodeId);
         User me = access.currentUser();
         // resolve applies the page's state: a locked page is VIEW even for its editors
         String level = access.resolve(me.getId(), node) == Access.EDIT ? "EDIT" : "VIEW";

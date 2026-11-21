@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
-import { ApiError } from '../api/client'
 import { fromBase64, toBase64 } from './base64'
 import { logOut, sendAllPending } from './logout'
 import type { Pending } from './pendingStore'
@@ -9,11 +8,13 @@ import type { Pending } from './pendingStore'
 interface Page { revision: number; epoch: number; state: string; puts: number; down?: boolean }
 const pages = new Map<string, Page>()
 const recovered: { nodeId: string; state: string; text: string; baseEpoch: number }[] = []
-const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveContent: vi.fn(), saveRecovered: vi.fn() }))
+const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn() }))
+// The live session: the collaboration service merges the copy into the page and stores it.
+const push = vi.hoisted(() => ({ pushDoc: vi.fn() }))
+vi.mock('./pushCopy', () => push)
 vi.mock('../api/content', () => contentApi)
 const apiMock = vi.hoisted(() => vi.fn())
 vi.mock('../api/client', async (original) => ({ ...(await original<typeof import('../api/client')>()), api: apiMock }))
-vi.mock('./docText', () => ({ docText: (doc: Y.Doc) => doc.getText('t').toString() }))
 
 const idb = vi.hoisted(() => new Map<string, Record<string, unknown>>())
 vi.mock('./pendingStore', () => {
@@ -75,12 +76,14 @@ beforeEach(() => {
     if (p.down) throw new TypeError('Failed to fetch')
     return { format: 'YJS_BLOCKNOTE_V1', state: p.state, revision: p.revision, contentEpoch: p.epoch }
   })
-  contentApi.saveContent.mockImplementation(async (id: string, body: { baseRevision: number; state: string }) => {
+  push.pushDoc.mockImplementation(async (id: string, doc: Y.Doc, epoch: number) => {
     const p = pages.get(id)!
+    if (p.down || epoch !== p.epoch) return false
     p.puts++
-    if (body.baseRevision !== p.revision) throw new ApiError(409, 'stale')
-    p.state = body.state
-    return { revision: ++p.revision, savedAt: '' }
+    const merged = docOf(p.state)
+    Y.applyUpdate(merged, Y.encodeStateAsUpdate(doc))
+    Object.assign(p, { state: stateOf(merged), revision: p.revision + 1 })
+    return true
   })
   contentApi.saveRecovered.mockImplementation(async (id: string, body: { state: string; text: string; baseEpoch: number }) => {
     if (pages.get(id)!.down) throw new TypeError('Failed to fetch')
@@ -127,7 +130,7 @@ describe('logging out with unsaved local copies', () => {
     const both = textOf(docOf(pages.get('two-slots')!.state))
     expect(both).toContain('tab one. ')
     expect(both).toContain('tab two. ')
-    expect(pages.get('two-slots')!.puts).toBe(1) // one save for the page, both copies merged
+    expect(pages.get('two-slots')!.puts).toBe(1) // sent once for the page, both copies merged
     expect(pages.get('restored')!.state).toBe(stateOf(restoredDoc)) // untouched
     expect(recovered).toEqual([{ nodeId: 'restored', state: stateOf(old), text: 'base from the old lineage', baseEpoch: 0 }])
     expect(pages.get('already-there')!.puts).toBe(0)
@@ -154,23 +157,6 @@ describe('logging out with unsaved local copies', () => {
     expect(slotsOf('left')).toEqual({})
     expect(pages.get('open')!.puts).toBe(0)
     expect(Object.values(slotsOf('open'))).toMatchObject([{ text: 'base being typed' }])
-  })
-
-  it('aSaveThatRacesWithAnotherWriterIsMergedAgain', async () => {
-    pageWithUnsaved('busy', 'mine. ')
-    contentApi.saveContent.mockImplementationOnce(async () => {
-      // someone saved between our read and our write
-      const p = pages.get('busy')!
-      const theirs = docOf(p.state)
-      type(theirs, 'theirs. ')
-      Object.assign(p, { state: stateOf(theirs), revision: p.revision + 1 })
-      throw new ApiError(409, 'stale')
-    })
-    expect(await sendAllPending(ME)).toBe(0)
-    const text = textOf(docOf(pages.get('busy')!.state))
-    expect(text).toContain('mine. ')
-    expect(text).toContain('theirs. ')
-    expect(slotsOf('busy')).toEqual({})
   })
 
   it('whatCouldNotBeSentIsAskedAboutAndStayingKeepsIt', async () => {

@@ -8,13 +8,7 @@ export interface Content {
   contentEpoch: number
 }
 
-export interface SaveBody {
-  baseRevision: number
-  state: string
-  text: string
-}
-
-// A request that never answers would block every later save, so content calls give up: after 15 s, plus
+// A request that never answers would block what waits for it, so content calls give up: after 15 s, plus
 // 10 s per MB sent (a 4 MB page on a slow uplink needs longer than a small one).
 const TIMEOUT_MS = 15_000
 const TIMEOUT_MS_PER_MB = 10_000
@@ -27,27 +21,6 @@ function timed<T>(call: (signal: AbortSignal) => Promise<T>, bodyBytes = 0): Pro
 }
 
 export const getContent = (nodeId: string) => timed((signal) => api<Content>(`/api/nodes/${nodeId}/content`, { signal }))
-
-// Browsers refuse keepalive requests whose bodies total more than 64 KB, so a bigger page is sent as a
-// normal request (it may die with the tab; the local pending copy covers that).
-const KEEPALIVE_MAX_BYTES = 60_000
-
-/** 409 = the page has a newer revision. keepalive lets the request outlive the tab (flush on close). */
-export function saveContent(nodeId: string, body: SaveBody, keepalive = false) {
-  const json = JSON.stringify(body)
-  const size = bytes(json)
-  return timed(
-    (signal) =>
-      api<{ revision: number; savedAt: string }>(`/api/nodes/${nodeId}/content`, {
-        method: 'PUT',
-        body: json,
-        signal,
-        keepalive: keepalive && size <= KEEPALIVE_MAX_BYTES,
-        redirectOn401: !keepalive, // never navigate from a page that is closing
-      }),
-    size,
-  )
-}
 
 /** Keeps a copy that must not be merged into the page as a version only this user can see. Safe to repeat. */
 export function saveRecovered(nodeId: string, body: { state: string; text: string; baseEpoch: number }) {

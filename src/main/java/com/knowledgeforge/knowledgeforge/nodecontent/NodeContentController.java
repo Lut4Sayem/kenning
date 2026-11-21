@@ -3,6 +3,7 @@ package com.knowledgeforge.knowledgeforge.nodecontent;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+/** Reading only: page content is written by the collaboration service (CollabController's internal API). */
 public class NodeContentController {
     private final NodeContentService service;
 
@@ -13,10 +14,5 @@ public class NodeContentController {
     @GetMapping("/api/nodes/{id}/content")
     public ContentDTO get(@PathVariable String id) {
         return service.get(id);
-    }
-
-    @PutMapping("/api/nodes/{id}/content")
-    public SavedDTO save(@PathVariable String id, @RequestBody SaveContentRequest request) {
-        return service.save(id, request);
     }
 }

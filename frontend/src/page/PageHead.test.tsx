@@ -15,7 +15,7 @@ const nodesApi = vi.hoisted(() => ({ getNode: vi.fn(), updateNode: vi.fn(), publ
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
-const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
+const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
 vi.mock('../api/content', () => contentApi)
 const versionsApi = vi.hoisted(() => ({ listVersions: vi.fn(), getVersion: vi.fn(), restoreVersion: vi.fn(), nameVersion: vi.fn(), endSession: vi.fn() }))
 vi.mock('../api/versions', () => versionsApi)

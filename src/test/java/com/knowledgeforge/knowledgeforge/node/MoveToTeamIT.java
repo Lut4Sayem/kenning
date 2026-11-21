@@ -4,7 +4,6 @@ import com.knowledgeforge.knowledgeforge.comment.Comment;
 import com.knowledgeforge.knowledgeforge.comment.CommentRepository;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
-import com.knowledgeforge.knowledgeforge.nodecontent.SaveContentRequest;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersion;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersionRepository;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersionService;
@@ -47,7 +46,7 @@ class MoveToTeamIT extends NodeIntegrationTest {
 
     private NodeDTO privatePage(String title, String parentId) {
         NodeDTO p = nodeService.create(mine.getId(), new CreateNodeRequest(parentId, title, null));
-        contentService.save(p.id(), new SaveContentRequest(0L, "AQID", "text of " + title));
+        store(p.id(), 0L, "AQID", "text of " + title);
         return p;
     }
 

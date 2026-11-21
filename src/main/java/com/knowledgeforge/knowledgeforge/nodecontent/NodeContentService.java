@@ -48,16 +48,6 @@ public class NodeContentService {
         return new ContentDTO(c.getFormat().name(), Base64.getEncoder().encodeToString(c.getState()), c.getRevision(), c.getContentEpoch());
     }
 
-    /** One atomic findAndModify on {_id, revision}: a save from an old revision matches nothing and gets 409. */
-    public SavedDTO save(String nodeId, SaveContentRequest req) {
-        Node node = access.requireEdit(nodeId);
-        User user = access.currentUser();
-        if (req.baseRevision() == null) throw bad("baseRevision is required");
-        String text = req.text() == null ? "" : req.text();
-        return write(node, req.baseRevision(), null, decodeState(req.state(), text), text,
-                List.of(new ObjectId(user.getId())), new UserRef(user.getId(), user.getDisplayName(), user.getProfilePicture()));
-    }
-
     /** Content as stored, for the collaboration service (no user: the internal API checked its secret). */
     public ContentDTO contentFor(String nodeId) {
         NodeContent c = contents.findById(nodeId).orElseThrow(NodeContentService::notFound);
@@ -85,6 +75,7 @@ public class NodeContentService {
         return write(node, req.baseRevision(), req.baseEpoch(), state, text, authors, by);
     }
 
+    /** One atomic findAndModify on {_id, revision[, contentEpoch]}: a store from an old revision or epoch matches nothing. */
     private SavedDTO write(Node node, long baseRevision, Integer baseEpoch, byte[] state, String text, List<ObjectId> authors, UserRef by) {
         String nodeId = node.getId();
         Date now = new Date();
