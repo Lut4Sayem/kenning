@@ -31,8 +31,9 @@ export const IN_TRASH = 'This page is in the trash'
 export const KEPT_IN_TRASH = 'This page is in the trash. Your last changes are kept on this device and are added back if the page is restored.'
 export const KEPT_LOCKED = 'This page is locked. Your last changes are kept on this device and are added back if it is unlocked.'
 export const KEPT_ARCHIVED = 'This page is archived. Your last changes are kept on this device and are added back if it is unarchived.'
-/** Notices of a copy kept on the device because the page can come back (trash, lock, archive). */
-export const KEPT_NOTICES = new Set([KEPT_IN_TRASH, KEPT_LOCKED, KEPT_ARCHIVED])
+export const KEPT_FOR_NOW = "You can't edit this page right now. Your last changes are kept on this device and are sent when you can edit again."
+/** Notices of a copy kept on the device because editing can come back (trash, lock, archive, unclear refusal). */
+export const KEPT_NOTICES = new Set([KEPT_IN_TRASH, KEPT_LOCKED, KEPT_ARCHIVED, KEPT_FOR_NOW])
 export const LOST_NOTICE = "You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving."
 
 export interface Opened {

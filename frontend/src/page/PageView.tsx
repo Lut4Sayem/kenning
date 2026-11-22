@@ -11,7 +11,7 @@ import { getMe, getMySpaces, type MySpace } from '../api/spaces'
 import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
 import { toBase64 } from '../editor/base64'
-import { IN_TRASH, KEPT_ARCHIVED, KEPT_IN_TRASH, KEPT_LOCKED, KEPT_NOTICES, LOST_NOTICE, openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
+import { IN_TRASH, KEPT_ARCHIVED, KEPT_FOR_NOW, KEPT_IN_TRASH, KEPT_LOCKED, KEPT_NOTICES, LOST_NOTICE, openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
 import { NEAR_LIMIT, TOO_LARGE, TOO_MANY, useCollab } from '../editor/collab'
 import Editor, { useKfEditor } from '../editor/Editor'
 import { userColor } from '../editor/userColor'
@@ -612,13 +612,18 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
   /**
    * Why edits here cannot be stored right now, as the notice for a copy that stays on the device because the page can
    * come back (trash, lock, archive), or undefined when they can never be stored (role or membership lost).
+   * A refused ticket alone proves nothing (a proxy, a rotated cookie): only the page itself answering 403/404 does.
    */
   async function whyNotEditable(): Promise<string | undefined> {
-    if (collab.problem === 'gone') return collab.message === IN_TRASH ? KEPT_IN_TRASH : undefined
-    const n = await getNode(node.id).catch(() => null)
-    if (n?.status === 'ARCHIVED') return KEPT_ARCHIVED
-    if (n?.locked) return KEPT_LOCKED
-    return undefined
+    try {
+      const n = await getNode(node.id)
+      if (n.status === 'ARCHIVED') return KEPT_ARCHIVED
+      if (n.locked) return KEPT_LOCKED
+      return n.access === 'EDIT' ? KEPT_FOR_NOW : undefined
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404 && e.message === IN_TRASH) return KEPT_IN_TRASH
+      return e instanceof ApiError && (e.status === 403 || e.status === 404) ? undefined : KEPT_FOR_NOW
+    }
   }
 
   // Restored while open (D6): unconfirmed edits become a private version first ('recovered' below), else reload now.

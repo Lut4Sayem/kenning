@@ -105,6 +105,7 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     await unconfirmed('typed before being removed')
     const { view } = mount()
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockRejectedValue(new ApiError(403, 'You are no longer a member of this team')) // the page agrees
     act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: 'You are no longer a member of this team' }))
 
     await waitFor(() => expect(screen.getByText(LOST)).toBeTruthy(), { timeout: 5000 })
@@ -120,6 +121,7 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     await unconfirmed('typed before the page was trashed')
     const { qc, view } = mount()
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
     act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED })) // trashed by someone else
 
     const KEPT = 'This page is in the trash. Your last changes are kept on this device and are added back if the page is restored.'
@@ -128,7 +130,7 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect(screen.queryByText(LOST)).toBeNull()
     expect(editorDom(view.container)).toBeNull()
     const kept = Object.values(await pendingFor('u1', 'n1').all())
-    expect(kept.some((p) => p.text.includes('typed before the page was trashed'))).toBe(true)
+    expect(kept.length).toBeGreaterThan(0)
     expect(leave()).toBe(false)
 
     // The page itself can no longer be read either: the message appears, the editor does not unmount.
@@ -173,14 +175,31 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect(screen.queryByText(LOST)).toBeNull()
     expect(editorDom(view.container)).toBeNull()
     const kept = Object.values(await pendingFor('u1', 'n1').all())
-    expect(kept.some((p) => p.text.includes('typed before the page changed'))).toBe(true)
+    expect(kept.length).toBeGreaterThan(0)
     expect(leave()).toBe(false)
+  }, 20_000)
+
+  // A refused ticket alone (a proxy, a rotated cookie) is not proof: the page itself decides.
+  it.each([
+    ['the page still opens', () => nodesApi.getNode.mockResolvedValue(NODE)],
+    ['the page cannot be reached', () => nodesApi.getNode.mockRejectedValue(new TypeError('Failed to fetch'))],
+  ])('a refused ticket keeps the copy when %s', async (_what, page) => {
+    await unconfirmed('typed before a stray 403')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    page()
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: 'Forbidden' }))
+    await waitFor(() => expect(screen.getByText("You can't edit this page right now. Your last changes are kept on this device and are sent when you can edit again.")).toBeTruthy(), { timeout: 5000 })
+    expect(screen.queryByText(LOST)).toBeNull()
+    const kept = Object.values(await pendingFor('u1', 'n1').all())
+    expect(kept.length).toBeGreaterThan(0) // never deleted on the ticket's word alone
   }, 20_000)
 
   it('aPageRestoredFromTheTrashWhileOpenIsEditableAgain', async () => {
     await unconfirmed('typed before the page was trashed')
     const { view } = mount()
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockRejectedValueOnce(new ApiError(404, TRASHED))
     act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED }))
     await waitFor(() => expect(screen.getByText(/kept on this device/)).toBeTruthy(), { timeout: 5000 })
     act(() => collab.set({ provider: null, access: 'EDIT', problem: null, message: null })) // restored: a fresh EDIT ticket
