@@ -13,6 +13,8 @@ RUN ./mvnw dependency:go-offline -B
 
 COPY src ./src
 COPY frontend ./frontend
+# the frontend build type-checks a test that shares these page fixtures with the collaboration service
+COPY collab/test/fixtures ./collab/test/fixtures
 RUN ./mvnw clean package -DskipTests
 
 # --- STAGE 2: Run the application ---
