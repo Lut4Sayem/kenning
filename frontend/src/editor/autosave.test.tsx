@@ -507,6 +507,24 @@ describe('autosave', () => {
     expect(leave()).toBe(false) // nothing is lost by leaving
   })
 
+  // Review finding: unlocked, restored from the trash or a fresh EDIT ticket: the edits sync again, so keep them again.
+  it.each([false, true])('editRightsBackStoreTheCopyAgainUntilConfirmed (inTrash %s)', async (inTrash) => {
+    const { a, doc, provider } = await openTab()
+    type(doc, 'came back')
+    await tick(0)
+    a.lost(inTrash)
+    await tick(0)
+    a.regained()
+    await tick(0)
+    expect(a.state).toBe('saving')
+    expect(pending()).toMatchObject({ text: 'base came back' })
+    type(doc, ' and more')
+    provider.saved(doc)
+    await tick(0)
+    expect(a.state).toBe('saved')
+    expect(pending()).toBeUndefined()
+  })
+
   it('lostWithNothingUnsavedChangesNothing', async () => {
     const { a } = await openTab()
     expect(a.lost()).toBe(true)

@@ -110,6 +110,9 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
         }
         viewer = t.access !== 'EDIT'
         setAccess(t.access)
+        // a ticket again (restored from the trash, access given back): the earlier refusal no longer holds
+        setProblem((p) => (p === 'gone' ? null : p))
+        setMessage(null)
         p.awareness?.setLocalStateField('kf', { userId, viewer })
         return t.ticket
       },

@@ -157,6 +157,18 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     expect(leave()).toBe(true)
   }, 20_000)
 
+  it('aPageRestoredFromTheTrashWhileOpenIsEditableAgain', async () => {
+    await unconfirmed('typed before the page was trashed')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED }))
+    await waitFor(() => expect(screen.getByText(/kept on this device/)).toBeTruthy(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: null, message: null })) // restored: a fresh EDIT ticket
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    await waitFor(() => expect(screen.queryByText('Not saved')).toBeNull())
+    expect(screen.queryByText(/added back if the page is restored/)).toBeNull()
+  }, 20_000)
+
   it('lostAccessWithNothingUnsavedOnlyShowsTheReason', async () => {
     await clearPendingOf('u1')
     const { view } = mount()

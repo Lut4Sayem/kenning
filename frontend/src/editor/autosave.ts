@@ -296,6 +296,18 @@ export class Autosave {
     return false
   }
 
+  /** Edit rights are back (unlocked, restored from the trash): the edits sync again, so the copy is kept again. */
+  regained() {
+    if (!this.lostEdits || this.stopped) return
+    this.lostEdits = false
+    this.kept = false
+    this.message = undefined
+    void this.storePending()
+    this.state = 'failed' // so the next line always reports
+    if (this.dirty) this.showConnection()
+    else this.setState('saved')
+  }
+
   private readText(): string {
     try {
       return this.getText()
@@ -423,7 +435,7 @@ export function useAutosave(
   getText: () => string,
   enabled: boolean,
   provider: ProviderEvents | null | undefined,
-): SaveStatus & { restored: () => boolean; lost: (inTrash?: boolean) => boolean } {
+): SaveStatus & { restored: () => boolean; lost: (inTrash?: boolean) => boolean; regained: () => void } {
   const [status, setStatus] = useState<SaveStatus>({ state: opened.state, local: true })
   const [text] = useState(() => ({ read: getText }))
   text.read = getText
@@ -441,5 +453,5 @@ export function useAutosave(
   }, [nodeId, opened, enabled, text, provider])
 
   /** See Autosave.restored / Autosave.lost; true without edit access (nothing is kept here). */
-  return { ...status, restored: () => live.current?.restored() ?? true, lost: (inTrash?: boolean) => live.current?.lost(inTrash) ?? true }
+  return { ...status, restored: () => live.current?.restored() ?? true, lost: (inTrash?: boolean) => live.current?.lost(inTrash) ?? true, regained: () => live.current?.regained() }
 }

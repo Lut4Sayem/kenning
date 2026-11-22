@@ -513,7 +513,7 @@ function PageContent({ node, userId, userName, slots, onSaveState, onReadOnly, s
           stateRef={stateRef}
           titleSaving={titleSaving}
           onReload={() => setReloads((r) => r + 1)}
-          onLost={() => (holding.current = true)}
+          onLost={(on) => (holding.current = on)}
           // The local copy is now a private version: say so and load what the server has.
           onRecovered={() => {
             setNotice(RECOVERED_NOTICE)
@@ -539,7 +539,7 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
   /** Opens the content again from the server. */
   onReload: () => void
   /** Unsaved edits that can never be stored stay on screen. */
-  onLost: () => void
+  onLost: (on: boolean) => void
   onSaveState: (s: SaveState) => void
   onReadOnly: (readOnly: boolean) => void
   stateRef: MutableRefObject<() => string>
@@ -587,7 +587,13 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
   useEffect(() => {
     if (rightsGone && !save.lost(collab.problem === 'gone' && collab.message === IN_TRASH)) {
       setLost(true)
-      onLost()
+      onLost(true)
+    }
+    // rights back (unlocked, restored from the trash): the edits sync again and are kept again
+    if (!rightsGone && lost) {
+      save.regained()
+      setLost(false)
+      onLost(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rightsGone])
