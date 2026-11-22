@@ -88,7 +88,7 @@ Yjs is a CRDT: every client's edits are small updates that merge in any order to
 
 ### 7.6 Versions
 - The existing session job keeps making AUTO versions from `editSession`; authors now come from collab.
-- Named versions / publish: Spring first calls `POST collab/internal/nodes/{id}/flush` (collab stores now if the doc is open, returns the revision), then snapshots from the DB as today. If collab is unreachable, snapshot what is stored and say so in the response.
+- Named versions / publish: Spring first calls `POST collab/internal/nodes/{id}/flush` (collab stores now if the doc is open, returns the revision), then snapshots from the DB as today. If the flush fails (collab unreachable), snapshot what is stored and say so in the response: both return `liveEditsMissing: true` (owner, 2026-11-22). After publishing, the client then shows "Published, but the newest live edits may be missing." instead of the usual confirmation.
 
 ### 7.7 Presence (awareness)
 - BlockNote `collaboration: {provider, fragment: ydoc.getXmlFragment('document-store'), user: {name, color}}` gives cursors, selections and name tags.

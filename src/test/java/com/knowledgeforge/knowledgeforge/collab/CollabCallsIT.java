@@ -2,6 +2,7 @@ package com.knowledgeforge.knowledgeforge.collab;
 
 import com.knowledgeforge.knowledgeforge.node.CreateNodeRequest;
 import com.knowledgeforge.knowledgeforge.node.NodeDTO;
+import com.knowledgeforge.knowledgeforge.node.PublishedDTO;
 import com.knowledgeforge.knowledgeforge.node.TrashService;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersion;
@@ -34,6 +35,7 @@ class CollabCallsIT extends NodeIntegrationTest {
     @Autowired NodeVersionService versions;
     @Autowired TeamService teams;
     @Autowired TrashService trash;
+    @Autowired tools.jackson.databind.json.JsonMapper json;
 
     private static String b64(String s) {
         return Base64.getEncoder().encodeToString(s.getBytes(StandardCharsets.UTF_8));
@@ -121,7 +123,21 @@ class CollabCallsIT extends NodeIntegrationTest {
     @Test
     void publishFlushesFirst() {
         NodeDTO p = createPage("A");
-        nodeService.publish(p.id());
+        when(collab.flush(p.id())).thenReturn(true);
+        assertFalse(nodeService.publish(p.id()).liveEditsMissing());
         verify(collab).flush(p.id());
+    }
+
+    @Test
+    void publishWhenTheFlushFailsPublishesWhatIsStoredAndSaysSo() throws Exception {
+        NodeDTO p = createPage("A");
+        store(p.id(), 0, b64("v1"), "v1");
+        when(collab.flush(p.id())).thenReturn(false);
+        PublishedDTO published = nodeService.publish(p.id());
+        assertTrue(published.liveEditsMissing());
+        assertEquals(1, versionsOf(p.id()));
+        String body = json.writeValueAsString(published); // same shape as a node, plus the warning
+        assertTrue(body.contains("\"publishState\":\"PUBLISHED\""), body);
+        assertTrue(body.contains("\"liveEditsMissing\":true"), body);
     }
 }

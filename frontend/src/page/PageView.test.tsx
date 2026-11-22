@@ -353,6 +353,14 @@ describe('publish', () => {
     await waitFor(() => expect(nodesApi.unpublishNode).toHaveBeenCalledWith('n1'))
     expect(await screen.findByRole('button', { name: 'Publish' })).toBeTruthy() // a draft again
   })
+
+  it('publishingWhileTheNewestLiveEditsCouldNotBeStoredSaysSo', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, publishState: 'DRAFT' })
+    nodesApi.publishNode.mockResolvedValue({ ...NODE, liveEditsMissing: true })
+    mount()
+    fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    expect(await screen.findByText('Published, but the newest live edits may be missing.')).toBeTruthy()
+  })
 })
 
 // QA-58: Undo after Move to trash reopened the page from the cache and saved an empty title over the real one.

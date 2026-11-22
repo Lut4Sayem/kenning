@@ -26,7 +26,7 @@ class NodeStateIT extends NodeIntegrationTest {
     void publishFlipsState() {
         NodeDTO p = createPage("A");
         assertEquals(PublishState.DRAFT, p.publishState());
-        assertEquals(PublishState.PUBLISHED, nodeService.publish(p.id()).publishState());
+        assertEquals(PublishState.PUBLISHED, nodeService.publish(p.id()).node().publishState());
         assertEquals(PublishState.PUBLISHED, contents.findById(p.id()).orElseThrow().getSearch().getPublishState());
         assertEquals(PublishState.DRAFT, nodeService.unpublish(p.id()).publishState());
         assertEquals(PublishState.DRAFT, contents.findById(p.id()).orElseThrow().getSearch().getPublishState());

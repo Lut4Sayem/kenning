@@ -233,14 +233,14 @@ public class NodeService {
     }
 
     /** Records the published content as a PUBLISHED version, then flips the state. */
-    public NodeDTO publish(String id) {
+    public PublishedDTO publish(String id) {
         access.requireEdit(id);
-        collab.flush(id); // live edits first; if collab is down the version has what was stored last
+        boolean missing = !collab.flush(id); // live edits first; if collab is down the version has what was stored last
         versions.createVersion(id, VersionKind.PUBLISHED, null); // first: a missing content (404) must leave the state alone
         NodeDTO published = setPublishState(id, PublishState.PUBLISHED);
         Node n = nodes.findById(id).orElseThrow();
         log("PUBLISH_NODE", space(n.getSpaceId()), access.currentUser(), n);
-        return published;
+        return new PublishedDTO(published, missing);
     }
 
     /** Team feed events only (personal spaces have no team). Edits are not logged: autosave would flood the feed. */

@@ -126,11 +126,12 @@ export default function PageView() {
   })
   const publish = useMutation({
     mutationFn: () => publishNode(nodeId),
-    onSuccess: async (updated) => {
+    onSuccess: async ({ liveEditsMissing, ...updated }) => {
       qc.setQueryData(['node', nodeId], updated)
       // QA-26: say who can now read it, and offer the way back.
       const team = qc.getQueryData<MySpace[]>(['spaces'])?.find((x) => x.id === updated.spaceId)?.teamName
-      toast(team ? `Published to ${team}` : 'Published', 'info', {
+      const text = liveEditsMissing ? 'Published, but the newest live edits may be missing.' : team ? `Published to ${team}` : 'Published'
+      toast(text, liveEditsMissing ? 'error' : 'info', {
         action: {
           label: 'Undo',
           run: () => void unpublishNode(updated.id)
