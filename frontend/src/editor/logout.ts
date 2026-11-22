@@ -2,9 +2,9 @@
 // first every local copy of this user is sent through the live session (same rules as opening a page), and only
 // what the collaboration service confirmed it stored is cleared. If something could not be sent, the user decides.
 import * as Y from 'yjs'
-import { api } from '../api/client'
+import { api, ApiError } from '../api/client'
 import { getContent, saveRecovered } from '../api/content'
-import { covers, needOf } from './autosave'
+import { covers, IN_TRASH, needOf } from './autosave'
 import { fromBase64 } from './base64'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import { clearPendingOf, pendingFor, pendingPages, type PendingStore } from './pendingStore'
@@ -39,8 +39,14 @@ async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean):
     if (!covers(Y.snapshot(stored), needOf(doc)) && !(await pushDoc(nodeId, doc, server.contentEpoch))) return false
     for (const slot of sameEpoch) await store.clear(slot)
     return true
-  } catch {
-    return false // offline, refused, unreadable copy: it stays on the device
+  } catch (e) {
+    // Purged, or this user cannot read the page any more: the copy can never be sent. A page in the trash keeps it
+    // (it is sent if the page is restored); offline, refused or unreadable: it stays on the device too.
+    if (e instanceof ApiError && (e.status === 403 || (e.status === 404 && e.message !== IN_TRASH))) {
+      for (const slot of Object.keys(await store.all())) await store.clear(slot)
+      return true
+    }
+    return false
   }
 }
 

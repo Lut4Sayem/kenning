@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
+import { ApiError } from '../api/client'
 import { fromBase64, toBase64 } from './base64'
 import { logOut, sendAllPending } from './logout'
 import type { Pending } from './pendingStore'
@@ -104,6 +105,46 @@ afterEach(() => {
   idb.clear()
   vi.clearAllMocks()
   vi.unstubAllGlobals()
+})
+
+describe('a copy of a page that is trashed, purged or out of reach', () => {
+  const refuse = (id: string, status: number, message: string) =>
+    contentApi.getContent.mockImplementation(async (n: string) => {
+      if (n === id) throw new ApiError(status, message)
+      const p = pages.get(n)!
+      return { format: 'YJS_BLOCKNOTE_V1', state: p.state, revision: p.revision, contentEpoch: p.epoch }
+    })
+
+  it('isKeptWhileThePageIsInTheTrash', async () => {
+    pageWithUnsaved('n1', 'in trash')
+    refuse('n1', 404, 'This page is in the trash')
+    expect(await sendAllPending(ME)).toBe(1)
+    expect(Object.keys(slotsOf('n1'))).toHaveLength(1)
+  })
+
+  it('isSentOnceThePageIsBackFromTheTrash', async () => {
+    pageWithUnsaved('n1', 'restored later')
+    refuse('n1', 404, 'This page is in the trash')
+    await sendAllPending(ME)
+    contentApi.getContent.mockReset()
+    contentApi.getContent.mockImplementation(async (id: string) => {
+      const p = pages.get(id)!
+      return { format: 'YJS_BLOCKNOTE_V1', state: p.state, revision: p.revision, contentEpoch: p.epoch }
+    })
+    expect(await sendAllPending(ME)).toBe(0)
+    expect(textOf(docOf(pages.get('n1')!.state))).toContain('restored later')
+    expect(Object.keys(slotsOf('n1'))).toHaveLength(0)
+  })
+
+  it.each([
+    ['purged', 404, 'Page not found'],
+    ['access lost', 403, 'You do not have access to this page'],
+  ])('isDeletedWhenThePageIs %s', async (_what, status, message) => {
+    pageWithUnsaved('n1', 'never sendable')
+    refuse('n1', status, message)
+    expect(await sendAllPending(ME)).toBe(0)
+    expect(Object.keys(slotsOf('n1'))).toHaveLength(0)
+  })
 })
 
 describe('logging out with unsaved local copies', () => {

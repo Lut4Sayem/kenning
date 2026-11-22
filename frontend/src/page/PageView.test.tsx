@@ -102,18 +102,34 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
   }
 
   it('lostAccessWithUnsavedEditsKeepsTheTextOnScreenButDropsTheCopy', async () => {
-    await unconfirmed('typed before the page was trashed')
-    const { qc, view } = mount()
+    await unconfirmed('typed before being removed')
+    const { view } = mount()
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
-    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED })) // trashed by someone else
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: 'You are no longer a member of this team' }))
 
     await waitFor(() => expect(screen.getByText(LOST)).toBeTruthy(), { timeout: 5000 })
-    expect(screen.getByText(TRASHED)).toBeTruthy()
     expect(screen.getByText('Not saved')).toBeTruthy()
     expect(editorDom(view.container)).toBeNull() // read-only, text still there
     await waitFor(async () => expect(Object.keys(await pendingFor('u1', 'n1').all())).toHaveLength(0))
     expect(leave()).toBe(true)
     expect(contentApi.saveRecovered).not.toHaveBeenCalled()
+  }, 20_000)
+
+  // Option C: the page can come back from the trash, so the copy stays on the device until then.
+  it('aPageTrashedWithUnsavedEditsKeepsTheCopyOnTheDevice', async () => {
+    await unconfirmed('typed before the page was trashed')
+    const { qc, view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED })) // trashed by someone else
+
+    const KEPT = 'This page is in the trash. Your last changes are kept on this device and are added back if the page is restored.'
+    await waitFor(() => expect(screen.getByText(KEPT)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.getByText('Not saved')).toBeTruthy()
+    expect(screen.queryByText(LOST)).toBeNull()
+    expect(editorDom(view.container)).toBeNull()
+    const kept = Object.values(await pendingFor('u1', 'n1').all())
+    expect(kept.some((p) => p.text.includes('typed before the page was trashed'))).toBe(true)
+    expect(leave()).toBe(false)
 
     // The page itself can no longer be read either: the message appears, the editor does not unmount.
     nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))

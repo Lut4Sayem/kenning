@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
 import { ApiError } from '../api/client'
-import { Autosave, covers, openContent, LOST_NOTICE, RECOVERED_NOTICE, type Opened, type SaveState, type SaveStatus } from './autosave'
+import { Autosave, covers, openContent, KEPT_IN_TRASH, LOST_NOTICE, RECOVERED_NOTICE, type Opened, type SaveState, type SaveStatus } from './autosave'
 import { fromBase64, toBase64 } from './base64'
 import type { Pending } from './pendingStore'
 import SaveIndicator from './SaveIndicator'
@@ -477,6 +477,19 @@ describe('autosave', () => {
     provider.capSettled()
     await tick(0)
     expect(a.state).toBe('saved')
+  })
+
+  // Option C: a page in the trash can come back; its copy stays on the device until then (or until it is purged).
+  it('inTheTrashTheCopyIsKeptAndLeavingDoesNotAsk', async () => {
+    const { a, doc } = await openTab()
+    type(doc, 'kept for a restore')
+    await tick(0)
+    expect(a.lost(true)).toBe(false)
+    await tick(0)
+    expect(a.state).toBe('failed')
+    expect(a.message).toBe(KEPT_IN_TRASH)
+    expect(pending()).toMatchObject({ text: 'base kept for a restore' })
+    expect(leave()).toBe(false) // nothing is lost by leaving
   })
 
   it('lostWithNothingUnsavedChangesNothing', async () => {

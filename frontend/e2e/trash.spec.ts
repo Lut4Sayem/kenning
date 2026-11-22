@@ -68,17 +68,17 @@ test('trash a parent with 2 children, restore it, the tree is back', async ({ pa
   await expect(page.locator('[data-space]').first().getByRole('treeitem', { name: 'Parent' })).toBeVisible()
 })
 
-test('a page trashed while it is open keeps the typed text on screen and says it was not saved', async ({ page }) => {
+test('a page trashed while it is open keeps the typed text on screen and on the device', async ({ page }) => {
   const { parent } = await privateSpaceWithBranch(page)
   await page.goto(`/app/p/${parent.id}`)
   await page.locator('.bn-editor[contenteditable="true"]').click()
   await page.keyboard.type('Words that must survive')
   await call(page, 'post', `/api/nodes/${parent.id}/trash`) // someone trashes the page before the autosave fires
 
-  await expect(page.getByText("You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving.")).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('This page is in the trash. Your last changes are kept on this device and are added back if the page is restored.')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('Not saved', { exact: true })).toBeVisible()
-  await expect(page.locator('.bn-editor')).toContainText('Words that must survive') // still on screen to copy
-  // the local copy can never be sent: it is gone from the device
+  await expect(page.locator('.bn-editor')).toContainText('Words that must survive') // still on screen
+  // and on the device, to be sent if the page is restored
   const kept = () =>
     page.evaluate(
       () =>
@@ -91,5 +91,5 @@ test('a page trashed while it is open keeps the typed text on screen and says it
           }
         }),
     )
-  await expect.poll(kept).not.toContain('Words that must survive')
+  expect(await kept()).toContain('Words that must survive')
 })

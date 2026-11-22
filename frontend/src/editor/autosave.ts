@@ -26,6 +26,9 @@ export interface SaveStatus {
 }
 
 export const RECOVERED_NOTICE = 'Your unsaved changes were kept as a private version because this page was restored'
+/** Spring's reason when a page is in the trash (NodeAccessService). */
+export const IN_TRASH = 'This page is in the trash'
+export const KEPT_IN_TRASH = 'This page is in the trash. Your last changes are kept on this device and are added back if the page is restored.'
 export const LOST_NOTICE = "You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving."
 
 export interface Opened {
@@ -206,6 +209,8 @@ export class Autosave {
   private need: Need = { clocks: new Map(), deletes: new Map() }
   /** Edits here can never be stored any more (see lost()). */
   private lostEdits = false
+  /** ...but the local copy is kept (page in the trash): leaving loses nothing. */
+  private kept = false
   private writing: Promise<boolean> = Promise.resolve(true)
 
   constructor(
@@ -263,13 +268,19 @@ export class Autosave {
   /**
    * Edit rights are gone (or the edits were refused at the size limit): what is unconfirmed here can never be sent.
    * The text stays on screen and leaving still asks first, but the local copy goes and no version is made.
+   * `inTrash`: the page can still be restored, so the copy stays on the device (sent then) and leaving is safe.
    * Returns true when nothing was unconfirmed.
    */
-  lost(): boolean {
+  lost(inTrash = false): boolean {
     if (!this.dirty || this.recover) return !this.dirty
     if (this.lostEdits) return false
     this.lostEdits = true
     clearTimeout(this.timer)
+    if (inTrash) {
+      this.kept = true
+      this.setState('failed', KEPT_IN_TRASH)
+      return false
+    }
     const slots = [this.opened.slot, ...(this.opened.adopt ?? [])]
     void this.writing.then(() => Promise.all(slots.map((id) => this.opened.store.clear(id))))
     this.setState('failed', LOST_NOTICE)
@@ -361,7 +372,7 @@ export class Autosave {
   }
 
   private onBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (!this.dirty) return
+    if (!this.dirty || this.kept) return
     e.preventDefault()
     e.returnValue = '' // older browsers need this to show the "Leave page?" prompt
   }
@@ -403,7 +414,7 @@ export function useAutosave(
   getText: () => string,
   enabled: boolean,
   provider: ProviderEvents | null | undefined,
-): SaveStatus & { restored: () => boolean; lost: () => boolean } {
+): SaveStatus & { restored: () => boolean; lost: (inTrash?: boolean) => boolean } {
   const [status, setStatus] = useState<SaveStatus>({ state: opened.state, local: true })
   const [text] = useState(() => ({ read: getText }))
   text.read = getText
@@ -421,5 +432,5 @@ export function useAutosave(
   }, [nodeId, opened, enabled, text, provider])
 
   /** See Autosave.restored / Autosave.lost; true without edit access (nothing is kept here). */
-  return { ...status, restored: () => live.current?.restored() ?? true, lost: () => live.current?.lost() ?? true }
+  return { ...status, restored: () => live.current?.restored() ?? true, lost: (inTrash?: boolean) => live.current?.lost(inTrash) ?? true }
 }
