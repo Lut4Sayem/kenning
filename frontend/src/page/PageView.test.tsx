@@ -144,17 +144,37 @@ describe('an open page that is trashed, archived or locked meanwhile', () => {
     const { qc, view } = mount()
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
     const opens = contentApi.getContent.mock.calls.length
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW' }) // the role changed: not locked, not archived
     act(() => collab.set({ provider: null, access: 'VIEW', problem: null, message: null }))
     await waitFor(() => expect(screen.getByText(LOST)).toBeTruthy(), { timeout: 5000 })
 
-    // The page is fetched again and says VIEW now: the content must not reload over the unsaved text.
-    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW' })
+    // The page query says VIEW now too: the content must not reload over the unsaved text.
     await qc.invalidateQueries({ queryKey: ['node', 'n1'] })
     await new Promise((r) => setTimeout(r, 300))
     expect(contentApi.getContent.mock.calls.length).toBe(opens)
     expect(view.container.querySelector('.bn-editor')).not.toBeNull() // same opened copy, not loaded again
     expect(screen.getByText(LOST)).toBeTruthy()
     expect(leave()).toBe(true)
+  }, 20_000)
+
+  // Locked or archived can be undone, like the trash: the copy stays on the device until then.
+  it.each([
+    ['locked', { locked: true }, 'This page is locked. Your last changes are kept on this device and are added back if it is unlocked.'],
+    ['archived', { status: 'ARCHIVED' }, 'This page is archived. Your last changes are kept on this device and are added back if it is unarchived.'],
+  ])('a page %s with unsaved edits keeps the copy on the device', async (_what, state, notice) => {
+    await unconfirmed('typed before the page changed')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockResolvedValue({ ...NODE, ...state, access: 'VIEW' })
+    act(() => collab.set({ provider: null, access: 'VIEW', problem: null, message: null }))
+
+    await waitFor(() => expect(screen.getByText(notice)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.getByText('Not saved')).toBeTruthy()
+    expect(screen.queryByText(LOST)).toBeNull()
+    expect(editorDom(view.container)).toBeNull()
+    const kept = Object.values(await pendingFor('u1', 'n1').all())
+    expect(kept.some((p) => p.text.includes('typed before the page changed'))).toBe(true)
+    expect(leave()).toBe(false)
   }, 20_000)
 
   it('aPageRestoredFromTheTrashWhileOpenIsEditableAgain', async () => {

@@ -29,6 +29,10 @@ export const RECOVERED_NOTICE = 'Your unsaved changes were kept as a private ver
 /** Spring's reason when a page is in the trash (NodeAccessService). */
 export const IN_TRASH = 'This page is in the trash'
 export const KEPT_IN_TRASH = 'This page is in the trash. Your last changes are kept on this device and are added back if the page is restored.'
+export const KEPT_LOCKED = 'This page is locked. Your last changes are kept on this device and are added back if it is unlocked.'
+export const KEPT_ARCHIVED = 'This page is archived. Your last changes are kept on this device and are added back if it is unarchived.'
+/** Notices of a copy kept on the device because the page can come back (trash, lock, archive). */
+export const KEPT_NOTICES = new Set([KEPT_IN_TRASH, KEPT_LOCKED, KEPT_ARCHIVED])
 export const LOST_NOTICE = "You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving."
 
 export interface Opened {
@@ -282,17 +286,17 @@ export class Autosave {
   /**
    * Edit rights are gone (or the edits were refused at the size limit): what is unconfirmed here can never be sent.
    * The text stays on screen and leaving still asks first, but the local copy goes and no version is made.
-   * `inTrash`: the page can still be restored, so the copy stays on the device (sent then) and leaving is safe.
-   * Returns true when nothing was unconfirmed.
+   * `keep`: the page can come back (trash, lock, archive), so the copy stays on the device (sent then), leaving is
+   * safe, and this notice says so. Returns true when nothing was unconfirmed.
    */
-  lost(inTrash = false): boolean {
+  lost(keep?: string): boolean {
     if (!this.dirty || this.recover) return !this.dirty
     if (this.lostEdits) return false
     this.lostEdits = true
     clearTimeout(this.timer)
-    if (inTrash) {
+    if (keep) {
       this.kept = true
-      this.setState('failed', KEPT_IN_TRASH)
+      this.setState('failed', keep)
       return false
     }
     const slots = [this.opened.slot, ...(this.opened.adopt ?? [])]
@@ -448,7 +452,7 @@ export function useAutosave(
   getText: () => string,
   enabled: boolean,
   provider: ProviderEvents | null | undefined,
-): SaveStatus & { restored: () => boolean; lost: (inTrash?: boolean) => boolean; regained: () => void } {
+): SaveStatus & { restored: () => boolean; lost: (keep?: string) => boolean; regained: () => void } {
   const [status, setStatus] = useState<SaveStatus>({ state: opened.state, local: true })
   const [text] = useState(() => ({ read: getText }))
   text.read = getText
@@ -466,5 +470,5 @@ export function useAutosave(
   }, [nodeId, opened, enabled, text, provider])
 
   /** See Autosave.restored / Autosave.lost; true without edit access (nothing is kept here). */
-  return { ...status, restored: () => live.current?.restored() ?? true, lost: (inTrash?: boolean) => live.current?.lost(inTrash) ?? true, regained: () => live.current?.regained() }
+  return { ...status, restored: () => live.current?.restored() ?? true, lost: (keep?: string) => live.current?.lost(keep) ?? true, regained: () => live.current?.regained() }
 }

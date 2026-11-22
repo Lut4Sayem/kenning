@@ -11,7 +11,7 @@ import { getMe, getMySpaces, type MySpace } from '../api/spaces'
 import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
 import { toBase64 } from '../editor/base64'
-import { IN_TRASH, KEPT_IN_TRASH, LOST_NOTICE, openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
+import { IN_TRASH, KEPT_ARCHIVED, KEPT_IN_TRASH, KEPT_LOCKED, KEPT_NOTICES, LOST_NOTICE, openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
 import { NEAR_LIMIT, TOO_LARGE, TOO_MANY, useCollab } from '../editor/collab'
 import Editor, { useKfEditor } from '../editor/Editor'
 import { userColor } from '../editor/userColor'
@@ -561,7 +561,7 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
   useEndSessionOnLeave(node.id, canEdit)
   const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit || lost, collab.provider)
   const live = collab.problem === 'too-large' ? TOO_LARGE : collab.problem === 'too-many' ? TOO_MANY : collab.problem === 'gone' ? collab.message ?? undefined : collab.nearLimit ? NEAR_LIMIT : undefined
-  const own = save.message === LOST_NOTICE || save.message === KEPT_IN_TRASH // complete sentences
+  const own = save.message === LOST_NOTICE || KEPT_NOTICES.has(save.message ?? '') // complete sentences
   const saveProblem = save.state === 'failed' ? (own ? save.message : `Not saved: ${save.message}`)
     : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined
 
@@ -585,9 +585,20 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
   // Edit rights gone (removed, trashed, dropped to VIEW): unconfirmed edits can never be stored.
   const rightsGone = collab.problem === 'gone' || collab.access === 'VIEW'
   useEffect(() => {
-    if (rightsGone && !save.lost(collab.problem === 'gone' && collab.message === IN_TRASH)) {
+    if (rightsGone) {
+      // hold the text and the copy logic while finding out why (the node query may say VIEW any moment)
       setLost(true)
       onLost(true)
+      let live = true
+      void whyNotEditable().then((keep) => {
+        if (live && save.lost(keep)) {
+          setLost(false) // nothing was unconfirmed
+          onLost(false)
+        }
+      })
+      return () => {
+        live = false
+      }
     }
     // rights back (unlocked, restored from the trash): the edits sync again and are kept again
     if (!rightsGone && lost) {
@@ -597,6 +608,18 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rightsGone])
+
+  /**
+   * Why edits here cannot be stored right now, as the notice for a copy that stays on the device because the page can
+   * come back (trash, lock, archive), or undefined when they can never be stored (role or membership lost).
+   */
+  async function whyNotEditable(): Promise<string | undefined> {
+    if (collab.problem === 'gone') return collab.message === IN_TRASH ? KEPT_IN_TRASH : undefined
+    const n = await getNode(node.id).catch(() => null)
+    if (n?.status === 'ARCHIVED') return KEPT_ARCHIVED
+    if (n?.locked) return KEPT_LOCKED
+    return undefined
+  }
 
   // Restored while open (D6): unconfirmed edits become a private version first ('recovered' below), else reload now.
   useEffect(() => {
@@ -616,7 +639,7 @@ function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, 
       {(editable || save.state === 'failed') && slots.head && createPortal(<SaveIndicator state={titleSaving && save.state === 'saved' ? 'saving' : save.state} local={save.local} />, slots.head)}
       {collab.provider?.awareness && slots.head && createPortal(<Presence awareness={collab.provider.awareness} selfId={user.id} />, slots.head)}
       {uploadError && slots.banners && createPortal(<SaveNotice onDismiss={() => setUploadError('')}>{uploadError}</SaveNotice>, slots.banners)}
-      {live && save.message !== KEPT_IN_TRASH && slots.banners && createPortal(<SaveNotice>{live}</SaveNotice>, slots.banners)}
+      {live && !KEPT_NOTICES.has(save.message ?? '') && slots.banners && createPortal(<SaveNotice>{live}</SaveNotice>, slots.banners)}
       {saveProblem && slots.banners && createPortal(<SaveNotice>{saveProblem}</SaveNotice>, slots.banners)}
       {!canEdit && node.status !== 'ARCHIVED' && <p className={s.note}>{node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
       <Editor editor={editor} editable={editable} />
