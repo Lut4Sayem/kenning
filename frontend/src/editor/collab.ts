@@ -129,6 +129,11 @@ export function useCollab(nodeId: string, ydoc: Y.Doc, userId: string, enabled: 
       onClose: ({ event }) => {
         if (event.code === CLOSE_RESTORED) setProblem('restored')
         if (event.code === CLOSE_TOO_MANY) tooMany()
+        // a change too large for one message: resending it is refused again, so stop (the copy logic says Not saved)
+        if (event.code === 1009) {
+          setProblem('too-large')
+          p.disconnect()
+        }
       },
       onStateless: ({ payload }) => {
         let m: { type?: string; near?: boolean }

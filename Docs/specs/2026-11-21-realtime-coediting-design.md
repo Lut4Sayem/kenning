@@ -103,7 +103,7 @@ Yjs is a CRDT: every client's edits are small updates that merge in any order to
 ### 7.9 Limits and memory (VM: app ~200 MiB, Caddy ~14 MiB, ~350 MB free)
 - Collab container: `mem_limit: 192m`, Node `--max-old-space-size=128`.
 - Doc unloaded right after the last client leaves and the final store succeeds.
-- Max 25 connections per page, 10 open sockets per user, WebSocket `maxPayload` 1 MB; over the limit -> close `4429`, client shows "Too many people on this page right now."
+- Max 25 connections per page, 10 open sockets per user, WebSocket `maxPayload` 8 MB (a reconnect sends all unsent edits in one message, so anything storable must fit; a bigger message is closed with `1009`, the client stops resending it and shows `Not saved` with the size-limit message); over the limit -> close `4429`, client shows "Too many people on this page right now."
 - Per-connection update rate limit (e.g. 50 messages/s burst) to stop a runaway client.
 - Expected load: a page with ~50 KB of Yjs state costs roughly 1-2 MB in memory, so ~20 open pages fit easily. Measure on the VM and record in PROJECT_CONTEXT.
 - Internal endpoints: on the docker network only, never routed by Caddy, and every call carries `X-Collab-Secret` (both directions). Spring's `/internal/**` rejects calls without it.

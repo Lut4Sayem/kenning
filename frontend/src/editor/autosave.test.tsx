@@ -90,6 +90,7 @@ function fakeProvider() {
     /** The service stored this doc's state and says so. */
     saved: (doc: Y.Doc) => emit('stateless', { payload: JSON.stringify({ type: 'saved', revision: 9, snap: toBase64(Y.encodeSnapshot(Y.snapshot(doc))) }) }),
     retrying: () => emit('stateless', { payload: JSON.stringify({ type: 'retrying' }) }),
+    close: (code: number) => emit('close', { event: { code } }),
     /** At the size limit, after the last store: edits without a covering `saved` were refused. */
     capSettled: (stored?: Y.Doc) =>
       emit('stateless', { payload: JSON.stringify({ type: 'too-large', final: true, snap: stored && toBase64(Y.encodeSnapshot(Y.snapshot(stored))) }) }),
@@ -494,6 +495,17 @@ describe('autosave', () => {
     await tick(0)
     expect(a.state).toBe('saved')
     expect(pending()).toBeUndefined()
+  })
+
+  // Review finding: a message over the service's cap is refused every time it is sent again; it can never be stored.
+  it('aChangeTooLargeToSendIsNotSaved', async () => {
+    const { a, doc, provider } = await openTab()
+    type(doc, 'huge paste')
+    await tick(0)
+    provider.close(1009)
+    await tick(0)
+    expect(a.state).toBe('failed')
+    expect(a.message).toBe(LOST_NOTICE)
   })
 
   it('editsStoredBeforeTheSizeLimitAreSaved', async () => {

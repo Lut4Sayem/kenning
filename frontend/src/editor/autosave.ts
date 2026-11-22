@@ -51,6 +51,7 @@ export interface Opened {
 }
 
 const DEBOUNCE_MS = 1000
+const CLOSE_TOO_BIG = 1009
 const BACKOFF_MS = [1000, 2000, 5000, 10_000, 30_000]
 /** Statuses that will not get better by sending the same thing again. */
 const PERMANENT = new Set([400, 403, 404, 413])
@@ -191,8 +192,10 @@ export const storedSnapshot = (snap: string) => Y.decodeSnapshot(fromBase64(snap
 export interface ProviderEvents {
   on(event: 'stateless', cb: (data: { payload: string }) => void): unknown
   on(event: 'status', cb: (data: { status: string }) => void): unknown
+  on(event: 'close', cb: (data: { event: { code: number } }) => void): unknown
   off(event: 'stateless', cb: (data: { payload: string }) => void): unknown
   off(event: 'status', cb: (data: { status: string }) => void): unknown
+  off(event: 'close', cb: (data: { event: { code: number } }) => void): unknown
 }
 
 /**
@@ -238,6 +241,7 @@ export class Autosave {
     ydoc.on('update', this.onUpdate)
     provider?.on('stateless', this.onStateless)
     provider?.on('status', this.onProviderStatus)
+    provider?.on('close', this.onClose)
     window.addEventListener('beforeunload', this.onBeforeUnload)
     window.addEventListener('offline', this.onNetwork)
     window.addEventListener('online', this.onNetwork)
@@ -254,6 +258,7 @@ export class Autosave {
     this.ydoc.off('update', this.onUpdate)
     this.provider?.off('stateless', this.onStateless)
     this.provider?.off('status', this.onProviderStatus)
+    this.provider?.off('close', this.onClose)
     window.removeEventListener('beforeunload', this.onBeforeUnload)
     window.removeEventListener('offline', this.onNetwork)
     window.removeEventListener('online', this.onNetwork)
@@ -363,6 +368,11 @@ export class Autosave {
   private onProviderStatus = ({ status }: { status: string }) => {
     this.connected = status === 'connected'
     this.showConnection()
+  }
+
+  /** 1009: a change too large for one message. Sending it again is refused again: it can never be stored. */
+  private onClose = ({ event }: { event: { code: number } }) => {
+    if (event.code === CLOSE_TOO_BIG) this.lost()
   }
 
   private onNetwork = () => {

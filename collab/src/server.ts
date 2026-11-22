@@ -274,7 +274,9 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     stopOnSignals: true,
     debounce: o.debounce,
     maxDebounce: o.maxDebounce,
-    websocketOptions: { maxPayload: 1024 * 1024 }, // one message; a whole 4 MB page arrives in many
+    // One message. A reconnect's sync carries all unsent edits at once, so anything that could still be stored must
+    // fit (Spring takes 4 MB); a bigger one is closed with 1009 and the client stops instead of resending it.
+    websocketOptions: { maxPayload: 8 * 1024 * 1024 },
 
     async onAuthenticate({ token, documentName, requestHeaders, connectionConfig }) {
       if (requestHeaders.get('origin') !== config.appOrigin) throw deny('bad-origin')

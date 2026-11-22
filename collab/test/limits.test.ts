@@ -54,8 +54,8 @@ describe('limits', () => {
     const port = await start()
     const c = open(port, 'n1')
     await c.synced
-    c.doc.getText('t').insert(0, 'x'.repeat(2 * 1024 * 1024)) // one 2 MB update, over the 1 MB message cap
-    await until(() => c.closes.length > 0)
+    c.doc.getText('t').insert(0, 'x'.repeat(9 * 1024 * 1024)) // one 9 MB update, over the 8 MB message cap
+    await until(() => c.closes.includes(1009))
     expect(server!.hocuspocus.documents.get('n1')?.getText('t').length ?? 0).toBe(0)
   })
 
