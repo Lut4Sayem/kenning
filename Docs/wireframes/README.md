@@ -1,3 +1,5 @@
+> Historical (Release 1a, 2026-11-09). Superseded by DESIGN.md and design/mockups. Soft lock in Editing was removed in 1b.
+
 # Release 1a wireframes (approved 2026-11-09)
 
 Low-fidelity layout blueprints: they fix STRUCTURE (which screens exist, what is on each, where it sits).

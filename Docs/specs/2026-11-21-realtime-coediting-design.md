@@ -105,11 +105,12 @@ Yjs is a CRDT: every client's edits are small updates that merge in any order to
 - Doc unloaded right after the last client leaves and the final store succeeds.
 - Max 25 connections per page, 10 open sockets per user, WebSocket `maxPayload` 8 MB (a reconnect sends all unsent edits in one message, so anything storable must fit; a bigger message is closed with `1009`, the client stops resending it and shows `Not saved` with the size-limit message); over the limit -> close `4429`, client shows "Too many people on this page right now."
 - Per-connection update rate limit (e.g. 50 messages/s burst) to stop a runaway client.
-- Expected load: a page with ~50 KB of Yjs state costs roughly 1-2 MB in memory, so ~20 open pages fit easily. Measure on the VM and record in PROJECT_CONTEXT.
+- Expected load: a page with ~50 KB of Yjs state costs roughly 1-2 MB in memory, so ~20 open pages fit easily.
+- Measured on kf-vm 2026-11-22 after the 1b deploy: app 166 MiB, collab 16.6 MiB, ~379 MB available.
 - Internal endpoints: on the docker network only, never routed by Caddy, and every call carries `X-Collab-Secret` (both directions). Spring's `/internal/**` rejects calls without it.
 
 ### 7.10 Infra
-- `collab/`: Node 20, TypeScript, `@hocuspocus/server`, `yjs`. Own Dockerfile; image pushed to GHCR by the same deploy workflow; `update.sh` pulls both images, health checks both (`GET /health` on collab), rolls back both together.
+- `collab/`: Node 22, TypeScript, `@hocuspocus/server`, `yjs`. Own Dockerfile; image pushed to GHCR by the same deploy workflow; `update.sh` pulls both images, health checks both (`GET /health` on collab), rolls back both together.
 - Compose: `collab` service on the internal network; Caddyfile: `handle /collab* { reverse_proxy collab:1234 }` (WebSockets work through Caddy by default).
 - Dev: `npm run dev` in `collab/` on :1234; Vite proxy `/collab` with `ws: true`.
 - Logs: one line per connect/disconnect/store/error with nodeId + userId, no content.
