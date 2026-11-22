@@ -241,6 +241,21 @@ describe('autosave', () => {
     expect(pending()).toBeUndefined()
   })
 
+  // Review finding: stored, but the bytes differ (others edited since): it must not show "Saving…" forever.
+  it('openDropsACopyWhoseEditsTheServerAlreadyHolds', async () => {
+    const mine = serverDoc()
+    type(mine, 'mine ')
+    const stored = serverDoc()
+    Y.applyUpdate(stored, Y.encodeStateAsUpdate(mine))
+    type(stored, 'theirs')
+    leftover({ state: stateOf(mine), text: 'base mine ' })
+    server.state = stateOf(stored)
+    const { a } = await openTab()
+    await tick(0)
+    expect(a.state).toBe('saved')
+    expect(pending()).toBeUndefined()
+  })
+
   it('openDropsAPendingCopyTheServerAlreadyHas', async () => {
     // The flush on tab close succeeded, but the tab died before it could clear its local copy.
     leftover({ state: server.state, text: 'base ', baseRevision: 2 })

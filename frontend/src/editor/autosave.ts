@@ -85,9 +85,9 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
   const orphans: { id: string; pending: Pending }[] = []
   for (const [id, pending] of Object.entries(slots)) {
     if (await isHeld(lockName(store, id))) continue // belongs to a tab that is still open: not ours to touch
-    // The server already has exactly this copy (the flush on tab close worked). That is the ONLY reason a copy
-    // is removed without being sent: however old it is, it is merged or kept as a private version below.
-    if (server && pending.state === server.state) {
+    // The server already holds every edit in this copy (it was stored before the tab could clear it). That is the
+    // ONLY reason a copy is removed without being sent: however old it is, it is merged or kept privately below.
+    if (server && (pending.state === server.state || (pending.epoch === server.contentEpoch && storedAll(server.state, pending.state)))) {
       await store.clear(id)
       continue
     }
@@ -131,6 +131,15 @@ export async function openContent(nodeId: string, canEdit: boolean, userId: stri
 
   const text = orphans.map((o) => o.pending.text).join('\n')
   return { ...current, state: 'saving', text, adopt: orphans.map((o) => o.id) }
+}
+
+/** The server state holds every insert and deletion of the copy. A copy that cannot be read is not "held". */
+function storedAll(serverState: string, copy: string): boolean {
+  try {
+    return covers(Y.snapshot(docFrom(serverState || EMPTY_PAGE_STATE)), needOf(docFrom(copy)))
+  } catch {
+    return false
+  }
 }
 
 /** Clock per Yjs client: a state vector. */
