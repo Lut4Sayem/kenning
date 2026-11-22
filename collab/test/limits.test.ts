@@ -94,6 +94,22 @@ describe('limits', () => {
     expect(c.messages.some((m) => m.type === 'saved')).toBe(false)
   })
 
+  // Review finding: the running estimate counts moved or re-typed content twice; the real size decides.
+  it('movingContentAroundDoesNotHitTheLimit', async () => {
+    const spring = fakeSpring()
+    const port = await start(spring, { maxStateBytes: 5000 })
+    const a = open(port, 'n1', { userId: 'a' })
+    await a.synced
+    const paragraph = ((a.doc.getXmlFragment('document-store').get(0) as Y.XmlElement).get(0) as Y.XmlElement).get(0) as Y.XmlElement
+    for (let i = 0; i < 3; i++) {
+      typeIn(a.doc, 'y'.repeat(2000))
+      paragraph.delete(0, paragraph.length) // cut... and paste again on the next turn
+    }
+    typeIn(a.doc, 'y'.repeat(2000))
+    await until(() => spring.stores.length === 1)
+    expect(a.messages.some((m) => m.type === 'too-large' || (m.type === 'size' && m.near))).toBe(false)
+  })
+
   it('warnsAt90PercentAndClearsBelow85', async () => {
     const spring = fakeSpring()
     const port = await start(spring, { maxStateBytes: 4000 })

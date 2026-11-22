@@ -321,6 +321,10 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       meta.bytes += update.length
       if (context?.userId && context.access === 'EDIT') meta.authors.add(context.userId)
       // checked on every change, not only when storing: one fast client must not grow a page past the cap for 10 s
+      // the estimate counts moved or re-typed content twice: measure before it turns anything on
+      if (!meta.tooLarge && (meta.bytes > o.maxStateBytes || (!meta.near && meta.bytes >= o.maxStateBytes * 0.9))) {
+        meta.bytes = Y.encodeStateAsUpdate(document).length
+      }
       if (meta.bytes > o.maxStateBytes) readOnlyForEveryone(document, meta)
       else checkSize(document, meta)
     },
