@@ -4,13 +4,16 @@
 import * as Y from 'yjs'
 import { api, ApiError } from '../api/client'
 import { getContent, saveRecovered } from '../api/content'
-import { covers, IN_TRASH, needOf } from './autosave'
+import { covers, needOf } from './autosave'
 import { fromBase64 } from './base64'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import { clearPendingOf, pendingFor, pendingPages, type PendingStore } from './pendingStore'
 import { EMPTY_PAGE_STATE } from './schema'
 import { pushDoc } from './pushCopy'
 import { isHeld } from './slotLock'
+
+/** Spring's 404 for a page that does not exist (any more): purged, or never visible to this user. */
+const PURGED = 'Page not found'
 
 /** Sends one page's local copies. true = nothing of it is left unsent. */
 async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean): Promise<boolean> {
@@ -42,8 +45,10 @@ async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean):
   } catch (e) {
     // Purged, or this user cannot read the page any more: the copy can never be sent. A page in the trash keeps it
     // (it is sent if the page is restored); offline, refused or unreadable: it stays on the device too.
-    if (e instanceof ApiError && (e.status === 403 || (e.status === 404 && e.message !== IN_TRASH))) {
-      for (const slot of Object.keys(await store.all())) await store.clear(slot)
+    if (e instanceof ApiError && (e.status === 403 || (e.status === 404 && e.message === PURGED))) {
+      for (const slot of Object.keys(await store.all())) {
+        if (!(await isHeld(`${store.key}.${slot}`))) await store.clear(slot) // an open editor decides for its own copy
+      }
       return true
     }
     return false
