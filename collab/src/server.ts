@@ -35,6 +35,8 @@ interface Meta {
   settled: boolean
   /** At 90 % of the limit (cleared below 85 %): clients show a warning. */
   near: boolean
+  /** Snapshot (base64) of the last store, sent with the final size-limit message. */
+  snap: string | null
 }
 
 export interface Options {
@@ -128,7 +130,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     // store what came in before the limit, then say so: a client's edits not covered by a `saved` were refused
     void serial(doc, meta).then(() => {
       meta.settled = true
-      doc.broadcastStateless(JSON.stringify({ type: 'too-large', final: true }))
+      doc.broadcastStateless(JSON.stringify({ type: 'too-large', final: true, snap: meta.snap }))
     })
   }
 
@@ -222,6 +224,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
         const { revision } = await spring.store(doc.name, body)
         meta.revision = revision
         meta.bytes = state.length
+        meta.snap = snap
         checkSize(doc, meta)
         doc.broadcastStateless(JSON.stringify({ type: 'saved', revision, snap }))
         log('store', { nodeId: doc.name, revision, authors: authors.length })
@@ -311,7 +314,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       prefetched.delete(documentName)
       Y.applyUpdate(document, loaded.state ?? Buffer.from(EMPTY_PAGE_STATE, 'base64'), 'spring')
       const bytes = Y.encodeStateAsUpdate(document).length
-      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, changed: false, bytes, chain: Promise.resolve(), tooLarge: false, settled: false, near: bytes >= o.maxStateBytes * 0.9 })
+      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, changed: false, bytes, chain: Promise.resolve(), tooLarge: false, settled: false, near: bytes >= o.maxStateBytes * 0.9, snap: null })
     },
 
     async onChange({ documentName, document, context, update }) {
@@ -342,7 +345,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       socketsOf.set(context.userId, (socketsOf.get(context.userId) ?? new Set()).add(socketId))
       const meta = metas.get(documentName)
       if (meta?.tooLarge) connection.sendStateless(JSON.stringify({ type: 'too-large' }))
-      if (meta?.settled) connection.sendStateless(JSON.stringify({ type: 'too-large', final: true }))
+      if (meta?.settled) connection.sendStateless(JSON.stringify({ type: 'too-large', final: true, snap: meta.snap }))
       else if (meta?.near) connection.sendStateless(JSON.stringify({ type: 'size', near: true }))
       log('connect', { nodeId: documentName, userId: context.userId, access: context.access })
     },

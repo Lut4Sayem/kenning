@@ -378,8 +378,11 @@ export class Autosave {
       return
     }
     if (this.recover || this.lostEdits) return
-    // at the size limit and the last store is done: what it did not cover was refused
-    if (m.type === 'too-large' && m.final) return void this.lost()
+    // at the size limit and the last store is done: what its snapshot does not cover was refused
+    if (m.type === 'too-large' && m.final) {
+      if (!this.dirty || !m.snap || !covers(storedSnapshot(m.snap), this.need)) return void this.lost()
+      m = { type: 'saved', snap: m.snap }
+    }
     if (m.type === 'retrying' && this.dirty) this.setState('retrying')
     if (m.type !== 'saved' || !m.snap) return
     if (!this.dirty) return this.setState('saved')

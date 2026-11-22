@@ -77,6 +77,9 @@ describe('limits', () => {
     expect(text(a)).not.toContain('refused')
     const late = open(port, 'n1', { userId: 'c' })
     await until(() => late.messages.some((m) => m.type === 'too-large' && m.final)) // newcomers are told too
+    // with what was stored, so a client that missed the `saved` can still tell its edits were kept
+    const final = late.messages.find((m) => m.final)!
+    expect(final.snap).toBe(a.messages.filter((m) => m.type === 'saved').at(-1)!.snap)
   })
 
   it('springRefusingTheSizeStopsRetrying', async () => {

@@ -91,7 +91,8 @@ function fakeProvider() {
     saved: (doc: Y.Doc) => emit('stateless', { payload: JSON.stringify({ type: 'saved', revision: 9, snap: toBase64(Y.encodeSnapshot(Y.snapshot(doc))) }) }),
     retrying: () => emit('stateless', { payload: JSON.stringify({ type: 'retrying' }) }),
     /** At the size limit, after the last store: edits without a covering `saved` were refused. */
-    capSettled: () => emit('stateless', { payload: JSON.stringify({ type: 'too-large', final: true }) }),
+    capSettled: (stored?: Y.Doc) =>
+      emit('stateless', { payload: JSON.stringify({ type: 'too-large', final: true, snap: stored && toBase64(Y.encodeSnapshot(Y.snapshot(stored))) }) }),
   }
 }
 
@@ -481,6 +482,17 @@ describe('autosave', () => {
     await tick(0)
     expect(a.state).toBe('failed')
     expect(a.message).toBe(LOST_NOTICE)
+    expect(pending()).toBeUndefined()
+  })
+
+  // Review finding: a tab that was away when its edits were stored only hears the final message.
+  it('theFinalSizeLimitMessageConfirmsWhatItsSnapshotHolds', async () => {
+    const { a, doc, provider } = await openTab()
+    type(doc, 'stored while away')
+    await tick(0)
+    provider.capSettled(doc)
+    await tick(0)
+    expect(a.state).toBe('saved')
     expect(pending()).toBeUndefined()
   })
 
