@@ -6,7 +6,6 @@ import com.knowledgeforge.knowledgeforge.node.NodeDTO;
 import com.knowledgeforge.knowledgeforge.node.NodeRepository;
 import com.knowledgeforge.knowledgeforge.node.TrashService;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
-import com.knowledgeforge.knowledgeforge.nodecontent.SaveContentRequest;
 import com.knowledgeforge.knowledgeforge.space.Space;
 import com.knowledgeforge.knowledgeforge.support.NodeIntegrationTest;
 import com.knowledgeforge.knowledgeforge.team.Team;
@@ -30,7 +29,7 @@ class SearchServiceIT extends NodeIntegrationTest {
 
     private NodeDTO page(String title, String text) {
         NodeDTO p = createPage(title);
-        if (text != null) contentService.save(p.id(), new SaveContentRequest(0L, "AQID", text));
+        if (text != null) store(p.id(), 0L, "AQID", text);
         return p;
     }
 

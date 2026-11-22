@@ -35,7 +35,7 @@ public class SchemaSetup implements ApplicationRunner {
         setupActivity();
         setupContents();
         setupVersions();
-        setupLocks();
+        dropLocks();
         setupSpaces();
         setupJoinRequests();
         setupInvites();
@@ -169,11 +169,9 @@ public class SchemaSetup implements ApplicationRunner {
                 .on("privateTo", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC));
     }
 
-    private void setupLocks() {
-        validator("edit_locks", new Document("$jsonSchema", schema(req("holder", "expiresAt"),
-                new Document("holder", userRef()).append("expiresAt", t("date")))));
-        mongo.indexOps("edit_locks").createIndex(new Index().named("expiresAt_ttl")
-                .on("expiresAt", Sort.Direction.ASC).expire(0, TimeUnit.SECONDS));
+    /** The 1a soft lock is gone (live editing replaced it): its collection goes too. */
+    private void dropLocks() {
+        if (mongo.collectionExists("edit_locks")) mongo.dropCollection("edit_locks");
     }
 
     /** One personal space per user (physical schema 3.3). Existing spaces have no ownerUserId, so they are skipped. */

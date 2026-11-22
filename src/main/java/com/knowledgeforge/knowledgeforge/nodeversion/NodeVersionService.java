@@ -1,5 +1,6 @@
 package com.knowledgeforge.knowledgeforge.nodeversion;
 
+import com.knowledgeforge.knowledgeforge.collab.CollabClient;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
 import com.knowledgeforge.knowledgeforge.common.UserRef;
 import com.knowledgeforge.knowledgeforge.node.Node;
@@ -37,12 +38,14 @@ public class NodeVersionService {
     private final MongoTemplate mongo;
     private final UserRepository users;
     private final Clock clock;
+    private final CollabClient collab;
     /** Test hook: runs between closing the session and writing the restored state. */
     Runnable beforeRestoreWrite = () -> { };
 
     public NodeVersionService(NodeVersionRepository versions, NodeAccessService access, MongoTemplate mongo,
-                              UserRepository users, Clock clock) {
+                              UserRepository users, Clock clock, CollabClient collab) {
         this.versions = versions;
+        this.collab = collab;
         this.access = access;
         this.mongo = mongo;
         this.users = users;
@@ -110,6 +113,7 @@ public class NodeVersionService {
         if (name == null || name.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A version needs a name");
         name = name.trim();
         if (name.length() > 100) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The name can be at most 100 characters");
+        boolean missing = !collab.flush(nodeId); // live edits first, so the named version has them
         NodeContent c = content(nodeId);
         NodeVersion latest = latest(nodeId);
         if (latest != null && latest.getKind() == VersionKind.AUTO && latest.getContentHash().equals(c.getContentHash())) {
@@ -117,9 +121,9 @@ public class NodeVersionService {
             latest.setName(name);
             latest = versions.save(latest);
             finishSession(c);
-            return summary(latest);
+            return summary(latest, missing);
         }
-        return summary(createVersion(nodeId, VersionKind.NAMED, name));
+        return summary(createVersion(nodeId, VersionKind.NAMED, name), missing);
     }
 
     /**
@@ -146,6 +150,7 @@ public class NodeVersionService {
         }
         mongo.updateFirst(Query.query(Criteria.where("id").is(v.getNodeId())),
                 new Update().set("updatedBy", me()).set("contentUpdatedAt", now).set("updatedAt", now), Node.class);
+        collab.reset(v.getNodeId()); // the open doc is the old lineage: dropped unstored, clients reload (D6)
         return summary(versions.save(snapshot(content(v.getNodeId()), VersionKind.RESTORED, null, List.of(me()))));
     }
 
@@ -264,7 +269,11 @@ public class NodeVersionService {
     }
 
     private static VersionSummaryDTO summary(NodeVersion v) {
+        return summary(v, false);
+    }
+
+    private static VersionSummaryDTO summary(NodeVersion v, boolean liveEditsMissing) {
         return new VersionSummaryDTO(v.getId(), v.getKind(), v.getName(), v.getAuthors(), v.getCreatedAt(), v.getUpdatedAt(),
-                v.getPrivateTo() != null);
+                v.getPrivateTo() != null, liveEditsMissing);
     }
 }

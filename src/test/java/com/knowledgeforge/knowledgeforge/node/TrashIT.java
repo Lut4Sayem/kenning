@@ -10,11 +10,8 @@ import com.knowledgeforge.knowledgeforge.attachment.AttachmentStorageService;
 import com.knowledgeforge.knowledgeforge.comment.Comment;
 import com.knowledgeforge.knowledgeforge.comment.CommentRepository;
 import com.knowledgeforge.knowledgeforge.common.UserRef;
-import com.knowledgeforge.knowledgeforge.editlock.EditLock;
-import com.knowledgeforge.knowledgeforge.editlock.EditLockRepository;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentRepository;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
-import com.knowledgeforge.knowledgeforge.nodecontent.SaveContentRequest;
 import com.knowledgeforge.knowledgeforge.nodeversion.NodeVersion;
 import com.knowledgeforge.knowledgeforge.nodeversion.VersionKind;
 import com.knowledgeforge.knowledgeforge.space.Space;
@@ -41,7 +38,6 @@ class TrashIT extends NodeIntegrationTest {
     @Autowired NodeRepository nodes;
     @Autowired NodeContentRepository contents;
     @Autowired NodeContentService contentService;
-    @Autowired EditLockRepository locks;
     @Autowired CommentRepository comments;
     @Autowired AttachmentRepository attachments;
     @Autowired AttachmentStorageService storage;
@@ -87,7 +83,6 @@ class TrashIT extends NodeIntegrationTest {
         ResponseStatusException e = failure(() -> nodeService.get(a.id()));
         assertEquals(404, e.getStatusCode().value());
         assertTrue(e.getReason().contains("trash"), e.getReason());
-        assertEquals(404, failure(() -> contentService.save(a.id(), new SaveContentRequest(0L, "AQID", "x"))).getStatusCode().value());
     }
 
     @Test
@@ -497,11 +492,6 @@ class TrashIT extends NodeIntegrationTest {
         a.setUploadedAt(now);
         attachments.save(a);
 
-        EditLock l = new EditLock();
-        l.setId(nodeId);
-        l.setHolder(new UserRef(u.getId(), "x", null));
-        l.setExpiresAt(Date.from(Instant.now().plusSeconds(600)));
-        locks.save(l);
 
         AiSummary s = new AiSummary();
         s.setNodeId(nodeId);
@@ -530,7 +520,6 @@ class TrashIT extends NodeIntegrationTest {
         n += mongo.count(Query.query(Criteria.where("nodeId").is(id)), NodeVersion.class);
         n += comments.findByNodeIdOrderByCreatedAtAsc(id).size();
         n += attachments.findByNodeId(id).size();
-        n += locks.existsById(id) ? 1 : 0;
         n += summaries.findByNodeId(id).isPresent() ? 1 : 0;
         return n;
     }

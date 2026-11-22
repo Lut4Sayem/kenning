@@ -2,7 +2,7 @@
 import 'fake-indexeddb/auto'
 import { get } from 'idb-keyval'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { saveContent } from '../api/content'
+import { saveRecovered } from '../api/content'
 import { clearPendingOf, pendingFor, pendingPages, type Pending } from './pendingStore'
 import { holdSlot, isHeld } from './slotLock'
 
@@ -137,36 +137,25 @@ describe('slot ownership', () => {
   })
 })
 
-describe('saveContent', () => {
-  const body = (state: string) => ({ baseRevision: 3, state, text: 't' })
-  const init = () => (apiMock.mock.calls.at(-1) as unknown as [string, RequestInit & { redirectOn401: boolean }])[1]
+describe('content calls', () => {
+  const init = () => (apiMock.mock.calls.at(-1) as unknown as [string, RequestInit])[1]
 
-  it('flushUsesKeepaliveOnlyWhenTheBodyFitsTheBrowserLimit', async () => {
-    await saveContent('n1', body('small'), true)
-    expect(init()).toMatchObject({ method: 'PUT', keepalive: true, redirectOn401: false })
-
-    await saveContent('n1', body('x'.repeat(70_000)), true) // over 64 KB: fetch would reject it outright
-    expect(init().keepalive).toBe(false)
-
-    await saveContent('n1', body('small'))
-    expect(init()).toMatchObject({ keepalive: false, redirectOn401: true })
-  })
-
-  it('aSaveThatHangsIsAbortedAfter15SecondsPlus10PerMegabyte', async () => {
+  it('aCallThatHangsIsAbortedAfter15SecondsPlus10PerMegabyte', async () => {
     vi.useFakeTimers()
     try {
       // Like fetch: never answers, rejects when its signal aborts.
       apiMock.mockImplementation((_path: string, i: RequestInit) =>
         new Promise((_resolve, reject) => i.signal!.addEventListener('abort', () => reject(new Error('aborted')))))
+      const body = (state: string) => ({ state, text: 't', baseEpoch: 0 })
 
-      const small = saveContent('n1', body('small')).then(() => 'saved', () => 'gave up')
+      const small = saveRecovered('n1', body('small')).then(() => 'saved', () => 'gave up')
       await vi.advanceTimersByTimeAsync(14_999)
       expect(init().signal!.aborted).toBe(false)
       await vi.advanceTimersByTimeAsync(2) // a few bytes of body add less than a millisecond
       expect(await small).toBe('gave up')
 
       // 2 MB of state: 15 s + 20 s. A big page on a slow line must not be cut off like a small one.
-      const big = saveContent('n1', body('x'.repeat(2 * 1024 * 1024))).then(() => 'saved', () => 'gave up')
+      const big = saveRecovered('n1', body('x'.repeat(2 * 1024 * 1024))).then(() => 'saved', () => 'gave up')
       await vi.advanceTimersByTimeAsync(34_999)
       expect(init().signal!.aborted).toBe(false)
       await vi.advanceTimersByTimeAsync(2)

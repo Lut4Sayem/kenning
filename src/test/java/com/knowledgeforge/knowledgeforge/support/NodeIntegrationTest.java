@@ -13,6 +13,10 @@ import com.knowledgeforge.knowledgeforge.team.TeamMemberRepository;
 import com.knowledgeforge.knowledgeforge.team.TeamRepository;
 import com.knowledgeforge.knowledgeforge.user.User;
 import com.knowledgeforge.knowledgeforge.user.UserRepository;
+import com.knowledgeforge.knowledgeforge.collab.StoreRequest;
+import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
+import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
+import com.knowledgeforge.knowledgeforge.nodecontent.SavedDTO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +39,7 @@ public abstract class NodeIntegrationTest extends IntegrationTest {
     @Autowired protected TeamRepository teams;
     @Autowired protected TeamMemberRepository members;
     @Autowired protected MongoTemplate mongo;
+    @Autowired protected NodeContentService contentStore;
 
     protected User admin;
     protected Team team;
@@ -91,6 +96,13 @@ public abstract class NodeIntegrationTest extends IntegrationTest {
 
     protected NodeDTO createPage(String title) {
         return nodeService.create(space.getId(), new CreateNodeRequest(null, title, null));
+    }
+
+    /** Writes page content the way the collaboration service does, as the logged-in user, on the current epoch. */
+    protected SavedDTO store(String nodeId, long baseRevision, String state, String text) {
+        int epoch = mongo.findById(nodeId, NodeContent.class).getContentEpoch();
+        String me = users.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow().getId();
+        return contentStore.storeFromCollab(nodeId, new StoreRequest(baseRevision, epoch, state, text, List.of(me)));
     }
 
     protected int statusOf(Runnable r) {

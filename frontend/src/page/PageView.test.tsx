@@ -25,8 +25,25 @@ const nodesApi = vi.hoisted(() => ({
 vi.mock('../api/nodes', () => nodesApi)
 const spacesApi = vi.hoisted(() => ({ getMe: vi.fn(), getMySpaces: vi.fn() }))
 vi.mock('../api/spaces', () => spacesApi)
-const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveContent: vi.fn(), saveRecovered: vi.fn(), acquireEditLock: vi.fn(), releaseEditLock: vi.fn() }))
+const contentApi = vi.hoisted(() => ({ getContent: vi.fn(), saveRecovered: vi.fn() }))
 vi.mock('../api/content', () => contentApi)
+// The live session is the collaboration service's; here each test says what it reports.
+const collab = vi.hoisted(() => {
+  const listeners = new Set<() => void>()
+  const c = {
+    state: { provider: null, access: 'EDIT', problem: null, message: null } as Record<string, unknown>,
+    subscribe: (cb: () => void) => (listeners.add(cb), () => void listeners.delete(cb)),
+    set(state: Record<string, unknown>) {
+      c.state = state
+      listeners.forEach((l) => l())
+    },
+  }
+  return c
+})
+vi.mock('../editor/collab', async (original) => {
+  const { useSyncExternalStore } = await import('react')
+  return { ...(await original<object>()), useCollab: () => useSyncExternalStore(collab.subscribe, () => collab.state) }
+})
 
 const NODE: NodeDetail = {
   id: 'n1', spaceId: 's1', parentId: null, title: 'Plan', icon: null, tags: [], publishState: 'PUBLISHED', locked: false,
@@ -39,8 +56,7 @@ beforeEach(() => {
   spacesApi.getMe.mockResolvedValue({ id: 'u1', fullName: 'Me', email: 'm@x.test' })
   spacesApi.getMySpaces.mockResolvedValue([])
   contentApi.getContent.mockResolvedValue({ format: 'YJS_BLOCKNOTE_V1', state: '', revision: 0, contentEpoch: 0 })
-  contentApi.acquireEditLock.mockResolvedValue({ mine: true, holder: { id: 'u1', name: 'Me' }, expiresAt: '' })
-  contentApi.releaseEditLock.mockResolvedValue(null)
+  collab.state = { provider: null, access: 'EDIT', problem: null, message: null }
 })
 afterEach(() => {
   cleanup()
@@ -72,31 +88,179 @@ function mount(entry: string | { pathname: string; state: unknown } = '/p/n1') {
 const editorDom = (c: HTMLElement) => c.querySelector('[contenteditable="true"]')
 
 describe('an open page that is trashed, archived or locked meanwhile', () => {
-  it('keepsTheEditorTheTextAndTheLocalCopyAndShowsTheServersMessage', async () => {
-    // A copy typed earlier that the server never confirmed (what an interrupted session leaves behind).
+  // A copy typed earlier that the server never confirmed (what an interrupted session leaves behind).
+  const unconfirmed = async (text: string) => {
     const unsaved = new Y.Doc()
-    unsaved.getText('t').insert(0, 'typed before the page was trashed')
-    await pendingFor('u1', 'n1').put('old-tab', { state: toBase64(Y.encodeStateAsUpdate(unsaved)), text: 'typed before the page was trashed', baseRevision: 0, epoch: 0, at: Date.now() })
-    contentApi.saveContent.mockRejectedValue(new ApiError(404, TRASHED)) // the page was trashed by someone else
+    unsaved.getText('t').insert(0, text)
+    await pendingFor('u1', 'n1').put('old-tab', { state: toBase64(Y.encodeStateAsUpdate(unsaved)), text, baseRevision: 0, epoch: 0, at: Date.now() })
+  }
+  const LOST = "You can't edit this page anymore, so your last changes couldn't be saved. Copy anything you need before leaving."
+  const leave = () => {
+    const e = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(e)
+    return e.defaultPrevented
+  }
 
+  it('lostAccessWithUnsavedEditsKeepsTheTextOnScreenButDropsTheCopy', async () => {
+    await unconfirmed('typed before being removed')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockRejectedValue(new ApiError(403, 'You are no longer a member of this team')) // the page agrees
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: 'You are no longer a member of this team' }))
+
+    await waitFor(() => expect(screen.getByText(LOST)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.getByText('Not saved')).toBeTruthy()
+    expect(editorDom(view.container)).toBeNull() // read-only, text still there
+    await waitFor(async () => expect(Object.keys(await pendingFor('u1', 'n1').all())).toHaveLength(0))
+    expect(leave()).toBe(true)
+    expect(contentApi.saveRecovered).not.toHaveBeenCalled()
+  }, 20_000)
+
+  // Option C: the page can come back from the trash, so the copy stays on the device until then.
+  it('aPageTrashedWithUnsavedEditsKeepsTheCopyOnTheDevice', async () => {
+    await unconfirmed('typed before the page was trashed')
     const { qc, view } = mount()
     await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED })) // trashed by someone else
 
-    // The replayed copy is saved, the server refuses, and says why. The editor is still there.
-    await waitFor(() => expect(screen.getByText(`Not saved: ${TRASHED}`)).toBeTruthy(), { timeout: 5000 })
-    expect(editorDom(view.container)).not.toBeNull()
+    const KEPT = 'This page is in the trash. Your last changes are kept on this device and are added back if the page is restored.'
+    await waitFor(() => expect(screen.getByText(KEPT)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.getByText('Not saved')).toBeTruthy()
+    expect(screen.queryByText(LOST)).toBeNull()
+    expect(editorDom(view.container)).toBeNull()
     const kept = Object.values(await pendingFor('u1', 'n1').all())
-    expect(kept.length).toBeGreaterThan(0) // never dropped unsent
-    expect(kept.some((p) => p.text.includes('typed before the page was trashed'))).toBe(true)
+    expect(kept.length).toBeGreaterThan(0)
+    expect(leave()).toBe(false)
 
     // The page itself can no longer be read either: the message appears, the editor does not unmount.
     nodesApi.getNode.mockRejectedValue(new ApiError(404, TRASHED))
     await qc.invalidateQueries({ queryKey: ['node', 'n1'] })
     await waitFor(() => expect(screen.getAllByText(TRASHED).length).toBeGreaterThan(0))
     expect(screen.queryByText('This page does not exist.')).toBeNull()
-    expect(editorDom(view.container)).not.toBeNull()
-    expect(Object.values(await pendingFor('u1', 'n1').all()).length).toBeGreaterThan(0)
+    expect(view.container.querySelector('.bn-editor')).not.toBeNull()
   }, 20_000)
+
+  it('editDroppedToViewWithUnsavedEditsKeepsTheTextUntilLeaving', async () => {
+    await unconfirmed('typed before the role changed')
+    const { qc, view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    const opens = contentApi.getContent.mock.calls.length
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW' }) // the role changed: not locked, not archived
+    act(() => collab.set({ provider: null, access: 'VIEW', problem: null, message: null }))
+    await waitFor(() => expect(screen.getByText(LOST)).toBeTruthy(), { timeout: 5000 })
+
+    // The page query says VIEW now too: the content must not reload over the unsaved text.
+    await qc.invalidateQueries({ queryKey: ['node', 'n1'] })
+    await new Promise((r) => setTimeout(r, 300))
+    expect(contentApi.getContent.mock.calls.length).toBe(opens)
+    expect(view.container.querySelector('.bn-editor')).not.toBeNull() // same opened copy, not loaded again
+    expect(screen.getByText(LOST)).toBeTruthy()
+    expect(leave()).toBe(true)
+  }, 20_000)
+
+  // Locked or archived can be undone, like the trash: the copy stays on the device until then.
+  it.each([
+    ['locked', { locked: true }, 'This page is locked. Your last changes are kept on this device and are added back if it is unlocked.'],
+    ['archived', { status: 'ARCHIVED' }, 'This page is archived. Your last changes are kept on this device and are added back if it is unarchived.'],
+  ])('a page %s with unsaved edits keeps the copy on the device', async (_what, state, notice) => {
+    await unconfirmed('typed before the page changed')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockResolvedValue({ ...NODE, ...state, access: 'VIEW' })
+    act(() => collab.set({ provider: null, access: 'VIEW', problem: null, message: null }))
+
+    await waitFor(() => expect(screen.getByText(notice)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.getByText('Not saved')).toBeTruthy()
+    expect(screen.queryByText(LOST)).toBeNull()
+    expect(editorDom(view.container)).toBeNull()
+    const kept = Object.values(await pendingFor('u1', 'n1').all())
+    expect(kept.length).toBeGreaterThan(0)
+    expect(leave()).toBe(false)
+  }, 20_000)
+
+  // A refused ticket alone (a proxy, a rotated cookie) is not proof: the page itself decides.
+  it.each([
+    ['the page still opens', () => nodesApi.getNode.mockResolvedValue(NODE)],
+    ['the page cannot be reached', () => nodesApi.getNode.mockRejectedValue(new TypeError('Failed to fetch'))],
+  ])('a refused ticket keeps the copy when %s', async (_what, page) => {
+    await unconfirmed('typed before a stray 403')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    page()
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: 'Forbidden' }))
+    await waitFor(() => expect(screen.getByText("You can't edit this page right now. Your last changes are kept on this device and are sent when you can edit again.")).toBeTruthy(), { timeout: 5000 })
+    expect(screen.queryByText(LOST)).toBeNull()
+    const kept = Object.values(await pendingFor('u1', 'n1').all())
+    expect(kept.length).toBeGreaterThan(0) // never deleted on the ticket's word alone
+  }, 20_000)
+
+  it('aPageRestoredFromTheTrashWhileOpenIsEditableAgain', async () => {
+    await unconfirmed('typed before the page was trashed')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    nodesApi.getNode.mockRejectedValueOnce(new ApiError(404, TRASHED))
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED }))
+    await waitFor(() => expect(screen.getByText(/kept on this device/)).toBeTruthy(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: null, message: null })) // restored: a fresh EDIT ticket
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    await waitFor(() => expect(screen.queryByText('Not saved')).toBeNull())
+    expect(screen.queryByText(/added back if the page is restored/)).toBeNull()
+  }, 20_000)
+
+  it('lostAccessWithNothingUnsavedOnlyShowsTheReason', async () => {
+    await clearPendingOf('u1')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'gone', message: TRASHED }))
+    await waitFor(() => expect(screen.getByText(TRASHED)).toBeTruthy(), { timeout: 5000 })
+    expect(screen.queryByText(LOST)).toBeNull()
+    expect(leave()).toBe(false)
+  })
+
+  it('aViewerWhoLostAccessIsToldWhy', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, access: 'VIEW' })
+    collab.state = { provider: null, access: 'VIEW', problem: 'gone', message: 'You are no longer a member of this team' }
+    mount()
+    await waitFor(() => expect(screen.getByText('You are no longer a member of this team')).toBeTruthy(), { timeout: 5000 })
+  })
+
+  it('nearTheSizeLimitWarnsButStaysEditable', async () => {
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: null, message: null, nearLimit: true }))
+    await waitFor(() => expect(screen.getByText('This page is almost at its size limit. Move some sections into sub-pages.')).toBeTruthy())
+    expect(editorDom(view.container)).not.toBeNull()
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: null, message: null, nearLimit: false }))
+    await waitFor(() => expect(screen.queryByText(/almost at its size limit/)).toBeNull())
+  })
+
+  it.each([
+    ['too-large', 'This page reached its size limit. Move some sections into sub-pages.'],
+    ['too-many', 'Too many people on this page right now.'],
+  ])('%s: says so and the page turns read-only', async (problem, text) => {
+    collab.state = { provider: null, access: 'EDIT', problem, message: null }
+    const { view } = mount()
+    await waitFor(() => expect(screen.getByText(text)).toBeTruthy(), { timeout: 5000 })
+    expect(view.container.querySelector('.bn-editor')).not.toBeNull()
+    expect(editorDom(view.container)).toBeNull()
+  })
+
+  // D6: the page was restored while open. Nothing unconfirmed here: it simply loads again from the server.
+  it('aRestoreWhileOpenReloadsTheContent', async () => {
+    await clearPendingOf('u1')
+    const { view } = mount()
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull(), { timeout: 5000 })
+    const opens = contentApi.getContent.mock.calls.length
+    contentApi.getContent.mockImplementation(async () => {
+      collab.state = { provider: null, access: 'EDIT', problem: null, message: null } // the new session starts clean
+      return { format: 'YJS_BLOCKNOTE_V1', state: '', revision: 2, contentEpoch: 1 }
+    })
+    act(() => collab.set({ provider: null, access: 'EDIT', problem: 'restored', message: null }))
+    await waitFor(() => expect(contentApi.getContent.mock.calls.length).toBeGreaterThan(opens))
+    await waitFor(() => expect(editorDom(view.container)).not.toBeNull())
+    expect(contentApi.saveRecovered).not.toHaveBeenCalled()
+  })
 
   // QA-53: no manual Try again needed once the connection is back.
   it('contentThatFailedOfflineLoadsByItselfWhenBackOnline', async () => {
@@ -189,7 +353,6 @@ describe('page title', () => {
   }
   async function open() {
     await clearPendingOf('u1')
-    contentApi.saveContent.mockResolvedValue({ revision: 1, savedAt: '' })
     nodesApi.updateNode.mockImplementation(async (id: string, body: { title: string }) => ({ ...NODE, id, title: body.title }))
     const m = mount()
     await waitFor(() => expect(within(m.topbar).getByRole('status').textContent).toBe('Saved'), { timeout: 5000 })
@@ -256,6 +419,14 @@ describe('publish', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(nodesApi.unpublishNode).toHaveBeenCalledWith('n1'))
     expect(await screen.findByRole('button', { name: 'Publish' })).toBeTruthy() // a draft again
+  })
+
+  it('publishingWhileTheNewestLiveEditsCouldNotBeStoredSaysSo', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, publishState: 'DRAFT' })
+    nodesApi.publishNode.mockResolvedValue({ ...NODE, liveEditsMissing: true })
+    mount()
+    fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    expect(await screen.findByText('Published, but the newest live edits may be missing.')).toBeTruthy()
   })
 })
 

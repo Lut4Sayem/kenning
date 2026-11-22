@@ -36,7 +36,7 @@ public class NodeController {
     }
 
     @PostMapping("/api/nodes/{id}/publish")
-    public NodeDTO publish(@PathVariable String id) {
+    public PublishedDTO publish(@PathVariable String id) {
         return nodeService.publish(id);
     }
 

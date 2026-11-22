@@ -62,7 +62,8 @@ export const moveToTeam = (id: string, body: { spaceId: string } & MoveBody) =>
 // ---------- publish, lock, tags ----------
 const post = <T,>(path: string) => api<T>(path, { method: 'POST' })
 
-export const publishNode = (id: string) => post<NodeDetail>(`/api/nodes/${id}/publish`)
+/** liveEditsMissing: the live session could not be stored first, so the newest edits may not be in it. */
+export const publishNode = (id: string) => post<NodeDetail & { liveEditsMissing?: boolean }>(`/api/nodes/${id}/publish`)
 export const unpublishNode = (id: string) => post<NodeDetail>(`/api/nodes/${id}/unpublish`)
 export const lockNode = (id: string) => post<NodeDetail>(`/api/nodes/${id}/lock`)
 export const unlockNode = (id: string) => post<NodeDetail>(`/api/nodes/${id}/unlock`)

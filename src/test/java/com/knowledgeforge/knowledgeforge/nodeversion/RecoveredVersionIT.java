@@ -1,10 +1,10 @@
 package com.knowledgeforge.knowledgeforge.nodeversion;
 
+import com.knowledgeforge.knowledgeforge.collab.StoreRequest;
+import org.springframework.web.server.ResponseStatusException;
 import com.knowledgeforge.knowledgeforge.node.NodeDTO;
 import com.knowledgeforge.knowledgeforge.nodecontent.ContentDTO;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
-import com.knowledgeforge.knowledgeforge.nodecontent.SaveContentRequest;
-import com.knowledgeforge.knowledgeforge.nodecontent.StaleRevisionException;
 import com.knowledgeforge.knowledgeforge.support.NodeIntegrationTest;
 import com.knowledgeforge.knowledgeforge.user.User;
 import org.junit.jupiter.api.Test;
@@ -35,8 +35,8 @@ class RecoveredVersionIT extends NodeIntegrationTest {
     void normalSavesNeverChangeTheEpoch() {
         NodeDTO p = createPage("A");
         assertEquals(0, contentService.get(p.id()).contentEpoch());
-        contentService.save(p.id(), new SaveContentRequest(0L, b64("one"), "one"));
-        contentService.save(p.id(), new SaveContentRequest(1L, b64("two"), "two"));
+        store(p.id(), 0L, b64("one"), "one");
+        store(p.id(), 1L, b64("two"), "two");
         ContentDTO c = contentService.get(p.id());
         assertEquals(2, c.revision());
         assertEquals(0, c.contentEpoch());
@@ -45,9 +45,9 @@ class RecoveredVersionIT extends NodeIntegrationTest {
     @Test
     void restoreThenStaleClientDoesNotResurrectContent() {
         NodeDTO p = createPage("A");
-        contentService.save(p.id(), new SaveContentRequest(0L, b64("v1"), "v1"));
+        store(p.id(), 0L, b64("v1"), "v1");
         String v1 = versionService.name(p.id(), "v1").id();
-        contentService.save(p.id(), new SaveContentRequest(1L, b64("v2"), "v2"));
+        store(p.id(), 1L, b64("v2"), "v2");
         ContentDTO opened = contentService.get(p.id()); // the client that goes stale: revision 2, epoch 0
 
         versionService.restore(v1);
@@ -55,9 +55,10 @@ class RecoveredVersionIT extends NodeIntegrationTest {
         ContentDTO now = contentService.get(p.id());
         assertEquals(opened.contentEpoch() + 1, now.contentEpoch()); // tells the client it must not merge
         assertEquals(opened.revision() + 1, now.revision());
-        // its save is refused, so the old lineage cannot overwrite the restore
-        assertThrows(StaleRevisionException.class,
-                () -> contentService.save(p.id(), new SaveContentRequest(opened.revision(), b64("v1 + offline edits"), "x")));
+        // a store of the old lineage is refused, so it cannot overwrite the restore
+        var refused = assertThrows(ResponseStatusException.class, () -> contentService.storeFromCollab(p.id(),
+                new StoreRequest(opened.revision(), opened.contentEpoch(), b64("v1 + offline edits"), "x", List.of())));
+        assertEquals("EPOCH", refused.getReason());
 
         // instead its copy is kept as a private version and the page is untouched
         versionService.saveRecovered(p.id(), new RecoveredVersionRequest(b64("v1 + offline edits"), "x", opened.contentEpoch()));
@@ -70,11 +71,11 @@ class RecoveredVersionIT extends NodeIntegrationTest {
     @Test
     void recoveredNeverMerged() {
         NodeDTO p = createPage("A");
-        contentService.save(p.id(), new SaveContentRequest(0L, b64("one"), "one"));
+        store(p.id(), 0L, b64("one"), "one");
         versionService.closeSession(mongo.findById(p.id(), com.knowledgeforge.knowledgeforge.nodecontent.NodeContent.class)); // AUTO "one"
         String recovered = versionService.saveRecovered(p.id(), new RecoveredVersionRequest(b64("one!"), "one!", 0)).id();
         // a recovered copy is newer than the AUTO but is not "the latest version": the next small change still merges into the AUTO
-        contentService.save(p.id(), new SaveContentRequest(1L, b64("one?"), "one?"));
+        store(p.id(), 1L, b64("one?"), "one?");
         versionService.closeSession(mongo.findById(p.id(), com.knowledgeforge.knowledgeforge.nodecontent.NodeContent.class));
         assertEquals(2, versionsOf(p.id()).size());
         NodeVersion r = versions.findById(recovered).orElseThrow();

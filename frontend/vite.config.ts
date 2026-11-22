@@ -23,7 +23,8 @@ export default defineConfig({
   build: { outDir: '../target/classes/static/app', emptyOutDir: true },
   server: {
     port: 5173,
-    proxy: { '/api': spring, '/logout': spring, '/internal': spring },
+    // /collab: the collaboration service (collab/, `npm run dev`), WebSockets included
+    proxy: { '/api': spring, '/logout': spring, '/collab': { target: 'ws://localhost:1234', ws: true } },
   },
   test: { environment: 'jsdom', exclude: ['e2e/**', 'node_modules/**'] },
 })

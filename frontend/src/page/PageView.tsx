@@ -11,12 +11,13 @@ import { getMe, getMySpaces, type MySpace } from '../api/spaces'
 import { DetailsPanel, TopBar, useShellSlots } from '../app/ShellSlots'
 import PagePanel from '../comments/PagePanel'
 import { toBase64 } from '../editor/base64'
-import { openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
+import { IN_TRASH, KEPT_ARCHIVED, KEPT_FOR_NOW, KEPT_IN_TRASH, KEPT_LOCKED, KEPT_NOTICES, LOST_NOTICE, openContent, RECOVERED_NOTICE, useAutosave, type Opened, type SaveState } from '../editor/autosave'
+import { NEAR_LIMIT, TOO_LARGE, TOO_MANY, useCollab } from '../editor/collab'
 import Editor, { useKfEditor } from '../editor/Editor'
+import { userColor } from '../editor/userColor'
 import { extractText } from '../editor/extractText'
 import SaveIndicator, { ReadOnlyTag, SaveNotice } from '../editor/SaveIndicator'
 import { useEndSessionOnLeave } from '../editor/session'
-import SoftLockBanner, { TakenOverBanner, useEditLock, type LockMode } from '../editor/SoftLockBanner'
 import DiffView from '../history/DiffView'
 import HistoryPanel, { type Viewing } from '../history/HistoryPanel'
 import VersionBar from '../history/VersionBar'
@@ -28,6 +29,7 @@ import { toast } from '../ui/Toast'
 import Breadcrumbs from './Breadcrumbs'
 import s from './Page.module.css'
 import PageMenu, { useUnarchive } from './PageMenu'
+import Presence from './Presence'
 import { trashBlocked, useTrashPage } from './useTrashPage'
 import Properties from './Properties'
 
@@ -70,7 +72,8 @@ export default function PageView() {
   const [head, setHead] = useState<HTMLElement | null>(null)
   const [banners, setBanners] = useState<HTMLElement | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('saved')
-  const [lockMode, setLockMode] = useState<LockMode>('checking')
+  // an editor whose live session allows reading only right now (access dropped to VIEW, page restored, access gone)
+  const [liveReadOnly, setLiveReadOnly] = useState(false)
   const [panel, setPanel] = useState<'details' | 'history'>('details')
   const [viewing, setViewing] = useState<Viewing | null>(null)
   const [contentKey, setContentKey] = useState(0) // bumped after a restore: the editor opens again on the server's state
@@ -123,11 +126,12 @@ export default function PageView() {
   })
   const publish = useMutation({
     mutationFn: () => publishNode(nodeId),
-    onSuccess: async (updated) => {
+    onSuccess: async ({ liveEditsMissing, ...updated }) => {
       qc.setQueryData(['node', nodeId], updated)
       // QA-26: say who can now read it, and offer the way back.
       const team = qc.getQueryData<MySpace[]>(['spaces'])?.find((x) => x.id === updated.spaceId)?.teamName
-      toast(team ? `Published to ${team}` : 'Published', 'info', {
+      const text = liveEditsMissing ? 'Published, but the newest live edits may be missing.' : team ? `Published to ${team}` : 'Published'
+      toast(text, liveEditsMissing ? 'error' : 'info', {
         action: {
           label: 'Undo',
           run: () => void unpublishNode(updated.id)
@@ -224,7 +228,7 @@ export default function PageView() {
   const canEdit = n.access === 'EDIT'
   const editing = canEdit && n.status === 'ACTIVE'
   const space = spaces.data?.find((x) => x.id === n.spaceId)
-  const readingOnly = lockMode === 'blocked' || lockMode === 'taken' || lockMode === 'readonly' || lockMode === 'denied'
+  const readingOnly = liveReadOnly
   const published = n.publishState === 'PUBLISHED'
   // Draft, unsaved typing, or newer than the last published version. A published page with no version on record counts as clean.
   const changes = !published || (saveState !== 'saved' && saveState !== 'recovered') || (!!lastPublished && Date.parse(n.contentUpdatedAt) > Date.parse(lastPublished.createdAt))
@@ -337,8 +341,8 @@ export default function PageView() {
               /* hidden, not unmounted: the editor keeps saving what was typed */
               <div hidden={!!viewing}>
                 <PageContent
-                  key={`${n.id}:${contentKey}`} node={n} userId={me.data.id} slots={{ head, banners }}
-                  onSaveState={setSaveState} onLock={setLockMode} stateRef={currentState} titleSaving={titleSaving}
+                  key={`${n.id}:${contentKey}`} node={n} userId={me.data.id} userName={me.data.fullName ?? ''} slots={{ head, banners }}
+                  onSaveState={setSaveState} onReadOnly={setLiveReadOnly} stateRef={currentState} titleSaving={titleSaving}
                 />
               </div>
             ) : (
@@ -449,13 +453,14 @@ function ArchivedNote({ node }: { node: NodeDetail }) {
   )
 }
 
-function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, titleSaving }: {
+function PageContent({ node, userId, userName, slots, onSaveState, onReadOnly, stateRef, titleSaving }: {
   node: NodeDetail
   userId: string
+  userName: string
   slots: Slots
   titleSaving: boolean
   onSaveState: (s: SaveState) => void
-  onLock: (m: LockMode) => void
+  onReadOnly: (readOnly: boolean) => void
   stateRef: MutableRefObject<() => string>
 }) {
   const canEdit = node.access === 'EDIT'
@@ -463,8 +468,11 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
   const [failed, setFailed] = useState(false)
   const [reloads, setReloads] = useState(0)
   const [notice, setNotice] = useState('')
+  // Edits that can never be saved are on screen: the content must not load again over them (access changing to VIEW).
+  const holding = useRef(false)
 
   useEffect(() => {
+    if (holding.current) return
     let live = true
     setOpened(undefined)
     setFailed(false)
@@ -497,13 +505,15 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
       {opened ? (
         <PageEditor
           node={node}
+          user={{ id: userId, name: userName }}
           opened={opened}
           slots={slots}
           onSaveState={onSaveState}
-          onLock={onLock}
+          onReadOnly={onReadOnly}
           stateRef={stateRef}
           titleSaving={titleSaving}
           onReload={() => setReloads((r) => r + 1)}
+          onLost={(on) => (holding.current = on)}
           // The local copy is now a private version: say so and load what the server has.
           onRecovered={() => {
             setNotice(RECOVERED_NOTICE)
@@ -519,31 +529,41 @@ function PageContent({ node, userId, slots, onSaveState, onLock, stateRef, title
   )
 }
 
-function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, onLock, stateRef, titleSaving }: {
+function PageEditor({ node, user, opened, slots, onRecovered, onReload, onLost, onSaveState, onReadOnly, stateRef, titleSaving }: {
   node: NodeDetail
+  user: { id: string; name: string }
   opened: Opened
   slots: Slots
   titleSaving: boolean
   onRecovered: () => void
   /** Opens the content again from the server. */
   onReload: () => void
+  /** Unsaved edits that can never be stored stay on screen. */
+  onLost: (on: boolean) => void
   onSaveState: (s: SaveState) => void
-  onLock: (m: LockMode) => void
+  onReadOnly: (readOnly: boolean) => void
   stateRef: MutableRefObject<() => string>
 }) {
   const canEdit = node.access === 'EDIT'
-  const lock = useEditLock(node.id, canEdit)
-  const editable = canEdit && lock.mode === 'editing'
+  // a copy from before a restore never joins the live page: it is kept privately, then the page reloads
+  const collab = useCollab(node.id, opened.ydoc, user.id, !opened.recover, opened.epoch)
+  const editable = canEdit && collab.access !== 'VIEW' && !collab.problem
+  // unsaved edits that can never be stored (edit rights gone): keep the copy logic alive for the leave prompt
+  const [lost, setLost] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const qc = useQueryClient()
   const files = useMemo(
     () => ({ nodeId: node.id, onError: setUploadError, onUploaded: () => void qc.invalidateQueries({ queryKey: ['files', node.id] }) }),
     [node.id, qc],
   )
-  const editor = useKfEditor(opened.ydoc, 'Me', editable, files)
+  const me = useMemo(() => ({ name: user.name || 'Someone', color: userColor(user.id) }), [user.id, user.name])
+  const editor = useKfEditor(opened.ydoc, me, editable, files, collab.provider)
   useEndSessionOnLeave(node.id, canEdit)
-  const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit)
-  const problem = save.state === 'failed' ? `Not saved: ${save.message}` : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined
+  const save = useAutosave(node.id, opened, () => extractText(editor.document), canEdit || lost, collab.provider)
+  const live = collab.problem === 'too-large' ? TOO_LARGE : collab.problem === 'too-many' ? TOO_MANY : collab.problem === 'gone' ? collab.message ?? undefined : collab.nearLimit ? NEAR_LIMIT : undefined
+  const own = save.message === LOST_NOTICE || KEPT_NOTICES.has(save.message ?? '') // complete sentences
+  const saveProblem = save.state === 'failed' ? (own ? save.message : `Not saved: ${save.message}`)
+    : save.state === 'retrying' || save.state === 'offline' ? save.message : undefined
 
   useEffect(() => {
     stateRef.current = () => toBase64(Y.encodeStateAsUpdate(opened.ydoc))
@@ -557,10 +577,62 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
   }, [save.state])
 
   useEffect(() => {
-    onLock(lock.mode)
-    return () => onLock('checking')
+    onReadOnly(canEdit && !editable)
+    return () => onReadOnly(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lock.mode])
+  }, [canEdit, editable])
+
+  // Edit rights gone (removed, trashed, dropped to VIEW): unconfirmed edits can never be stored.
+  const rightsGone = collab.problem === 'gone' || collab.access === 'VIEW'
+  useEffect(() => {
+    if (rightsGone) {
+      // hold the text and the copy logic while finding out why (the node query may say VIEW any moment)
+      setLost(true)
+      onLost(true)
+      let live = true
+      void whyNotEditable().then((keep) => {
+        if (live && save.lost(keep)) {
+          setLost(false) // nothing was unconfirmed
+          onLost(false)
+        }
+      })
+      return () => {
+        live = false
+      }
+    }
+    // rights back (unlocked, restored from the trash): the edits sync again and are kept again
+    if (!rightsGone && lost) {
+      save.regained()
+      setLost(false)
+      onLost(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rightsGone])
+
+  /**
+   * Why edits here cannot be stored right now, as the notice for a copy that stays on the device because the page can
+   * come back (trash, lock, archive), or undefined when they can never be stored (role or membership lost).
+   * A refused ticket alone proves nothing (a proxy, a rotated cookie): only the page itself answering 403/404 does.
+   */
+  async function whyNotEditable(): Promise<string | undefined> {
+    try {
+      const n = await getNode(node.id)
+      if (n.status === 'ARCHIVED') return KEPT_ARCHIVED
+      if (n.locked) return KEPT_LOCKED
+      return n.access === 'EDIT' ? KEPT_FOR_NOW : undefined
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404 && e.message === IN_TRASH) return KEPT_IN_TRASH
+      return e instanceof ApiError && (e.status === 403 || e.status === 404) ? undefined : KEPT_FOR_NOW
+    }
+  }
+
+  // Restored while open (D6): unconfirmed edits become a private version first ('recovered' below), else reload now.
+  useEffect(() => {
+    if (collab.problem === 'restored' && save.restored()) onReload()
+    // No access any more (removed, trashed, ...): the page itself says why once it is fetched again.
+    if (collab.problem === 'gone') void qc.invalidateQueries({ queryKey: ['node', node.id] })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collab.problem])
 
   useEffect(() => {
     if (save.state === 'recovered') onRecovered()
@@ -569,20 +641,12 @@ function PageEditor({ node, opened, slots, onRecovered, onReload, onSaveState, o
 
   return (
     <>
-      {canEdit && lock.mode !== 'blocked' && lock.mode !== 'readonly' && slots.head && createPortal(<SaveIndicator state={titleSaving && save.state === 'saved' ? 'saving' : save.state} local={save.local} />, slots.head)}
+      {(editable || save.state === 'failed') && slots.head && createPortal(<SaveIndicator state={titleSaving && save.state === 'saved' ? 'saving' : save.state} local={save.local} />, slots.head)}
+      {collab.provider?.awareness && slots.head && createPortal(<Presence awareness={collab.provider.awareness} selfId={user.id} />, slots.head)}
       {uploadError && slots.banners && createPortal(<SaveNotice onDismiss={() => setUploadError('')}>{uploadError}</SaveNotice>, slots.banners)}
-      {problem && slots.banners && createPortal(<SaveNotice>{problem}</SaveNotice>, slots.banners)}
-      {lock.mode === 'blocked' && slots.banners && createPortal(
-        <SoftLockBanner holder={lock.holder} onReadOnly={lock.openReadOnly} onEditAnyway={lock.editAnyway} />,
-        slots.banners,
-      )}
-      {lock.mode === 'taken' && slots.banners && createPortal(
-        <TakenOverBanner holder={lock.holder} saved={save.state === 'saved' || save.state === 'recovered'} onReload={onReload} onTakeBack={lock.editAnyway} />,
-        slots.banners,
-      )}
+      {live && !KEPT_NOTICES.has(save.message ?? '') && slots.banners && createPortal(<SaveNotice>{live}</SaveNotice>, slots.banners)}
+      {saveProblem && slots.banners && createPortal(<SaveNotice>{saveProblem}</SaveNotice>, slots.banners)}
       {!canEdit && node.status !== 'ARCHIVED' && <p className={s.note}>{node.locked ? 'This page is locked.' : 'You can read this page but not edit it.'}</p>}
-      {lock.mode === 'readonly' && <p className={s.note}>Opened read-only: {lock.holder} is editing this page.</p>}
-      {lock.mode === 'denied' && <p className={s.error} role="alert">You can no longer edit this page{lock.reason ? `: ${lock.reason}` : '.'}</p>}
       <Editor editor={editor} editable={editable} />
     </>
   )

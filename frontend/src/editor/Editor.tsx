@@ -2,6 +2,7 @@ import '@blocknote/mantine/style.css'
 import './editor.css'
 import { filterSuggestionItems } from '@blocknote/core'
 import { withCollaboration } from '@blocknote/core/yjs'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
 import { BlockNoteView } from '@blocknote/mantine'
 import { SuggestionMenuController, useCreateBlockNote, type DefaultReactSuggestionItem } from '@blocknote/react'
 import { useState } from 'react'
@@ -15,17 +16,18 @@ import { getKfSlashItems } from './slashItems'
 import { kfTheme } from './theme'
 
 /**
- * Editor bound to the page's local Y.Doc. No provider in 1a: the browser saves the encoded doc itself.
+ * Editor bound to the page's local Y.Doc; with a provider it shows the others' cursors and sends this user's.
  * `editable` is part of the editor's identity: flipping it on a live BlockNote editor leaves Ctrl+Z dead
  * (the Yjs undo manager does not survive it), so a change builds a fresh editor on the same Y.Doc.
- * The undo history starts over at that moment, which only happens when the soft lock changes hands.
+ * The undo history starts over at that moment, which only happens when this user's access changes.
  * Files (image and file blocks, drag-drop) upload to the page only while it is editable; `onError` gets the server's message.
  */
 export function useKfEditor(
   ydoc: Y.Doc,
-  userName: string,
+  user: { name: string; color: string },
   editable: boolean,
   files?: { nodeId: string; onError: (message: string) => void; onUploaded?: () => void },
+  provider?: HocuspocusProvider | null,
 ): KfEditor {
   return useCreateBlockNote(
     withCollaboration({
@@ -44,9 +46,9 @@ export function useKfEditor(
               }
             }
           : undefined,
-      collaboration: { fragment: ydoc.getXmlFragment(FRAGMENT), user: { name: userName, color: '#1d6fcb' } },
+      collaboration: { fragment: ydoc.getXmlFragment(FRAGMENT), user, ...(provider?.awareness ? { provider: { awareness: provider.awareness } } : {}) },
     }),
-    [ydoc, editable, files?.nodeId],
+    [ydoc, editable, files?.nodeId, provider],
   ) as KfEditor
 }
 

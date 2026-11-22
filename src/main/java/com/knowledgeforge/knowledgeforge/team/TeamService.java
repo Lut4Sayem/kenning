@@ -1,5 +1,6 @@
 package com.knowledgeforge.knowledgeforge.team;
 
+import com.knowledgeforge.knowledgeforge.collab.CollabClient;
 import com.knowledgeforge.knowledgeforge.activity.ActivityLogRepository;
 import com.knowledgeforge.knowledgeforge.activity.ActivityLogService;
 import com.knowledgeforge.knowledgeforge.node.TrashService;
@@ -30,10 +31,12 @@ public class TeamService {
     final TeamInviteRepository inviteRepository;
     final TeamJoinRequestRepository joinRequestRepository;
     final ActivityLogRepository activityLogRepository;
+    final CollabClient collab;
     public TeamService(TeamRepository teamRepository, UserRepository userRepository, TeamMemberRepository teamMemberRepository,
                        ActivityLogService activity, SpaceRepository spaceRepository, TrashService trash,
                        TeamInviteRepository inviteRepository, TeamJoinRequestRepository joinRequestRepository,
-                       ActivityLogRepository activityLogRepository) {
+                       ActivityLogRepository activityLogRepository, CollabClient collab) {
+        this.collab = collab;
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.teamMemberRepository = teamMemberRepository;
@@ -133,8 +136,10 @@ public class TeamService {
         inviteRepository.deleteByTeamId(teamId);
         joinRequestRepository.deleteByTeamId(teamId);
         activityLogRepository.deleteByTeamId(teamId);
+        List<TeamMember> former = teamMemberRepository.findByTeamId(teamId);
         teamMemberRepository.deleteByTeamId(teamId);
         teamRepository.deleteById(teamId);
+        former.forEach(m -> collab.revalidateUser(m.getUserId()));
     }
 
     /** QA-68: any member leaves (404 for non-members); the last admin must hand over or delete the team. Pages stay. */
@@ -149,6 +154,7 @@ public class TeamService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Make someone else an admin or delete the team first.");
         }
         teamMemberRepository.delete(membership);
+        collab.revalidateUser(currentUser.getId());
     }
 
     public TeamDetailsResponseDTO getTeamDetails(String teamId) {
@@ -198,6 +204,7 @@ public class TeamService {
         TeamMember memberToRemove = teamMemberRepository.findByTeamIdAndUserId(teamId, userIdToRemove)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "That user is not a member of this team"));
         teamMemberRepository.delete(memberToRemove);
+        collab.revalidateUser(userIdToRemove); // their open pages stop at once, not when their ticket would run out
     }
 
     public void updateMemberRole(String teamId, String userIdToUpdate, String newRole) {
@@ -220,6 +227,7 @@ public class TeamService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "That user is not a member of this team"));
         targetMembership.setRole(newRole);
         teamMemberRepository.save(targetMembership);
+        collab.revalidateUser(userIdToUpdate);
     }
 
 }

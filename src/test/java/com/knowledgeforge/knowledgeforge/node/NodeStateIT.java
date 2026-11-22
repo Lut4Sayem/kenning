@@ -3,7 +3,6 @@ package com.knowledgeforge.knowledgeforge.node;
 import com.knowledgeforge.knowledgeforge.access.Access;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentRepository;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
-import com.knowledgeforge.knowledgeforge.nodecontent.SaveContentRequest;
 import com.knowledgeforge.knowledgeforge.support.ExplainAssert;
 import com.knowledgeforge.knowledgeforge.support.NodeIntegrationTest;
 import org.bson.types.ObjectId;
@@ -27,7 +26,7 @@ class NodeStateIT extends NodeIntegrationTest {
     void publishFlipsState() {
         NodeDTO p = createPage("A");
         assertEquals(PublishState.DRAFT, p.publishState());
-        assertEquals(PublishState.PUBLISHED, nodeService.publish(p.id()).publishState());
+        assertEquals(PublishState.PUBLISHED, nodeService.publish(p.id()).node().publishState());
         assertEquals(PublishState.PUBLISHED, contents.findById(p.id()).orElseThrow().getSearch().getPublishState());
         assertEquals(PublishState.DRAFT, nodeService.unpublish(p.id()).publishState());
         assertEquals(PublishState.DRAFT, contents.findById(p.id()).orElseThrow().getSearch().getPublishState());
@@ -48,7 +47,6 @@ class NodeStateIT extends NodeIntegrationTest {
         assertTrue(locked.locked());
         assertEquals(admin.getId(), locked.lockedBy());
 
-        assertEquals(403, statusOf(() -> contentService.save(p.id(), new SaveContentRequest(0L, "AQID", "x"))));
         assertEquals(403, statusOf(() -> nodeService.update(p.id(), new UpdateNodeRequest("B", null, null))));
         assertEquals(403, statusOf(() -> nodeService.publish(p.id())));
         // still readable
@@ -78,7 +76,7 @@ class NodeStateIT extends NodeIntegrationTest {
         NodeDTO open = nodeService.unlock(p.id());
         assertFalse(open.locked());
         assertNull(open.lockedBy());
-        assertEquals(1, contentService.save(p.id(), new SaveContentRequest(0L, "AQID", "x")).revision());
+        assertEquals(1, store(p.id(), 0L, "AQID", "x").revision());
     }
 
     @Test

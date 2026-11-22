@@ -1,6 +1,6 @@
 name: Deploy image
 
-# Builds the image and pushes it to GHCR. The VM pulls it on a timer (deploy/update.sh).
+# Builds the app and collaboration service images and pushes them to GHCR. The VM pulls them on a timer (deploy/update.sh).
 on:
   push:
     branches: [main]
@@ -27,5 +27,14 @@ jobs:
           tags: |
             ghcr.io/lut4sayem/knowledgeforge-ai:latest
             ghcr.io/lut4sayem/knowledgeforge-ai:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
+      - uses: docker/build-push-action@v6
+        with:
+          context: collab
+          push: true
+          tags: |
+            ghcr.io/lut4sayem/knowledgeforge-collab:latest
+            ghcr.io/lut4sayem/knowledgeforge-collab:${{ github.sha }}
+          cache-from: type=gha,scope=collab
+          cache-to: type=gha,mode=max,scope=collab

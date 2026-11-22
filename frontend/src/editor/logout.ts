@@ -1,51 +1,57 @@
 // Logging out must not strand unsaved work, and must not leave it on a shared computer either:
-// first every local copy of this user is sent (same rules as opening a page), and only what the server
-// confirmed is cleared. If something could not be sent, the user decides.
+// first every local copy of this user is sent through the live session (same rules as opening a page), and only
+// what the collaboration service confirmed it stored is cleared. If something could not be sent, the user decides.
 import * as Y from 'yjs'
 import { api, ApiError } from '../api/client'
-import { getContent, saveContent, saveRecovered } from '../api/content'
-import { fromBase64, toBase64 } from './base64'
+import { getContent, saveRecovered } from '../api/content'
+import { covers, needOf } from './autosave'
+import { fromBase64 } from './base64'
 import { confirmDialog } from '../ui/ConfirmDialog'
 import { clearPendingOf, pendingFor, pendingPages, type PendingStore } from './pendingStore'
 import { EMPTY_PAGE_STATE } from './schema'
+import { pushDoc } from './pushCopy'
 import { isHeld } from './slotLock'
+
+/** Spring's 404 for a page that does not exist (any more): purged, or never visible to this user. */
+const PURGED = 'Page not found'
 
 /** Sends one page's local copies. true = nothing of it is left unsent. */
 async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean): Promise<boolean> {
   try {
-    // A few rounds: someone else may save between our read and our write (409), then we merge again.
-    for (let round = 0; round < 3; round++) {
-      const server = await getContent(nodeId)
-      const sameEpoch: string[] = []
-      const doc = new Y.Doc()
-      Y.applyUpdate(doc, fromBase64(server.state || EMPTY_PAGE_STATE))
-      for (const [slot, copy] of Object.entries(await store.all())) {
-        if (skipLive && (await isHeld(`${store.key}.${slot}`))) continue // an open editor sends its own copy
-        if (copy.state === server.state) {
-          await store.clear(slot) // the server already has exactly this
-        } else if (copy.epoch !== server.contentEpoch) {
-          // From before a restore: never merged, kept as a private version (D6 epoch rule).
-          await saveRecovered(nodeId, { state: copy.state, text: copy.text, baseEpoch: copy.epoch })
-          await store.clear(slot)
-        } else {
-          Y.applyUpdate(doc, fromBase64(copy.state))
-          sameEpoch.push(slot)
-        }
+    const server = await getContent(nodeId)
+    const stored = new Y.Doc()
+    Y.applyUpdate(stored, fromBase64(server.state || EMPTY_PAGE_STATE))
+    const doc = new Y.Doc()
+    Y.applyUpdate(doc, Y.encodeStateAsUpdate(stored))
+    const sameEpoch: string[] = []
+    for (const [slot, copy] of Object.entries(await store.all())) {
+      if (skipLive && (await isHeld(`${store.key}.${slot}`))) continue // an open editor sends its own copy
+      if (copy.state === server.state) {
+        await store.clear(slot) // the server already has exactly this
+      } else if (copy.epoch !== server.contentEpoch) {
+        // From before a restore: never merged, kept as a private version (D6 epoch rule).
+        await saveRecovered(nodeId, { state: copy.state, text: copy.text, baseEpoch: copy.epoch })
+        await store.clear(slot)
+      } else {
+        Y.applyUpdate(doc, fromBase64(copy.state))
+        sameEpoch.push(slot)
       }
-      if (!sameEpoch.length) return true
-      try {
-        const { docText } = await import('./docText') // the editor code is big; only load it when needed
-        await saveContent(nodeId, { baseRevision: server.revision, state: toBase64(Y.encodeStateAsUpdate(doc)), text: docText(doc) })
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 409) continue
-        throw e
+    }
+    if (!sameEpoch.length) return true
+    // Everything in the copies is stored already (only the bytes differed): nothing to send.
+    if (!covers(Y.snapshot(stored), needOf(doc)) && !(await pushDoc(nodeId, doc, server.contentEpoch))) return false
+    for (const slot of sameEpoch) await store.clear(slot)
+    return true
+  } catch (e) {
+    // Purged, or this user cannot read the page any more: the copy can never be sent. A page in the trash keeps it
+    // (it is sent if the page is restored); offline, refused or unreadable: it stays on the device too.
+    if (e instanceof ApiError && (e.status === 403 || (e.status === 404 && e.message === PURGED))) {
+      for (const slot of Object.keys(await store.all())) {
+        if (!(await isHeld(`${store.key}.${slot}`))) await store.clear(slot) // an open editor decides for its own copy
       }
-      for (const slot of sameEpoch) await store.clear(slot)
       return true
     }
     return false
-  } catch {
-    return false // offline, refused, unreadable copy: it stays on the device
   }
 }
 

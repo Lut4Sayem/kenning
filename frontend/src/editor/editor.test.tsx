@@ -18,7 +18,7 @@ document.elementsFromPoint ??= () => [] // nor layout; BlockNote's side menu ask
 afterEach(cleanup)
 
 function Harness({ ydoc, onEditor, editable = true }: { ydoc: Y.Doc; onEditor: (e: KfEditor) => void; editable?: boolean }) {
-  const editor = useKfEditor(ydoc, 'Tester', editable)
+  const editor = useKfEditor(ydoc, { name: 'Tester', color: '#1d65a0' }, editable)
   onEditor(editor)
   return <Editor editor={editor} editable={editable} />
 }

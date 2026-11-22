@@ -15,16 +15,26 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SchemaSetupTest extends IntegrationTest {
 
     @Autowired
     MongoTemplate mongo;
+    @Autowired
+    SchemaSetup setup;
 
     private Set<String> indexNames(String collection) {
         return mongo.indexOps(collection).getIndexInfo().stream()
                 .map(i -> i.getName()).filter(n -> !n.equals("_id_")).collect(Collectors.toSet());
+    }
+
+    @Test
+    void dropsEditLocks() {
+        mongo.getCollection("edit_locks").insertOne(new Document("holder", "left over from 1a"));
+        setup.run(null);
+        assertFalse(mongo.collectionExists("edit_locks"));
     }
 
     @Test
@@ -34,7 +44,6 @@ class SchemaSetupTest extends IntegrationTest {
         assertEquals(Set.of("teamId_createdAt"), indexNames("activity_logs"));
         assertEquals(Set.of("editSession_lastEditAt"), indexNames("node_contents"));
         assertEquals(Set.of("nodeId_createdAt", "nodeId_privateTo_createdAt"), indexNames("node_versions"));
-        assertEquals(Set.of("expiresAt_ttl"), indexNames("edit_locks"));
         assertEquals(Set.of("teamId_userId_status"), indexNames("team_join_requests"));
     }
 

@@ -74,9 +74,7 @@ class NonMemberApiIT extends NodeIntegrationTest {
         denied(o, post(n + "/move"), "{}");
         denied(o, post(n + "/move-to-team"), "{\"spaceId\":\"" + space.getId() + "\"}");
         denied(o, get(n + "/content"), null);
-        denied(o, put(n + "/content"), "{\"baseRevision\":0,\"state\":\"\",\"text\":\"x\"}");
-        denied(o, post(n + "/edit-lock"), "{\"force\":false}");
-        denied(o, delete(n + "/edit-lock"), null);
+        denied(o, post(n + "/collab-ticket"), null);
         denied(o, get(n + "/versions"), null);
         denied(o, post(n + "/versions"), "{\"name\":\"x\"}");
         denied(o, post(n + "/versions/recovered"), "{\"state\":\"\",\"text\":\"x\",\"baseEpoch\":0}");

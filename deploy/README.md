@@ -1,7 +1,8 @@
 # Deploying to the VM
 
-Image is built by `.github/workflows/deploy.yml` (push to `main`) and pushed to GHCR.
-The VM pulls it every 5 minutes (`kf-update.timer` runs `update.sh`); a failed health check rolls back to the previous image.
+Two images are built by `.github/workflows/deploy.yml` (push to `main`) and pushed to GHCR: the app and the collaboration service (`collab/`, live editing).
+The VM pulls them every 5 minutes (`kf-update.timer` runs `update.sh`); if either health check fails, both roll back to the previous images.
+Caddy routes `/collab*` (WebSocket) to the collaboration service and answers `/internal/*` with 404: that API is for the two services on the Docker network only.
 
 ## One-time VM setup (Ubuntu 24.04, 1 GB RAM)
 ```sh
@@ -28,6 +29,9 @@ sudo systemctl daemon-reload && sudo systemctl enable --now kf-update.timer
 - `SPRING_DATA_MONGODB_URI` : Atlas URI ending in the NEW database name, e.g. `.../knowledgeforge_v1?retryWrites=true&w=majority`
 - Atlas user for the app (`kfapp`): roles `readWrite` + `dbAdmin` on `knowledgeforge_v1` only. `readWrite` alone fails: `SchemaSetup` runs `collMod` (validators) and creates the search index, which need `dbAdmin`. Use an alphanumeric password (no URL-encoding needed).
 - `AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY` : only if the AI assistant is used
+- `COLLAB_SECRET` : shared by the app and the collaboration service (tickets and the internal API). At least 32 random characters, e.g. `openssl rand -hex 32`. Without it live editing is off (the ticket endpoint answers 503).
+- `APP_ORIGIN` : the site's own origin, `https://knowledgeforge-lrs.eastasia.cloudapp.azure.com`; the collaboration service refuses WebSockets from any other page.
+- Copy the new `docker-compose.yml`, `Caddyfile` and `update.sh` when they change (the collab service and route came with live editing).
 
 ## Backup secrets (GitHub > repo > Settings > Secrets and variables > Actions)
 - `BACKUP_MONGODB_URI` : URI of the new database with a user that can authenticate (the `kfapp` user works; a separate `read` user on `knowledgeforge_v1` is cleaner). Update it whenever that password changes.
