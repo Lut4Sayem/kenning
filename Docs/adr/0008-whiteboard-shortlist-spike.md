@@ -2,6 +2,8 @@
 
 Date: 2026-11-09 · Status: Accepted (final engine choice deferred to the spike; it gets its own ADR)
 
+Update 2026-11-23: the spike was skipped and Excalidraw was chosen (see `Docs/specs/2026-11-23-whiteboard-decisions.md`).
+
 ## Context
 Release 2 Musts: infinite canvas (pan/zoom/minimap; mouse/trackpad/touch), shapes, sticky notes, connectors, frames,
 layering/alignment, locking, media, live cursors/presence, in-board search, board history/trash, public links, boards in
