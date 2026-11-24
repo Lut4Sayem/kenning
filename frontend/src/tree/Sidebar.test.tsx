@@ -134,6 +134,20 @@ describe('Sidebar', () => {
     await waitFor(() => expect(teamsApi.updateTeam).toHaveBeenCalledWith('t1', { teamName: 'Thesis Lab' }))
   })
 
+  // The row "..." menu focuses its first item on open, arrow keys move between items, Esc returns focus to the button.
+  it('rowMenuSupportsArrowKeys', async () => {
+    api.getMySpaces.mockResolvedValue([{ ...space('s2', 'Hardware', 't2'), myRole: 'VIEWER' }])
+    renderSidebar()
+    const trigger = await screen.findByRole('button', { name: 'More actions for Hardware' })
+    await userEvent.click(trigger)
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Archived' }))
+    await userEvent.keyboard('{ArrowDown}')
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Trash' }))
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+  })
+
   // A team space is renamed in place from its row: Enter saves, Escape cancels; the private space and viewers get no Rename.
   it('aSpaceIsRenamedInPlaceFromItsRow', async () => {
     api.getMySpaces.mockResolvedValue([space('s1', 'Requirements', 't1'), { ...space('s2', 'Hardware', 't2'), myRole: 'VIEWER' }, space('p1', 'My drafts', null)])

@@ -16,6 +16,7 @@ import DeleteTeamDialog from '../team/DeleteTeamDialog'
 import { useLeaveTeam } from '../team/useTeamGone'
 import FormDialog from '../ui/FormDialog'
 import { useRemembered } from '../ui/useRemembered'
+import { menuItems, moveMenuFocus } from '../ui/menuFocus'
 import { useCreatePage } from './useCreatePage'
 import { openRowMenu, useRowTouch } from './useRowTouch'
 import SpaceNameInput, { useDeleteSpace } from './SpaceName'
@@ -212,6 +213,7 @@ function TeamActions({ team, label }: { team: MyTeam; label: string }) {
 
   useEffect(() => {
     if (!open) return
+    menuItems(box.current)[0]?.focus()
     const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
@@ -219,7 +221,11 @@ function TeamActions({ team, label }: { team: MyTeam; label: string }) {
 
   return (
     <div ref={box} className={cx(s.actions, open && s.pinned)}
-      onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); btn.current?.focus() } }}>
+      onKeyDown={(e) => {
+        if (!open) return
+        if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); btn.current?.focus() }
+        else if (moveMenuFocus(e.key, box.current)) e.preventDefault()
+      }}>
       <button ref={btn} type="button" className={s.rowBtn} aria-label={`More actions for ${label}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <Icon name="more" />
       </button>
@@ -271,6 +277,7 @@ function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => vo
 
   useEffect(() => {
     if (!open) return
+    menuItems(box.current)[0]?.focus()
     const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
@@ -278,7 +285,11 @@ function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => vo
 
   return (
     <div ref={box} className={cx(s.actions, open && s.pinned)}
-      onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); btn.current?.focus() } }}>
+      onKeyDown={(e) => {
+        if (!open) return
+        if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); btn.current?.focus() }
+        else if (moveMenuFocus(e.key, box.current)) e.preventDefault()
+      }}>
       {canEditSpace(space) && <button type="button" className={s.rowBtn} aria-label={`New page in ${space.name}`} onClick={() => void create(null)}><Icon name="plus" /></button>}
       <button ref={btn} type="button" className={s.rowBtn} aria-label={`More actions for ${space.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <Icon name="more" />
