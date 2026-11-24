@@ -4,6 +4,8 @@ Date: 2026-11-09 · Status: Accepted (final engine choice deferred to the spike;
 
 Update 2026-11-23: the spike was skipped and Excalidraw was chosen (see `Docs/specs/2026-11-23-whiteboard-decisions.md`).
 
+2026-11-24: spike skipped; Excalidraw chosen with an own Yjs binding. See Docs/specs/2026-11-24-whiteboard-design.md.
+
 ## Context
 Release 2 Musts: infinite canvas (pan/zoom/minimap; mouse/trackpad/touch), shapes, sticky notes, connectors, frames,
 layering/alignment, locking, media, live cursors/presence, in-board search, board history/trash, public links, boards in
