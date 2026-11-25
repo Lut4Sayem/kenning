@@ -20,6 +20,12 @@ h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
   button:not(.sr-only, .bn-container *) { min-width: 40px; }
   nav a { min-height: 40px; align-content: center; }
 }
+/* Touch-only devices of any width (tablets included): 44px targets. `hover: none` keeps touchscreen laptops (mouse too) out. */
+@media (pointer: coarse) and (hover: none) {
+  :is(button, select, [role='tab'], input:not([type='checkbox'], [type='radio'], [type='file'])):not(.sr-only, .bn-container *) { min-height: 44px; }
+  button:not(.sr-only, .bn-container *) { min-width: 44px; }
+  nav a { min-height: 44px; align-content: center; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
