@@ -1,5 +1,5 @@
 # --- STAGE 1: Build the application ---
-FROM eclipse-temurin:17-jdk AS builder
+FROM eclipse-temurin:25-jdk AS builder
 WORKDIR /app
 
 # Copy only the Maven build files first so the dependency layer is cached
@@ -18,7 +18,7 @@ COPY collab/test/fixtures ./collab/test/fixtures
 RUN ./mvnw clean package -DskipTests
 
 # --- STAGE 2: Run the application ---
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
 COPY --from=builder /app/target/*.jar app.jar
