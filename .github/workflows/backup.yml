@@ -22,7 +22,7 @@ jobs:
           sudo apt-get install -y -qq age
           age -r "$AGE_PUBLIC_KEY" -o kf-$(date -u +%F).archive.age kf.archive
           rm kf.archive
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kf-backup
           path: "*.age"
