@@ -1,10 +1,6 @@
 # ADR 0008: Whiteboard engine: shortlist Excalidraw and the GazBoard engine; decide by a spike at the start of Release 2
 
-Date: 2026-11-09 · Status: Accepted (final engine choice deferred to the spike; it gets its own ADR)
-
-Update 2026-11-23: the spike was skipped and Excalidraw was chosen (see `Docs/specs/2026-11-23-whiteboard-decisions.md`).
-
-2026-11-24: spike skipped; Excalidraw chosen with an own Yjs binding. See Docs/specs/2026-11-24-whiteboard-design.md.
+Date: 2026-11-09 · Status: Decided 2026-11-24: Excalidraw with our own Yjs binding (spike skipped). Details: `Docs/specs/2026-11-24-whiteboard-design.md`.
 
 ## Context
 Release 2 Musts: infinite canvas (pan/zoom/minimap; mouse/trackpad/touch), shapes, sticky notes, connectors, frames,

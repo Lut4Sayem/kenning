@@ -192,7 +192,7 @@ Indexes: `{ teamId: 1, createdAt: -1 }` · TTL `{ createdAt: 1 }` **365 days**.
 `ai_usage` (TTL 30 days, already), `ai_summaries` keyed by node id, `ai_answers` per space: caches, cleared in the migration.
 
 ## 4. Physical ERD
-![Physical schema ERD](physical-schema-erd.png)
+![Physical schema ERD](physical-schema-erd.svg)
 
 Mermaid source (renders on GitHub):
 ```mermaid
