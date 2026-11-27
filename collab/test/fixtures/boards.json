@@ -24,5 +24,9 @@
   { "name": "bangla text", "elements": [
     { "id": "a", "type": "text", "index": "a0", "text": "আমার সোনার বাংলা" },
     { "id": "b", "type": "text", "index": "a1", "text": "" }
-  ], "text": "আমার সোনার বাংলা" }
+  ], "text": "আমার সোনার বাংলা" },
+  { "name": "non-string text is skipped", "elements": [
+    { "id": "a", "type": "text", "index": "a0", "text": 5 },
+    { "id": "b", "type": "text", "index": "a1", "text": "kept", "originalText": 7 }
+  ], "text": "kept" }
 ]

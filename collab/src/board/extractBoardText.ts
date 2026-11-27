@@ -3,13 +3,15 @@
 import * as Y from 'yjs'
 import { ELEMENTS } from './format.js'
 
-type El = { id: string; type: string; isDeleted?: boolean; index?: string | null; text?: string; originalText?: string }
+type El = { id: string; type: string; isDeleted?: boolean; index?: string | null; text?: unknown; originalText?: unknown }
+
+const str = (s: unknown) => (typeof s === 'string' ? s : undefined)
 
 export function extractBoardText(doc: Y.Doc): string {
-  return [...doc.getMap<El>(ELEMENTS).values()]
-    .filter((e) => e.type === 'text' && !e.isDeleted)
+  return [...doc.getMap<unknown>(ELEMENTS).values()]
+    .filter((e): e is El => typeof e === 'object' && e !== null && (e as El).type === 'text' && !(e as El).isDeleted)
     .sort((a, b) => (a.index == null ? 1 : 0) - (b.index == null ? 1 : 0) || (a.index! < b.index! ? -1 : a.index! > b.index! ? 1 : 0) || (a.id < b.id ? -1 : 1))
-    .map((e) => e.originalText ?? e.text ?? '')
+    .map((e) => str(e.originalText) ?? str(e.text) ?? '')
     .filter((t) => t.trim() !== '')
     .join('\n')
 }

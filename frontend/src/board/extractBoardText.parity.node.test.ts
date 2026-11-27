@@ -9,3 +9,7 @@ describe('extractBoardText parity fixtures', () => {
     expect(extractBoardText(board.elements)).toBe(board.text)
   })
 })
+
+it('skipsNonObjectValues', () => {
+  expect(extractBoardText(['text', null, { id: 'a', type: 'text', index: 'a0', text: 'kept' }])).toBe('kept')
+})

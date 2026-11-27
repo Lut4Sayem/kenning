@@ -82,6 +82,29 @@ describe('sanitizeChanged', () => {
     expect([...map.keys()].sort()).toEqual(['atLimit', 'customOk', 'drawOk', 'textOk'])
   })
 
+  it('sanitizerRemovesNonStringText', () => {
+    const doc = newDoc()
+    const changed = watch(doc)
+    const map = doc.getMap<El>(ELEMENTS)
+    map.set('num', el('num', { type: 'text', text: 5 }))
+    map.set('obj', el('obj', { type: 'text', text: 'x', originalText: { length: 1 } }))
+    map.set('ok', el('ok', { type: 'text', text: 'x' }))
+    expect(sanitizeChanged(doc, changed)).toEqual([{ id: 'num', reason: 'malformed' }, { id: 'obj', reason: 'malformed' }])
+    expect([...map.keys()]).toEqual(['ok'])
+  })
+
+  it('sanitizerSurvivesUnserializable', () => {
+    const doc = newDoc()
+    const changed = watch(doc)
+    const map = doc.getMap<El>(ELEMENTS)
+    doc.transact(() => {
+      map.set('big', el('big', { pad: 10n })) // Yjs stores BigInt; JSON.stringify throws on it
+      map.set('img', el('img', { type: 'image' }))
+    })
+    expect(sanitizeChanged(doc, changed)).toEqual([{ id: 'big', reason: 'malformed' }, { id: 'img', reason: 'type' }])
+    expect(map.size).toBe(0)
+  })
+
   it('sanitizerKeepsValidAndDanglingBindings', () => {
     const doc = newDoc()
     const changed = watch(doc)

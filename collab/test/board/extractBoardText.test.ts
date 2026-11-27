@@ -12,3 +12,14 @@ describe('boardTextFromFixtures', () => {
     expect(extractBoardText(doc)).toBe(board.text)
   })
 })
+
+describe('boardTextOddValues', () => {
+  it('skipsNonObjectValues', () => {
+    const doc = new Y.Doc()
+    const map = doc.getMap<unknown>(ELEMENTS)
+    map.set('s', 'text')
+    map.set('n', null)
+    map.set('a', { id: 'a', type: 'text', index: 'a0', text: 'kept' })
+    expect(extractBoardText(doc)).toBe('kept')
+  })
+})

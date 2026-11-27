@@ -7,10 +7,17 @@ import { SERVER } from '../src/board/sanitize.js'
 import { EpochError, RefusedError, RevisionError } from '../src/spring.js'
 import pages from './fixtures/pages.json' with { type: 'json' }
 import { connect, fakeSpring, ticket, testConfig, typeIn, until, type Client, type FakeSpring } from './helpers.js'
+import { extractBoardText } from '../src/board/extractBoardText.js'
+
+vi.mock('../src/board/extractBoardText.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../src/board/extractBoardText.js')>()
+  return { extractBoardText: vi.fn(real.extractBoardText) }
+})
 
 let server: ReturnType<typeof createServer> | undefined
 const clients: Client[] = []
 afterEach(async () => {
+  vi.restoreAllMocks()
   clients.splice(0).forEach((c) => c.provider.destroy())
   await server?.destroy()
   server = undefined
@@ -243,7 +250,30 @@ describe('boards', () => {
     const line = logs.mock.calls.map((c) => JSON.parse(String(c[0]))).find((l) => l.event === 'board-sanitized')
     expect(line).toMatchObject({ nodeId: 'n1', userId: 'u1', id: 'img', reason: 'type' })
     expect(JSON.stringify(line)).not.toContain('image')
-    logs.mockRestore()
+  })
+
+  it('boardLoadRemovesBadStoredElements', async () => {
+    const stored = new Y.Doc()
+    Y.applyUpdate(stored, Buffer.from(EMPTY_BOARD_STATE, 'base64'))
+    elements(stored).set('img', el('img', { type: 'image' }))
+    elements(stored).set('num', el('num', { type: 'text', text: 5, index: 'a1' }))
+    elements(stored).set('ok', el('ok', { index: 'a2' }))
+    const port = await start(fakeSpring({ ...BOARD, state: Y.encodeStateAsUpdate(stored) }))
+    const c = await join(port)
+    expect([...elements(c.doc).keys()]).toEqual(['ok'])
+  })
+
+  it('storeChainSurvivesExtractorError', async () => {
+    const spring = fakeSpring(BOARD)
+    const port = await start(spring, { debounce: 50, maxDebounce: 200, backoff: [100] })
+    const c = await join(port)
+    vi.mocked(extractBoardText).mockImplementationOnce(() => { throw new Error('boom') })
+    elements(c.doc).set('t1', el('t1', { type: 'text', text: 'first' }))
+    await until(() => c.messages.some((m) => m.type === 'saved'), 3000)
+    expect(c.messages.map((m) => m.type)).toEqual(['retrying', 'saved'])
+    elements(c.doc).set('t2', el('t2', { type: 'text', text: 'second', index: 'a1' }))
+    await until(() => spring.stores.length === 2, 3000)
+    expect(spring.stores[1].body.text).toBe('first\nsecond')
   })
 
   it('serverFixesDoNotLoop', async () => {

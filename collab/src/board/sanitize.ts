@@ -11,6 +11,7 @@ type El = Record<string, unknown>
 
 const bytes = (v: unknown) => Buffer.byteLength(JSON.stringify(v))
 const tooLong = (s: unknown) => typeof s === 'string' && s.length > LIMITS.textChars
+const notString = (s: unknown) => s !== undefined && typeof s !== 'string'
 
 function invalidReason(key: string, v: unknown): string | null {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return 'malformed'
@@ -19,9 +20,14 @@ function invalidReason(key: string, v: unknown): string | null {
   if (!Number.isFinite(e.version) || !Number.isFinite(e.versionNonce)) return 'malformed'
   if (!ALLOWED_TYPES.has(e.type)) return 'type'
   if (e.type === 'freedraw' && Array.isArray(e.points) && e.points.length > LIMITS.points) return 'points'
+  if (notString(e.text) || notString(e.originalText)) return 'malformed'
   if (e.type === 'text' && (tooLong(e.text) || tooLong(e.originalText))) return 'text'
-  if (e.customData !== undefined && bytes(e.customData) > LIMITS.customDataBytes) return 'customData'
-  if (bytes(e) > LIMITS.elementBytes) return 'size'
+  try {
+    if (e.customData !== undefined && bytes(e.customData) > LIMITS.customDataBytes) return 'customData'
+    if (bytes(e) > LIMITS.elementBytes) return 'size'
+  } catch {
+    return 'malformed' // JSON can't write it (a BigInt, which Yjs can carry)
+  }
   return null
 }
 
@@ -92,7 +98,8 @@ const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 /** Gives each live element whose index clashes with an earlier one (or is null/invalid) a fresh key. */
 export function fixIndexClashes(doc: Y.Doc): number {
   const map = doc.getMap<unknown>(ELEMENTS)
-  const live = [...map].filter(([id, v]) => invalidReason(id, v) === null && !(v as El).isDeleted).map(([, v]) => v as El)
+  // the map is already sanitized: a cheap shape check is enough (no JSON size check per element per update)
+  const live = [...map.values()].filter((v): v is El => typeof v === 'object' && v !== null && !Array.isArray(v) && typeof (v as El).id === 'string' && !(v as El).isDeleted)
   const sorted = live.filter((e) => validKey(e.index)).sort((a, b) => cmp(a.index as string, b.index as string) || cmp(a.id as string, b.id as string))
   const bad = live.filter((e) => !validKey(e.index)).sort((a, b) => cmp(a.id as string, b.id as string))
   const fixes: [El, string][] = []

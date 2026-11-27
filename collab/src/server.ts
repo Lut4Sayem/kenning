@@ -221,10 +221,11 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       // what was stored, deletions included: a client clears its local copy only when this holds all of its edits
       const snap = b64(Y.encodeSnapshot(Y.snapshot(doc)))
       const state = Y.encodeStateAsUpdate(doc)
-      const text = meta.format === 'YJS_BOARD_V1' ? extractBoardText(doc) : extractText(doc.getXmlFragment(FRAGMENT))
-      if (state.length > o.maxStateBytes || text.length > MAX_TEXT) readOnlyForEveryone(doc, meta)
-      const body = { baseRevision: meta.revision, baseEpoch: meta.epoch, state: b64(state), text, authors }
       try {
+        // inside the try: a throw here must retry like a failed store, never reject meta.chain (that blocks every later store)
+        const text = meta.format === 'YJS_BOARD_V1' ? extractBoardText(doc) : extractText(doc.getXmlFragment(FRAGMENT))
+        if (state.length > o.maxStateBytes || text.length > MAX_TEXT) readOnlyForEveryone(doc, meta)
+        const body = { baseRevision: meta.revision, baseEpoch: meta.epoch, state: b64(state), text, authors }
         const { revision } = await spring.store(doc.name, body)
         meta.revision = revision
         meta.bytes = state.length
