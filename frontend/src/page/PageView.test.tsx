@@ -520,3 +520,16 @@ describe('trash button in the top bar', () => {
     expect(button.title).toBe('Unlock the page first')
   })
 })
+
+describe('a board', () => {
+  it('boardNodeNotOpenedAsPage', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, type: 'BOARD' })
+    const { view } = mount()
+    await screen.findByText('This is a board. Boards open in the board view.')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(contentApi.getContent).not.toHaveBeenCalled()
+    expect(editorDom(view.container)).toBeNull()
+    expect(screen.queryByLabelText('Page title')).toBeNull()
+    expect(await pendingFor('u1', 'n1').all()).toEqual({})
+  })
+})
