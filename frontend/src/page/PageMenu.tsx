@@ -12,6 +12,7 @@ import MoveToTeamDialog from '../move/MoveToTeamDialog'
 import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
 import m from './PageMenu.module.css'
+import { useCreatePage } from '../tree/useCreatePage'
 import { useTrashPage } from './useTrashPage'
 
 interface Props {
@@ -58,6 +59,8 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
   const qc = useQueryClient()
   const trash = useTrashPage(node)
   const unarchive = useUnarchive(node)
+  const { create, message: createError } = useCreatePage(node.spaceId)
+  const board = node.type === 'BOARD'
   const [open, setOpen] = useState(defaultOpen)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -104,7 +107,10 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
     if (onRename) {
       items.push({ label: 'Rename', blocked: node.access === 'EDIT' ? undefined : lockedNote ?? 'You can only read this page', ownFocus: true, run: async () => onRename() })
     }
-    if (node.publishState === 'PUBLISHED') {
+    if (!board) {
+      items.push({ label: 'New board', blocked: node.access === 'EDIT' ? undefined : 'You can only read this page', run: () => create(node.id, undefined, 'BOARD') })
+    }
+    if (node.publishState === 'PUBLISHED' && !board) {
       items.push({ label: 'Unpublish', blocked: lockedNote, run: async () => (await unpublishNode(node.id), await refresh()) })
     }
     items.push(
@@ -174,7 +180,7 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
         </div>
       )}
       {moving && <MoveToTeamDialog node={node} mode={moving} onClose={() => { setMoving(null); button.current?.focus() }} />}
-      {error && <p role="alert" className={m.error}>{error}</p>}
+      {(error || createError) && <p role="alert" className={m.error}>{error || createError}</p>}
       {notice && <p role="status" className={m.note}>{notice}</p>}
     </div>
   )

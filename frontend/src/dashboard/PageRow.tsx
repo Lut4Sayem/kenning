@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 import Avatar from '../ui/Avatar'
 import { dotColour } from '../ui/pageColour'
 import Time from '../ui/timeAgo'
@@ -6,6 +7,8 @@ import s from './Home.module.css'
 
 export interface PageRowProps {
   id: string
+  /** Boards open their own screen. */
+  type?: 'PAGE' | 'BOARD' | null
   title: string
   /** Page colour, null = gray (QA-47). */
   color?: string | null
@@ -18,10 +21,10 @@ export interface PageRowProps {
 }
 
 /** The 42px list row shared by "Your drafts" and Recent (DESIGN.md section 6). */
-export default function PageRow({ id, title, color, location, status, avatar, when }: PageRowProps) {
+export default function PageRow({ id, type, title, color, location, status, avatar, when }: PageRowProps) {
   return (
     <li>
-      <Link to={`/p/${id}`} className={s.row}>
+      <Link to={nodePath(id, type)} className={s.row}>
         <span className={s.rowDot} style={{ background: dotColour(color) }} aria-hidden="true" />
         <span className={s.rowTitle} title={title || 'Untitled'}>{title || 'Untitled'}</span>
         <span className={s.rowLoc}>{location}</span>

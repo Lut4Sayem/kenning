@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useMatch, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useOpenNodeId } from '../app/nodePath'
 import { createNode } from '../api/nodes'
 import mark from '../assets/brand/kenning-mark-small.svg'
 import { canEditSpace, canRenameSpace, getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
@@ -36,7 +37,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
   const spaces = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces })
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const activeId = useMatch('/p/:nodeId')?.params.nodeId
+  const activeId = useOpenNodeId()
   const [newTeam, setNewTeam] = useState(false)
   const priv = (spaces.data ?? []).find((sp) => sp.ownerType === 'USER')
   const name = me.data?.fullName || me.data?.email.split('@')[0] || '' // QA-52: older accounts have no name
@@ -267,7 +268,7 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
   )
 }
 
-/** "+" (new page in this space) and "..." (Rename, Archived, Trash, Delete space): shown on hover or focus of the space row. */
+/** "+" (new page in this space) and "..." (New board, Rename, Archived, Trash, Delete space): shown on hover or focus of the space row. */
 function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => void }) {
   const { create, message } = useCreatePage(space.id)
   const remove = useDeleteSpace(space)
@@ -296,6 +297,7 @@ function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => vo
       </button>
       {open && (
         <div className={s.menu} role="menu" aria-label={`${space.name} actions`} onClick={() => setOpen(false)}>
+          {canEditSpace(space) && <button type="button" role="menuitem" className={s.menuItem} onClick={() => void create(null, undefined, 'BOARD')}>New board</button>}
           {onRename && canRenameSpace(space) && <button type="button" role="menuitem" className={s.menuItem} onClick={onRename}>Rename</button>}
           <Link to={`/s/${space.id}/trash?tab=archived`} role="menuitem" className={s.menuItem}>Archived</Link>
           <Link to={`/s/${space.id}/trash`} role="menuitem" className={s.menuItem}>Trash</Link>

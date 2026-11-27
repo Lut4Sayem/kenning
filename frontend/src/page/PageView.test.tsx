@@ -76,6 +76,7 @@ function mount(entry: string | { pathname: string; state: unknown } = '/p/n1') {
           <ConfirmHost />
           <Routes>
             <Route path="/p/:nodeId" element={<PageView />} />
+            <Route path="/b/:nodeId" element={<p>Board screen</p>} />
             <Route path="/" element={<p>Home</p>} />
           </Routes>
         </MemoryRouter>
@@ -522,10 +523,10 @@ describe('trash button in the top bar', () => {
 })
 
 describe('a board', () => {
-  it('boardNodeNotOpenedAsPage', async () => {
+  it('boardNodeNotOpenedAsPage', async () => { // an old /p/ link to a board goes on to the board screen
     nodesApi.getNode.mockResolvedValue({ ...NODE, type: 'BOARD' })
     const { view } = mount()
-    await screen.findByText('This is a board. Boards open in the board view.')
+    await screen.findByText('Board screen')
     await new Promise((r) => setTimeout(r, 50))
     expect(contentApi.getContent).not.toHaveBeenCalled()
     expect(editorDom(view.container)).toBeNull()

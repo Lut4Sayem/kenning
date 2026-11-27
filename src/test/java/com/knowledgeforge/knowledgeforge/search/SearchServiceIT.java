@@ -4,6 +4,7 @@ import com.knowledgeforge.knowledgeforge.node.CreateNodeRequest;
 import com.knowledgeforge.knowledgeforge.node.Node;
 import com.knowledgeforge.knowledgeforge.node.NodeDTO;
 import com.knowledgeforge.knowledgeforge.node.NodeRepository;
+import com.knowledgeforge.knowledgeforge.node.NodeType;
 import com.knowledgeforge.knowledgeforge.node.TrashService;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentService;
 import com.knowledgeforge.knowledgeforge.space.Space;
@@ -39,12 +40,22 @@ class SearchServiceIT extends NodeIntegrationTest {
 
     /** Retries until the search returns something (index lag), up to 60 s. */
     private List<SearchResultDTO> awaitHits(Supplier<List<SearchResultDTO>> s) throws InterruptedException {
-        List<SearchResultDTO> r = s.get();
+        List<SearchResultDTO> r = tryFind(s);
         for (int i = 0; i < 120 && r.isEmpty(); i++) {
             Thread.sleep(500);
-            r = s.get();
+            r = tryFind(s);
         }
         return r;
+    }
+
+    /** A brand-new search index refuses queries until its first sync is done: count that as no hits yet. */
+    private static List<SearchResultDTO> tryFind(Supplier<List<SearchResultDTO>> s) {
+        try {
+            return s.get();
+        } catch (RuntimeException e) {
+            if (String.valueOf(e.getMessage()).contains("INITIAL_SYNC")) return List.of();
+            throw e;
+        }
     }
 
     private static List<SearchResultDTO> pages(List<SearchResultDTO> r) {
@@ -154,5 +165,24 @@ class SearchServiceIT extends NodeIntegrationTest {
         List<SearchResultDTO> r = pages(awaitHits(() -> find("handbook")));
         assertEquals(p.id(), r.get(0).nodeId());
         assertTrue(r.get(0).archived());
+    }
+
+    /** Links open a node by its kind: hits say whether a node is a page or a board. */
+    @Test
+    void hitsSayPageOrBoard() throws Exception {
+        NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(null, "Quokka board", null, NodeType.BOARD));
+        NodeDTO p = page("Quokka notes", null);
+        List<SearchResultDTO> r = awaitHits(() -> pages(find("quokka")).size() < 2 ? List.of() : pages(find("quokka")));
+        assertEquals("BOARD", r.stream().filter(h -> h.nodeId().equals(b.id())).findFirst().orElseThrow().nodeType());
+        assertEquals("PAGE", r.stream().filter(h -> h.nodeId().equals(p.id())).findFirst().orElseThrow().nodeType());
+    }
+
+    @Test
+    void recentSaysBoard() {
+        NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(null, "Plan", null, NodeType.BOARD));
+        nodeService.get(b.id());
+        SearchResultDTO r = search.recent().get(0);
+        assertEquals(b.id(), r.nodeId());
+        assertEquals("BOARD", r.nodeType());
     }
 }

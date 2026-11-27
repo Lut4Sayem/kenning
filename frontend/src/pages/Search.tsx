@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 import { searchAll, type SearchHit } from '../api/search'
 import { getMySpaces } from '../api/spaces'
 import { TopBar } from '../app/ShellSlots'
@@ -165,7 +166,7 @@ const ICON = { PAGE: 'file', SPACE: 'folder', TEAM: 'users' } as const
 
 function Row({ hit, q }: { hit: SearchHit; q: string }) {
   const title = hit.title || 'Untitled'
-  const to = hit.type === 'PAGE' ? `/p/${hit.nodeId}` : hit.type === 'SPACE' ? `/s/${hit.spaceId}` : `/teams/${hit.teamId}`
+  const to = hit.type === 'PAGE' ? nodePath(hit.nodeId!, hit.nodeType) : hit.type === 'SPACE' ? `/s/${hit.spaceId}` : `/teams/${hit.teamId}`
   const where = hit.type === 'PAGE' ? [placeOf(hit.teamName, hit.spaceName), hit.path].filter(Boolean).join(' / ') : null
   return (
     <li className={s.res}>

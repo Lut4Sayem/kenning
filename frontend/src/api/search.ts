@@ -23,6 +23,8 @@ export interface SearchHit {
   updatedByName?: string | null
   /** Pages only: the page colour, null = gray. */
   color?: string | null
+  /** Node hits: which screen opens it. */
+  nodeType?: 'PAGE' | 'BOARD' | null
 }
 
 export interface SearchParams {
