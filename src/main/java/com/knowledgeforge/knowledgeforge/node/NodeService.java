@@ -203,6 +203,7 @@ public class NodeService {
             parent = access.requireEdit(req.parentId());
             if (!spaceId.equals(parent.getSpaceId())) throw bad("That page is in another space");
             if (parent.getAncestors().contains(id)) throw bad("Can’t move a page inside itself");
+            if (parent.getType() == NodeType.BOARD) throw bad("Boards can’t have sub-pages");
         }
         List<String> newAncestors = ancestorsUnder(parent);
         int oldDepth = node.getAncestors().size();
@@ -245,7 +246,7 @@ public class NodeService {
 
     /** Records the published content as a PUBLISHED version, then flips the state. */
     public PublishedDTO publish(String id) {
-        access.requireEdit(id);
+        requireNotBoard(access.requireEdit(id));
         boolean missing = !collab.flush(id); // live edits first; if collab is down the version has what was stored last
         versions.createVersion(id, VersionKind.PUBLISHED, null); // first: a missing content (404) must leave the state alone
         NodeDTO published = setPublishState(id, PublishState.PUBLISHED);
@@ -260,7 +261,13 @@ public class NodeService {
     }
 
     public NodeDTO unpublish(String id) {
+        requireNotBoard(access.requireEdit(id));
         return setPublishState(id, PublishState.DRAFT);
+    }
+
+    // Boards have no Draft/Published in v1: they stay PUBLISHED (spec 7.4).
+    private static void requireNotBoard(Node node) {
+        if (node.getType() == NodeType.BOARD) throw bad("Boards are always published");
     }
 
     private NodeDTO setPublishState(String id, PublishState state) {

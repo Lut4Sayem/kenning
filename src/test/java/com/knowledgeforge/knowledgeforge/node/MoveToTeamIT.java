@@ -131,6 +131,16 @@ class MoveToTeamIT extends NodeIntegrationTest {
     }
 
     @Test
+    void moveToTeamUnderBoardRejected() {
+        NodeDTO board = nodeService.create(space.getId(), new CreateNodeRequest(null, "Plan", null, NodeType.BOARD));
+        NodeDTO a = privatePage("Notes", null);
+        assertEquals("Boards can’t have sub-pages",
+                assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                        () -> moveToTeam.moveToTeam(a.id(), into(board.id()))).getReason());
+        assertEquals(mine.getId(), nodes.findById(a.id()).orElseThrow().getSpaceId());
+    }
+
+    @Test
     void teamSeesOnlyPublishedToTeamVersion() {
         NodeDTO a = privatePage("Notes", null);
         versionService.createVersion(a.id(), VersionKind.NAMED, "draft 1");

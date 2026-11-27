@@ -142,6 +142,30 @@ class NodeServiceIT extends IntegrationTest {
     }
 
     @Test
+    void moveUnderBoardRejected() {
+        NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(null, "Plan", null, NodeType.BOARD));
+        NodeDTO page = create(null, "Page");
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+                () -> nodeService.move(page.id(), new MoveNodeRequest(b.id(), null, null)));
+        assertEquals(400, e.getStatusCode().value());
+        assertEquals("Boards can’t have sub-pages", e.getReason());
+        assertNull(nodes.findById(page.id()).orElseThrow().getParentId());
+    }
+
+    @Test
+    void boardPublishStateFixed() {
+        NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(null, "Plan", null, NodeType.BOARD));
+        for (Runnable r : List.<Runnable>of(() -> nodeService.publish(b.id()), () -> nodeService.unpublish(b.id()))) {
+            ResponseStatusException e = assertThrows(ResponseStatusException.class, r::run);
+            assertEquals(400, e.getStatusCode().value());
+            assertEquals("Boards are always published", e.getReason());
+        }
+        assertEquals(PublishState.PUBLISHED, nodes.findById(b.id()).orElseThrow().getPublishState());
+        assertEquals(0, mongo.findAll(com.knowledgeforge.knowledgeforge.nodeversion.NodeVersion.class).stream()
+                .filter(v -> v.getNodeId().equals(b.id())).count());
+    }
+
+    @Test
     void boardUnderPageAllowed() {
         NodeDTO page = create(null, "Page");
         NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(page.id(), "Plan", null, NodeType.BOARD));
