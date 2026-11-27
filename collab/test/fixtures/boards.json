@@ -1,0 +1,28 @@
+[
+  { "name": "empty board", "elements": [], "text": "" },
+  { "name": "plain text", "elements": [{ "id": "a", "type": "text", "index": "a0", "text": "Hello world" }], "text": "Hello world" },
+  { "name": "text bound to a rectangle and an arrow", "elements": [
+    { "id": "r", "type": "rectangle", "index": "a0" },
+    { "id": "t1", "type": "text", "index": "a1", "text": "Inside box", "containerId": "r" },
+    { "id": "ar", "type": "arrow", "index": "a2" },
+    { "id": "t2", "type": "text", "index": "a3", "text": "On arrow", "containerId": "ar" }
+  ], "text": "Inside box\nOn arrow" },
+  { "name": "deleted text is skipped", "elements": [
+    { "id": "a", "type": "text", "index": "a0", "text": "keep" },
+    { "id": "b", "type": "text", "index": "a1", "text": "gone", "isDeleted": true }
+  ], "text": "keep" },
+  { "name": "originalText preferred over wrapped text", "elements": [
+    { "id": "a", "type": "text", "index": "a0", "text": "one\ntwo\nthree", "originalText": "one two three" }
+  ], "text": "one two three" },
+  { "name": "ordered by index not insertion", "elements": [
+    { "id": "c", "type": "text", "index": "a2", "text": "third" },
+    { "id": "a", "type": "text", "index": "a0", "text": "first" },
+    { "id": "b", "type": "text", "index": "a1", "text": "second" },
+    { "id": "z", "type": "text", "text": "no index" },
+    { "id": "y", "type": "text", "index": null, "text": "null index" }
+  ], "text": "first\nsecond\nthird\nnull index\nno index" },
+  { "name": "bangla text", "elements": [
+    { "id": "a", "type": "text", "index": "a0", "text": "আমার সোনার বাংলা" },
+    { "id": "b", "type": "text", "index": "a1", "text": "" }
+  ], "text": "আমার সোনার বাংলা" }
+]
