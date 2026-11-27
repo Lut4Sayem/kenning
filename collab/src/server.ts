@@ -3,6 +3,9 @@ import { timingSafeEqual } from 'node:crypto'
 import type { IncomingMessage } from 'node:http'
 import * as Y from 'yjs'
 import type { Config } from './config.js'
+import { extractBoardText } from './board/extractBoardText.js'
+import { EMPTY_BOARD_STATE } from './board/format.js'
+import { guardBoard } from './board/guard.js'
 import { extractText } from './extractText.js'
 import { log } from './log.js'
 import { EpochError, RefusedError, RevisionError, TooLargeError, type Loaded, type SpringApi } from './spring.js'
@@ -18,6 +21,7 @@ export interface Ctx {
 
 /** Per open page: what Spring has, who edited since the last store. */
 interface Meta {
+  format: Loaded['format']
   revision: number
   epoch: number
   authors: Set<string>
@@ -217,10 +221,11 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       // what was stored, deletions included: a client clears its local copy only when this holds all of its edits
       const snap = b64(Y.encodeSnapshot(Y.snapshot(doc)))
       const state = Y.encodeStateAsUpdate(doc)
-      const text = extractText(doc.getXmlFragment(FRAGMENT))
-      if (state.length > o.maxStateBytes || text.length > MAX_TEXT) readOnlyForEveryone(doc, meta)
-      const body = { baseRevision: meta.revision, baseEpoch: meta.epoch, state: b64(state), text, authors }
       try {
+        // inside the try: a throw here must retry like a failed store, never reject meta.chain (that blocks every later store)
+        const text = meta.format === 'YJS_BOARD_V1' ? extractBoardText(doc) : extractText(doc.getXmlFragment(FRAGMENT))
+        if (state.length > o.maxStateBytes || text.length > MAX_TEXT) readOnlyForEveryone(doc, meta)
+        const body = { baseRevision: meta.revision, baseEpoch: meta.epoch, state: b64(state), text, authors }
         const { revision } = await spring.store(doc.name, body)
         meta.revision = revision
         meta.bytes = state.length
@@ -314,9 +319,11 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
     async onLoadDocument({ documentName, document }) {
       const loaded = await prefetch(documentName)
       prefetched.delete(documentName)
-      Y.applyUpdate(document, loaded.state ?? Buffer.from(EMPTY_PAGE_STATE, 'base64'), 'spring')
+      const board = loaded.format === 'YJS_BOARD_V1'
+      Y.applyUpdate(document, loaded.state ?? Buffer.from(board ? EMPTY_BOARD_STATE : EMPTY_PAGE_STATE, 'base64'), 'spring')
+      if (board) guardBoard(document, documentName)
       const bytes = Y.encodeStateAsUpdate(document).length
-      metas.set(documentName, { revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, changed: false, bytes, chain: Promise.resolve(), tooLarge: false, settled: false, near: bytes >= o.maxStateBytes * 0.9, snap: null })
+      metas.set(documentName, { format: loaded.format, revision: loaded.revision, epoch: loaded.epoch, authors: new Set(), dropped: false, changed: false, bytes, chain: Promise.resolve(), tooLarge: false, settled: false, near: bytes >= o.maxStateBytes * 0.9, snap: null })
     },
 
     async onChange({ documentName, document, context, update }) {

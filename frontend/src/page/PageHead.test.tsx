@@ -36,7 +36,7 @@ vi.mock('../app/ShellSlots', () => ({
 const HOUR = 3600_000
 const ago = (h: number) => new Date(Date.now() - h * HOUR).toISOString()
 const NODE: NodeDetail = {
-  id: 'n1', spaceId: 's1', parentId: null, title: 'Use cases', icon: null, tags: ['srs'], publishState: 'DRAFT', locked: false,
+  id: 'n1', spaceId: 's1', parentId: null, title: 'Use cases', icon: null, tags: ['srs'], type: 'PAGE', publishState: 'DRAFT', locked: false,
   lockedBy: null, status: 'ACTIVE', access: 'EDIT', canManage: true, breadcrumbs: [{ id: 'p0', title: 'Specs' }],
   createdBy: { id: 'u2', name: 'Rafi Ahmed', avatarUrl: null }, updatedBy: { id: 'u2', name: 'Rafi Ahmed', avatarUrl: null }, contentUpdatedAt: ago(2),
 }

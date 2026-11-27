@@ -21,6 +21,7 @@ export interface NodeDetail {
   title: string
   icon: string | null
   tags: string[]
+  type: 'PAGE' | 'BOARD'
   publishState: 'DRAFT' | 'PUBLISHED'
   locked: boolean
   lockedBy: string | null
@@ -45,7 +46,7 @@ export interface MoveBody {
 
 export const getTree = (spaceId: string) => api<NodeSummary[]>(`/api/spaces/${spaceId}/tree`)
 
-export const createNode = (spaceId: string, body: { parentId?: string | null; title?: string; afterId?: string }) =>
+export const createNode = (spaceId: string, body: { parentId?: string | null; title?: string; afterId?: string; type?: 'PAGE' | 'BOARD' }) =>
   api<NodeDetail>(`/api/spaces/${spaceId}/nodes`, { method: 'POST', body: JSON.stringify(body) })
 
 export const getNode = (id: string) => api<NodeDetail>(`/api/nodes/${id}`)
