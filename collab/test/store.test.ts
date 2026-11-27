@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
 import { createServer, EMPTY_PAGE_STATE, type Options } from '../src/server.js'
 import { extractText } from '../src/extractText.js'
+import { ELEMENTS, EMPTY_BOARD_STATE } from '../src/board/format.js'
+import { SERVER } from '../src/board/sanitize.js'
 import { EpochError, RefusedError, RevisionError } from '../src/spring.js'
 import pages from './fixtures/pages.json' with { type: 'json' }
 import { connect, fakeSpring, ticket, testConfig, typeIn, until, type Client, type FakeSpring } from './helpers.js'
@@ -180,7 +182,7 @@ describe('storing', () => {
     spring.storeImpl = async (body) => {
       if (first) {
         first = false
-        spring.loaded = { state: Y.encodeStateAsUpdate(other), revision: 5, epoch: 0 }
+        spring.loaded = { ...spring.loaded, state: Y.encodeStateAsUpdate(other), revision: 5, epoch: 0 }
         throw new RevisionError()
       }
       return { revision: body.baseRevision + 1 }
@@ -192,5 +194,76 @@ describe('storing', () => {
     expect(spring.stores[1].body.baseRevision).toBe(5)
     expect(spring.stores[1].body.text).toContain('theirs')
     expect(spring.stores[1].body.text).toContain('mine')
+  })
+})
+
+describe('boards', () => {
+  const BOARD = { format: 'YJS_BOARD_V1' } as const
+  const el = (id: string, extra: Record<string, unknown> = {}) =>
+    ({ id, type: 'rectangle', version: 1, versionNonce: 1, isDeleted: false, index: 'a0', updated: Date.now(), ...extra })
+  const elements = (doc: Y.Doc) => doc.getMap<Record<string, unknown>>(ELEMENTS)
+
+  it('boardLoadsEmptyBoardState', async () => {
+    const port = await start(fakeSpring(BOARD))
+    await join(port)
+    const doc = server!.hocuspocus.documents.get('n1')!
+    expect(Buffer.from(Y.encodeStateAsUpdate(doc)).toString('base64')).toBe(EMPTY_BOARD_STATE)
+  })
+
+  it('boardLoadFixesIndexClashes', async () => {
+    const stored = new Y.Doc()
+    Y.applyUpdate(stored, Buffer.from(EMPTY_BOARD_STATE, 'base64'))
+    elements(stored).set('a', el('a'))
+    elements(stored).set('b', el('b'))
+    const port = await start(fakeSpring({ ...BOARD, state: Y.encodeStateAsUpdate(stored) }))
+    const c = await join(port)
+    await until(() => elements(c.doc).get('a')?.index !== elements(c.doc).get('b')?.index)
+  })
+
+  it('boardStoreUsesBoardExtractor', async () => {
+    const spring = fakeSpring(BOARD)
+    const port = await start(spring)
+    const c = await join(port)
+    elements(c.doc).set('t1', el('t1', { type: 'text', text: 'hello board' }))
+    await until(() => spring.stores.length === 1)
+    expect(spring.stores[0].body.text).toBe('hello board')
+  })
+
+  it('boardSanitizesClientUpdate', async () => {
+    const logs = vi.spyOn(console, 'log')
+    const port = await start(fakeSpring(BOARD))
+    const a = await join(port, { userId: 'u1' })
+    const b = await join(port, { userId: 'u2' })
+    elements(a.doc).set('img', el('img', { type: 'image' }))
+    elements(a.doc).set('after', el('after', { index: 'a1' }))
+    // the fix is broadcast before the next client update, so once `after` arrives the image is gone for good
+    await until(() => elements(b.doc).has('after'))
+    expect(elements(b.doc).has('img')).toBe(false)
+    expect(elements(a.doc).has('img')).toBe(false)
+    const line = logs.mock.calls.map((c) => JSON.parse(String(c[0]))).find((l) => l.event === 'board-sanitized')
+    expect(line).toMatchObject({ nodeId: 'n1', userId: 'u1', id: 'img', reason: 'type' })
+    expect(JSON.stringify(line)).not.toContain('image')
+    logs.mockRestore()
+  })
+
+  it('serverFixesDoNotLoop', async () => {
+    const port = await start(fakeSpring(BOARD))
+    await join(port)
+    const doc = server!.hocuspocus.documents.get('n1')!
+    // the observer leaves server- and Spring-origin writes alone: these would be removed otherwise
+    doc.transact(() => elements(doc).set('s', el('s', { type: 'image' })), SERVER)
+    doc.transact(() => elements(doc).set('p', el('p', { type: 'image', index: 'a1' })), 'spring')
+    expect(elements(doc).has('s')).toBe(true)
+    expect(elements(doc).has('p')).toBe(true)
+  })
+
+  it('pageStillUsesPageExtractor', async () => {
+    const spring = fakeSpring({ format: 'YJS_BLOCKNOTE_V1' })
+    const port = await start(spring)
+    const c = await join(port)
+    typeIn(c.doc, 'page text')
+    await until(() => spring.stores.length === 1)
+    expect(spring.stores[0].body.text).toBe('page text')
+    expect(elements(server!.hocuspocus.documents.get('n1')!).size).toBe(0)
   })
 })
