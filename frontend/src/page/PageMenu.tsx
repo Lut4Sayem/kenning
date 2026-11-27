@@ -42,7 +42,7 @@ interface Item {
 }
 
 /** Unarchives the page and refreshes it; returns a notice when it had to move to the top level. Also the archived banner's button. */
-export function useUnarchive(node: Pick<NodeDetail, 'id' | 'spaceId'>) {
+export function useUnarchive(node: Pick<NodeDetail, 'id' | 'spaceId'> & { type?: NodeDetail['type'] }) {
   const qc = useQueryClient()
   return async () => {
     const { movedToTop } = await unarchiveNode(node.id)
@@ -50,7 +50,7 @@ export function useUnarchive(node: Pick<NodeDetail, 'id' | 'spaceId'>) {
       qc.invalidateQueries({ queryKey: ['node', node.id] }),
       qc.invalidateQueries({ queryKey: ['tree', node.spaceId] }),
     ])
-    return movedToTop ? 'This page was moved to the top level of its space, because its parent was deleted or is in the trash.' : ''
+    return movedToTop ? `This ${node.type === 'BOARD' ? 'board' : 'page'} was moved to the top level of its space, because its parent was deleted or is in the trash.` : ''
   }
 }
 
@@ -61,6 +61,7 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
   const unarchive = useUnarchive(node)
   const { create, message: createError } = useCreatePage(node.spaceId)
   const board = node.type === 'BOARD'
+  const noun = board ? 'board' : 'page'
   const [open, setOpen] = useState(defaultOpen)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -97,15 +98,15 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
       qc.invalidateQueries({ queryKey: ['tree', node.spaceId] }),
     ])
   }
-  const lockedNote = node.locked ? 'Unlock the page first' : undefined
-  const savingNote = unsaved ? 'Wait until the page is saved' : undefined
+  const lockedNote = node.locked ? `Unlock the ${noun} first` : undefined
+  const savingNote = unsaved ? `Wait until the ${noun} is saved` : undefined
 
   const items: Item[] = []
   if (node.status === 'ARCHIVED') {
     items.push({ label: 'Unarchive', run: unarchive })
   } else {
     if (onRename) {
-      items.push({ label: 'Rename', blocked: node.access === 'EDIT' ? undefined : lockedNote ?? 'You can only read this page', ownFocus: true, run: async () => onRename() })
+      items.push({ label: 'Rename', blocked: node.access === 'EDIT' ? undefined : lockedNote ?? `You can only read this ${noun}`, ownFocus: true, run: async () => onRename() })
     }
     if (!board) {
       items.push({ label: 'New board', blocked: node.access === 'EDIT' ? undefined : 'You can only read this page', run: () => create(node.id, undefined, 'BOARD') })
@@ -115,8 +116,8 @@ export default function PageMenu({ node, unsaved, personal, label = 'Page action
     }
     items.push(
       node.locked
-        ? { label: 'Unlock page', run: async () => (await unlockNode(node.id), await refresh()) }
-        : { label: 'Lock page', blocked: savingNote, run: async () => (await lockNode(node.id), await refresh()) },
+        ? { label: `Unlock ${noun}`, run: async () => (await unlockNode(node.id), await refresh()) }
+        : { label: `Lock ${noun}`, blocked: savingNote, run: async () => (await lockNode(node.id), await refresh()) },
     )
     items.push({
       label: 'Archive',

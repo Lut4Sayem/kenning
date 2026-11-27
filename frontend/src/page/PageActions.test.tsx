@@ -137,6 +137,14 @@ describe('page menu', () => {
     await waitFor(() => expect(api.unlockNode).toHaveBeenCalledWith('n1'))
   })
 
+  it('boardMenuSaysBoard', async () => {
+    mount({ ...NODE, type: 'BOARD', locked: true, access: 'VIEW' })
+    await openMenu()
+    expect(screen.getByRole('menuitem', { name: 'Unlock board' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /^Archive/ }).textContent).toContain('Unlock the board first')
+    expect(screen.queryByText(/page/i)).toBeNull()
+  })
+
   it('doesNotTakeEditRightsAwayWhileChangesAreUnsaved', async () => {
     mount(NODE, true)
     await openMenu()
