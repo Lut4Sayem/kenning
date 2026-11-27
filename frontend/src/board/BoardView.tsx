@@ -73,7 +73,7 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
   const collab = useCollab(node.id, doc, user.id, true, epoch)
   const editable = node.access === 'EDIT' && collab.access !== 'VIEW' && !collab.problem && undo !== null
   const saveState = useSaveState(collab.provider)
-  const [live, setLive] = useState('')
+  const [live, setLive] = useState<string | null>(null) // null until the canvas has shown the loaded board
   const [head, setHead] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -88,7 +88,7 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
   const space = spaces.data?.find((x) => x.id === node.spaceId)
   const notice = collab.problem === 'too-many' ? TOO_MANY : collab.problem === 'too-large' ? TOO_LARGE_BOARD : collab.problem === 'gone' ? collab.message : null
   return (
-    <div data-bleed className={s.board} data-board data-ready={collab.provider ? 'true' : 'false'} data-live={live}>
+    <div data-bleed className={s.board} data-board data-ready={collab.provider ? 'true' : 'false'} data-live={live ?? undefined}>
       <TopBar>
         <Breadcrumbs
           team={space?.teamId && space.teamName ? { id: space.teamId, name: space.teamName } : null}

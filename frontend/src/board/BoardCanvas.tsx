@@ -54,6 +54,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive }: Props
   }
 
   const initial = useMemo(() => restore(sceneFromDoc(doc, [], null)), [doc])
+  useEffect(() => live.current(liveTypes(initial)), [initial]) // the loaded board, before any onChange
 
   function push() {
     if (!canWrite.current) return
