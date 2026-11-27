@@ -37,3 +37,6 @@ Docs/screenshots/
 
 Docs/design/
 Docs/screenshots/
+
+# copied from node_modules by frontend/scripts/copy-excalidraw-assets.mjs
+frontend/public/excalidraw-assets/

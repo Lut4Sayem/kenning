@@ -13,6 +13,7 @@ import Shell from './Shell'
 
 // The block editor is most of the bundle: keep it out of the login and register pages.
 const PageView = lazy(() => import('../page/PageView'))
+const BoardView = lazy(() => import('../board/BoardView'))
 const TrashPage = lazy(() => import('../trash/TrashPage'))
 const TagPage = lazy(() => import('../page/TagPage'))
 const SpaceHome = lazy(() => import('../page/SpaceHome'))
@@ -46,6 +47,7 @@ export default function App() {
           </Route>
           <Route path="/profile" element={<Suspense fallback={<ScreenSkeleton />}><Profile /></Suspense>} />
           <Route path="/p/:nodeId" element={<Suspense fallback={<ScreenSkeleton />}><PageView /></Suspense>} />
+          <Route path="/b/:nodeId" element={<Suspense fallback={<ScreenSkeleton />}><BoardView /></Suspense>} />
           <Route path="/s/:spaceId" element={<Suspense fallback={<ScreenSkeleton />}><SpaceHome /></Suspense>} />
           <Route path="/s/:spaceId/trash" element={<Suspense fallback={<ScreenSkeleton />}><TrashPage /></Suspense>} />
           <Route path="/tags/:tag" element={<Suspense fallback={<ScreenSkeleton />}><TagPage /></Suspense>} />

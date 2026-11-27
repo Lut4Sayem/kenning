@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 import { getDrafts } from '../api/home'
 import { getRecent } from '../api/search'
 import { getMe, getMySpaces, getMyTeams } from '../api/spaces'
@@ -93,7 +94,7 @@ export default function Dashboard() {
           <ul className={s.cards}>
             {cards.map((p) => (
               <li key={p.nodeId}>
-                <Link to={`/p/${p.nodeId}`} className={s.card}>
+                <Link to={nodePath(p.nodeId!, p.nodeType)} className={s.card}>
                   <span className={s.cardDot} style={{ background: dotColour(p.color) }} aria-hidden="true" />
                   <span className={s.cardTitle} title={p.title || 'Untitled'}>{p.title || 'Untitled'}</span>
                   <span className={s.cardMeta}>

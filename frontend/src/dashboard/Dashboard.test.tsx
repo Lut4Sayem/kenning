@@ -171,6 +171,16 @@ describe('recent', () => {
     expect(screen.getAllByText('Draft')).toHaveLength(2)
   })
 
+  it('boardsOpenTheirBoardScreen', async () => {
+    api.getRecent.mockResolvedValue([hit(1, { title: 'Plan board', nodeType: 'BOARD' }), hit(2)])
+    setup('/recent')
+    expect((await screen.findByRole('link', { name: /Plan board/ })).getAttribute('href')).toBe('/b/n1')
+    expect(screen.getByRole('link', { name: /Page 2/ }).getAttribute('href')).toBe('/p/n2')
+    cleanup()
+    setup('/')
+    expect((await screen.findByRole('link', { name: /Plan board/ })).getAttribute('href')).toBe('/b/n1')
+  })
+
   it('emptyStatePointsHome', async () => {
     setup('/recent')
     await userEvent.click(await screen.findByRole('link', { name: 'Go to Home' }))

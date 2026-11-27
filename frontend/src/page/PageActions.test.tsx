@@ -10,7 +10,7 @@ import PageMenu from './PageMenu'
 
 const api = vi.hoisted(() => ({
   getSubtreeCount: vi.fn(), trashNode: vi.fn(), archiveNode: vi.fn(), unarchiveNode: vi.fn(),
-  lockNode: vi.fn(), unlockNode: vi.fn(), unpublishNode: vi.fn(), updateNode: vi.fn(), restoreBranch: vi.fn(),
+  lockNode: vi.fn(), unlockNode: vi.fn(), unpublishNode: vi.fn(), updateNode: vi.fn(), restoreBranch: vi.fn(), createNode: vi.fn(),
 }))
 vi.mock('../api/nodes', () => api)
 
@@ -37,6 +37,7 @@ function mount(node: NodeDetail, unsaved = false) {
         <Routes>
           <Route path="/p/:id" element={<PageMenu node={node} unsaved={unsaved} />} />
           <Route path="/" element={<p>Home</p>} />
+          <Route path="/b/:id" element={<p>Board screen</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -59,6 +60,22 @@ describe('page menu', () => {
   })
 
   // A page's colour is picked at random when it is created; the menu has no colour picker.
+  it('newBoardCreatesABoardUnderThePage', async () => {
+    api.createNode.mockResolvedValue({ id: 'b7' })
+    mount(NODE)
+    await openMenu()
+    await userEvent.click(screen.getByRole('menuitem', { name: 'New board' }))
+    expect(api.createNode).toHaveBeenCalledWith('s1', { parentId: 'n1', type: 'BOARD' })
+    expect(await screen.findByText('Board screen')).toBeTruthy()
+  })
+
+  it('boardsOfferNoNewBoardOrUnpublish', async () => { // boards have no children and stay published
+    mount({ ...NODE, type: 'BOARD' })
+    await openMenu()
+    expect(screen.queryByRole('menuitem', { name: 'New board' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Unpublish' })).toBeNull()
+  })
+
   it('theMenuHasNoColourPicker', async () => {
     mount(NODE)
     await openMenu()
@@ -118,6 +135,14 @@ describe('page menu', () => {
     expect((screen.getByRole('menuitem', { name: /^Move to trash/ }) as HTMLButtonElement).disabled).toBe(true)
     await userEvent.click(screen.getByRole('menuitem', { name: 'Unlock page' }))
     await waitFor(() => expect(api.unlockNode).toHaveBeenCalledWith('n1'))
+  })
+
+  it('boardMenuSaysBoard', async () => {
+    mount({ ...NODE, type: 'BOARD', locked: true, access: 'VIEW' })
+    await openMenu()
+    expect(screen.getByRole('menuitem', { name: 'Unlock board' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /^Archive/ }).textContent).toContain('Unlock the board first')
+    expect(screen.queryByText(/page/i)).toBeNull()
   })
 
   it('doesNotTakeEditRightsAwayWhileChangesAreUnsaved', async () => {

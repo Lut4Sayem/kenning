@@ -8,11 +8,12 @@ import java.util.List;
 /**
  * One search hit. type is PAGE, SPACE or TEAM; spaces and teams (matched by name) only fill type, teamId/spaceId,
  * spaceName and title. teamName is null for a personal space; openedAt is only filled by /me/recent.
- * updatedAt and updatedByName (the last editor) are only filled for pages. snippetHtml is escaped, with only {@code <mark>} added.
+ * updatedAt and updatedByName (the last editor) are only filled for pages. nodeType (PAGE or BOARD) says which screen opens
+ * a node hit; null for spaces and teams. snippetHtml is escaped, with only {@code <mark>} added.
  */
 public record SearchResultDTO(String type, String nodeId, String teamId, String spaceId, String spaceName,
                               String title, String path, String snippetHtml, List<String> tags,
                               PublishState publishState, boolean archived,
                               String teamName, Date openedAt,
-                              Date updatedAt, String updatedByName, String color) {
+                              Date updatedAt, String updatedByName, String color, String nodeType) {
 }

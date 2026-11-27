@@ -146,6 +146,19 @@ describe('a copy of a page that is trashed, purged or out of reach', () => {
     expect(Object.keys(slotsOf('n1'))).toHaveLength(0)
   })
 
+  // A copy saved by the page editor before it refused boards: merging page data into a board would corrupt it.
+  it('pageCopyIsNeverSentIntoABoard', async () => {
+    pageWithUnsaved('b1', 'typed into a board')
+    contentApi.getContent.mockImplementation(async (n: string) => {
+      const p = pages.get(n)!
+      return { format: 'YJS_BOARD_V1', state: p.state, revision: p.revision, contentEpoch: p.epoch }
+    })
+    expect(await sendAllPending(ME)).toBe(0)
+    expect(push.pushDoc).not.toHaveBeenCalled()
+    expect(contentApi.saveRecovered).not.toHaveBeenCalled()
+    expect(Object.keys(slotsOf('b1'))).toHaveLength(0)
+  })
+
   // Review finding: other 404s (the content or the space briefly missing) are not a purge.
   it('isKeptOnOtherNotFoundReasons', async () => {
     pageWithUnsaved('n1', 'not purged')

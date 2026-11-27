@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { getNode, getTree, updateNode, type NodeSummary } from '../api/nodes'
 import PageMenu from '../page/PageMenu'
 import Icon from '../ui/Icon'
+import { nodePath } from '../app/nodePath'
 import { dotColour } from '../ui/pageColour'
 import { buildTree, type TreeNode } from './buildTree'
 import TreeDnd, { useTreeDnd } from './TreeDnd'
@@ -175,7 +176,8 @@ interface RowProps {
 function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, personal, tabStop, onFocusRow }: RowProps) {
   const drag = useDraggable({ id: node.id })
   // A page can't be dropped on its own row: those drops were no-ops announced as "inside itself"
-  const into = useDroppable({ id: `in:${node.id}`, disabled: drag.isDragging })
+  const board = node.type === 'BOARD' // boards have no sub-pages (the server refuses them too)
+  const into = useDroppable({ id: `in:${node.id}`, disabled: drag.isDragging || board })
   const after = useDroppable({ id: `after:${node.id}`, disabled: drag.isDragging })
   const open = expanded.has(node.id)
   const title = node.title || 'Untitled'
@@ -201,7 +203,7 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
         ref={(el) => { drag.setNodeRef(el); into.setNodeRef(el); rowEl.current = el }}
         className={cx(s.row, into.isOver && s.over, node.id === activeId && s.active)}
         style={{ paddingLeft: depth * 12 }} data-row
-        role="treeitem" aria-label={title} data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
+        role="treeitem" aria-label={board ? `${title}, board` : title} data-id={node.id} tabIndex={tab} aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
         aria-selected={node.id === activeId} onFocus={() => onFocusRow(node.id)}
         onTouchStart={canEdit ? (e) => { if (!inDialog(e)) (onTouchStart as React.TouchEventHandler)(e) } : undefined} onContextMenu={openRowMenu}
       >
@@ -209,17 +211,19 @@ function Row({ node, depth, activeId, expanded, onToggle, onNew, canEdit, person
           onClick={() => onToggle(node.id)} disabled={node.children.length === 0}>
           <Icon name="chevron-right" className={cx(s.chev, open && s.open)} />
         </button>
-        <span className={s.dot} style={{ background: dotColour(node.color) }} aria-hidden="true" />
+        {board
+          ? <span className={s.kind} style={{ color: dotColour(node.color) }} aria-hidden="true"><Icon name="presentation" size={12} /></span>
+          : <span className={s.dot} style={{ background: dotColour(node.color) }} aria-hidden="true" />}
         {renaming ? (
           <NameInput label={`Rename ${title}`} name={node.title} save={saveTitle} className={side.renameInput} errorClass={side.renameError} onDone={doneRenaming} />
         ) : (
-          <Link to={`/p/${node.id}`} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined} tabIndex={-1}>
+          <Link to={nodePath(node.id, node.type)} className={s.link} title={title} aria-current={node.id === activeId ? 'page' : undefined} tabIndex={-1}>
             {title}
           </Link>
         )}
         {canEdit && (
           <>
-            <button type="button" tabIndex={tab} className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>
+            {!board && <button type="button" tabIndex={tab} className={s.btn} aria-label={`New sub-page under ${title}`} onClick={() => onNew(node.id)}><Icon name="plus" /></button>}
             <RowMenu id={node.id} title={title} personal={personal} tabIndex={tab} onRename={() => setRenaming(true)} />
             <button type="button" className={cx(s.btn, s.grip)} aria-label={`Drag to move ${title}`} title="Drag to move"
               {...gripListeners} {...drag.attributes} tabIndex={tab}><Icon name="grip" /></button>

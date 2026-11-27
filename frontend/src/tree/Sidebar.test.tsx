@@ -135,6 +135,15 @@ describe('Sidebar', () => {
   })
 
   // The row "..." menu focuses its first item on open, arrow keys move between items, Esc returns focus to the button.
+  it('newBoardCreatesBoard', async () => {
+    nodes.createNode.mockResolvedValue({ id: 'b9' })
+    renderSidebar()
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Requirements' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'New board' }))
+    expect(nodes.createNode).toHaveBeenCalledWith('s1', { parentId: null, type: 'BOARD' })
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/b/b9'))
+  })
+
   it('rowMenuSupportsArrowKeys', async () => {
     api.getMySpaces.mockResolvedValue([{ ...space('s2', 'Hardware', 't2'), myRole: 'VIEWER' }])
     renderSidebar()

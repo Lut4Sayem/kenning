@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useMatch, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { nodePath, useOpenNodeId } from '../app/nodePath'
 import { getSubtreeCount, restoreBranch, trashNode, type NodeDetail } from '../api/nodes'
 import { confirmTrash } from '../trash/ConfirmTrashDialog'
 import { toast } from '../ui/Toast'
@@ -8,10 +9,10 @@ import { toast } from '../ui/Toast'
  * Move to trash, the one flow used by the page menu and the top bar button (QA-64): confirm with the sub-page count,
  * trash, leave the page, then a toast with Undo (QA-33). Rejects with the server's message.
  */
-export function useTrashPage(node: Pick<NodeDetail, 'id' | 'spaceId' | 'title'>) {
+export function useTrashPage(node: Pick<NodeDetail, 'id' | 'spaceId' | 'title'> & { type?: NodeDetail['type'] }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const isOpen = useMatch('/p/:nodeId')?.params.nodeId === node.id // the sidebar row's menu can trash a page that is not open
+  const isOpen = useOpenNodeId() === node.id // the sidebar row's menu can trash a page that is not open
   return async () => {
     const { count } = await getSubtreeCount(node.id)
     if (!(await confirmTrash(node.title, count))) return
@@ -28,7 +29,7 @@ export function useTrashPage(node: Pick<NodeDetail, 'id' | 'spaceId' | 'title'>)
               qc.invalidateQueries({ queryKey: ['node', node.id] }),
               qc.invalidateQueries({ queryKey: ['tree', node.spaceId] }),
             ])
-            navigate(`/p/${node.id}`)
+            navigate(nodePath(node.id, node.type))
           })
           .catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not restore the page.', 'error')),
       },
