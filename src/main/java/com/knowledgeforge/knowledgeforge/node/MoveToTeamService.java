@@ -56,6 +56,7 @@ public class MoveToTeamService {
         if (req.parentId() != null) {
             parent = access.requireEdit(req.parentId());
             if (!dest.getId().equals(parent.getSpaceId())) throw NodeService.bad("That page is in another space");
+            if (parent.getType() == NodeType.BOARD) throw NodeService.bad("Boards can’t have sub-pages");
         }
         List<String> newAncestors = NodeService.ancestorsUnder(parent);
         int oldDepth = node.getAncestors().size();

@@ -5,6 +5,7 @@ export interface Loaded {
   state: Uint8Array | null
   revision: number
   epoch: number
+  format: 'YJS_BLOCKNOTE_V1' | 'YJS_BOARD_V1'
 }
 
 export interface StoreBody {
@@ -36,8 +37,10 @@ export function springApi(config: Config): SpringApi {
     async load(nodeId) {
       const res = await fetch(url(nodeId), { headers, signal: AbortSignal.timeout(10_000) })
       if (!res.ok) throw new Error(`load failed: ${res.status}`)
-      const c = (await res.json()) as { state: string; revision: number; contentEpoch: number }
-      return { state: c.state ? Buffer.from(c.state, 'base64') : null, revision: c.revision, epoch: c.contentEpoch }
+      const c = (await res.json()) as { format?: string; state: string; revision: number; contentEpoch: number }
+      // anything but a board (missing, unknown) stays a page, as before boards existed
+      const format = c.format === 'YJS_BOARD_V1' ? 'YJS_BOARD_V1' : 'YJS_BLOCKNOTE_V1'
+      return { state: c.state ? Buffer.from(c.state, 'base64') : null, revision: c.revision, epoch: c.contentEpoch, format }
     },
     async store(nodeId, body) {
       const res = await fetch(url(nodeId), { method: 'PUT', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000) })

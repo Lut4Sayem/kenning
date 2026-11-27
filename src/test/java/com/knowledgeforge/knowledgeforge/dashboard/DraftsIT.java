@@ -54,6 +54,13 @@ class DraftsIT extends NodeIntegrationTest {
     }
 
     @Test
+    void boardsNotInDrafts() {
+        nodeService.create(space.getId(), new com.knowledgeforge.knowledgeforge.node.CreateNodeRequest(
+                null, "board", null, com.knowledgeforge.knowledgeforge.node.NodeType.BOARD));
+        assertEquals(List.of(), titles());
+    }
+
+    @Test
     void onlyDrafts() {
         NodeDTO published = createPage("published");
         createPage("draft");

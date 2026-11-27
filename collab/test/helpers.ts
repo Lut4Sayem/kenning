@@ -77,7 +77,7 @@ export interface FakeSpring extends SpringApi {
 export function fakeSpring(init: Partial<Loaded> = {}): FakeSpring {
   const f: FakeSpring = {
     stores: [],
-    loaded: { state: null, revision: 0, epoch: 0, ...init },
+    loaded: { state: null, revision: 0, epoch: 0, format: 'YJS_BLOCKNOTE_V1', ...init },
     async load() {
       return f.loaded
     },

@@ -5,6 +5,7 @@ import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
 import com.knowledgeforge.knowledgeforge.node.Node;
 import com.knowledgeforge.knowledgeforge.node.NodeRepository;
 import com.knowledgeforge.knowledgeforge.node.NodeStatus;
+import com.knowledgeforge.knowledgeforge.node.NodeType;
 import com.knowledgeforge.knowledgeforge.node.PublishState;
 import com.knowledgeforge.knowledgeforge.space.Space;
 import com.knowledgeforge.knowledgeforge.space.SpaceRepository;
@@ -53,6 +54,7 @@ public class DraftsService {
         Query q = new Query(new Criteria().andOperator(
                 Criteria.where("status").is(NodeStatus.ACTIVE),
                 Criteria.where("publishState").is(PublishState.DRAFT),
+                Criteria.where("type").ne(NodeType.BOARD), // PUBLISHED already keeps boards out; this states the intent
                 new Criteria().orOperator(Criteria.where("createdBy.userId").is(me), Criteria.where("updatedBy.userId").is(me))))
                 .with(Sort.by(Sort.Direction.DESC, "updatedAt")).limit(CANDIDATES);
         List<Node> found = mongo.find(q, Node.class);

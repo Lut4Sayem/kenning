@@ -225,6 +225,8 @@ export default function PageView() {
     )
   }
   const n = node.data
+  // A board's Y.Doc has no page root: the page editor must never open (or autosave into) it.
+  if (n.type === 'BOARD') return <div className={s.state}><p>This is a board. Boards open in the board view.</p></div>
   const canEdit = n.access === 'EDIT'
   const editing = canEdit && n.status === 'ACTIVE'
   const space = spaces.data?.find((x) => x.id === n.spaceId)

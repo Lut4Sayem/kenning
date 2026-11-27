@@ -46,7 +46,7 @@ vi.mock('../editor/collab', async (original) => {
 })
 
 const NODE: NodeDetail = {
-  id: 'n1', spaceId: 's1', parentId: null, title: 'Plan', icon: null, tags: [], publishState: 'PUBLISHED', locked: false,
+  id: 'n1', spaceId: 's1', parentId: null, title: 'Plan', icon: null, tags: [], type: 'PAGE', publishState: 'PUBLISHED', locked: false,
   lockedBy: null, status: 'ACTIVE', access: 'EDIT', canManage: true, breadcrumbs: [], createdBy: null, updatedBy: null, contentUpdatedAt: '',
 }
 const TRASHED = 'This page is in the trash'
@@ -518,5 +518,18 @@ describe('trash button in the top bar', () => {
     const button = await within(topbar).findByRole('button', { name: 'Move to trash' }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
     expect(button.title).toBe('Unlock the page first')
+  })
+})
+
+describe('a board', () => {
+  it('boardNodeNotOpenedAsPage', async () => {
+    nodesApi.getNode.mockResolvedValue({ ...NODE, type: 'BOARD' })
+    const { view } = mount()
+    await screen.findByText('This is a board. Boards open in the board view.')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(contentApi.getContent).not.toHaveBeenCalled()
+    expect(editorDom(view.container)).toBeNull()
+    expect(screen.queryByLabelText('Page title')).toBeNull()
+    expect(await pendingFor('u1', 'n1').all()).toEqual({})
   })
 })

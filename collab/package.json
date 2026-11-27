@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@hocuspocus/server": "^4.9.0",
+    "fractional-indexing": "3.2.0",
     "yjs": "^13.6.33"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ import com.knowledgeforge.knowledgeforge.access.Access;
 import com.knowledgeforge.knowledgeforge.ai.AiAnswerRepository;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
 import com.knowledgeforge.knowledgeforge.common.UserRef;
+import com.knowledgeforge.knowledgeforge.nodecontent.ContentFormat;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContent;
 import com.knowledgeforge.knowledgeforge.nodecontent.NodeContentRepository;
 import com.knowledgeforge.knowledgeforge.space.Space;
@@ -100,6 +101,7 @@ public class NodeService {
         } else {
             parent = access.requireEdit(req.parentId());
             if (!spaceId.equals(parent.getSpaceId())) throw bad("That page is in another space");
+            if (parent.getType() == NodeType.BOARD) throw bad("Boards can’t have sub-pages");
         }
         String title = title(req.title() == null ? "" : req.title());
         List<String> ancestors = ancestorsUnder(parent);
@@ -114,6 +116,11 @@ public class NodeService {
         node.setAncestors(ancestors);
         node.setRank(rank(siblings, null, req.afterId()));
         node.setTitle(title);
+        boolean board = req.type() == NodeType.BOARD;
+        if (board) {
+            node.setType(NodeType.BOARD);
+            node.setPublishState(PublishState.PUBLISHED);
+        }
         String color = COLORS.get(ThreadLocalRandom.current().nextInt(COLORS.size())); // picked once, stored, never re-rolled
         node.setColor("gray".equals(color) ? null : color);
         node.setCreatedBy(ref(user));
@@ -127,6 +134,10 @@ public class NodeService {
         content.setId(node.getId());
         content.setSpaceId(spaceId);
         content.getSearch().setTitle(title);
+        if (board) {
+            content.setFormat(ContentFormat.YJS_BOARD_V1);
+            content.getSearch().setPublishState(PublishState.PUBLISHED);
+        }
         content.setUpdatedAt(now);
         // shortcut: no transaction, if the second save fails the page is removed again by hand-rolled cleanup
         try {
@@ -192,6 +203,7 @@ public class NodeService {
             parent = access.requireEdit(req.parentId());
             if (!spaceId.equals(parent.getSpaceId())) throw bad("That page is in another space");
             if (parent.getAncestors().contains(id)) throw bad("Can’t move a page inside itself");
+            if (parent.getType() == NodeType.BOARD) throw bad("Boards can’t have sub-pages");
         }
         List<String> newAncestors = ancestorsUnder(parent);
         int oldDepth = node.getAncestors().size();
@@ -234,7 +246,7 @@ public class NodeService {
 
     /** Records the published content as a PUBLISHED version, then flips the state. */
     public PublishedDTO publish(String id) {
-        access.requireEdit(id);
+        requireNotBoard(access.requireEdit(id));
         boolean missing = !collab.flush(id); // live edits first; if collab is down the version has what was stored last
         versions.createVersion(id, VersionKind.PUBLISHED, null); // first: a missing content (404) must leave the state alone
         NodeDTO published = setPublishState(id, PublishState.PUBLISHED);
@@ -249,7 +261,13 @@ public class NodeService {
     }
 
     public NodeDTO unpublish(String id) {
+        requireNotBoard(access.requireEdit(id));
         return setPublishState(id, PublishState.DRAFT);
+    }
+
+    // Boards have no Draft/Published in v1: they stay PUBLISHED (spec 7.4).
+    private static void requireNotBoard(Node node) {
+        if (node.getType() == NodeType.BOARD) throw bad("Boards are always published");
     }
 
     private NodeDTO setPublishState(String id, PublishState state) {
@@ -374,7 +392,7 @@ public class NodeService {
         List<NodeDTO.Crumb> crumbs = n.getAncestors().stream().filter(up::containsKey)
                 .map(a -> new NodeDTO.Crumb(a, up.get(a).getTitle())).toList();
         return new NodeDTO(n.getId(), n.getSpaceId(), n.getParentId(), n.getTitle(), n.getIcon(), n.getTags(),
-                n.getPublishState(), n.isLocked(), n.getLockedBy(), n.getStatus(), access.resolve(user.getId(), n),
+                n.getType(), n.getPublishState(), n.isLocked(), n.getLockedBy(), n.getStatus(), access.resolve(user.getId(), n),
                 access.resolveIgnoringState(user.getId(), n).compareTo(Access.EDIT) >= 0,
                 crumbs, n.getCreatedBy(), n.getUpdatedBy(), n.getContentUpdatedAt(), n.getColor());
     }
