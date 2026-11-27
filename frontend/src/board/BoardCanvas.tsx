@@ -1,0 +1,149 @@
+// Excalidraw on a board's Y.Doc. Only this module (and what it imports) pulls in Excalidraw; it is loaded lazily.
+import './assetPath' // before Excalidraw: it reads the asset path once
+import { CaptureUpdateAction, Excalidraw, MainMenu, restoreElements } from '@excalidraw/excalidraw'
+import '@excalidraw/excalidraw/index.css'
+import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
+import { useEffect, useMemo, useRef } from 'react'
+import * as Y from 'yjs'
+import { ELEMENTS } from './format'
+import { bindUndoKeys } from './binding/keys'
+import { WRITE_BACK, createThrottle, pushLocal, sceneFromDoc, writeBackLosers, type El } from './binding/sync'
+import type { BoardUndo } from './binding/undo'
+import s from './Board.module.css'
+
+interface Props {
+  doc: Y.Doc
+  editable: boolean
+  name: string
+  undo: BoardUndo
+  /** The sorted types of the live (non-deleted) elements, whenever they change. */
+  onLive: (types: string) => void
+}
+
+type Scene = Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['elements']
+
+const liveTypes = (els: readonly { type: string; isDeleted: boolean }[]) =>
+  els.filter((e) => !e.isDeleted).map((e) => e.type).sort().join(',')
+
+/** A drag, resize, rotate, pen stroke, line being drawn or text being typed: one undo step, ended when it ends. */
+const inGesture = (a: AppState) =>
+  !!(a.newElement || a.editingTextElement || a.selectedElementsAreBeingDragged || a.resizingElement || a.isRotating || a.multiElement)
+
+export default function BoardCanvas({ doc, editable, name, undo, onLive }: Props) {
+  const api = useRef<ExcalidrawImperativeAPI | null>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const known = useRef(new Map<string, number>()) // highest version this tab wrote or saw, per element
+  const latest = useRef<readonly El[]>([]) // what Excalidraw shows now
+  const now = useRef({ editingId: null as string | null, freedraw: false, gesture: false, typing: false })
+  const held = useRef(new Set<string>()) // remote changes waiting for this user's drag/resize/stroke to end
+  const canWrite = useRef(editable)
+  canWrite.current = editable
+  const pushing = useRef(false)
+  const throttle = useMemo(() => createThrottle(100), [])
+  const live = useRef(onLive)
+  live.current = onLive
+
+  /**
+   * Excalidraw's restore repairs some things locally (an index two people took at once, a dangling binding) and bumps
+   * the version as it does. Only collab writes such fixes (WB 7.1): the bumped versions count as already sent.
+   */
+  function restore(els: readonly El[]) {
+    const restored = restoreElements(els as unknown as Scene, null, { repairBindings: true })
+    for (const e of restored) known.current.set(e.id, Math.max(known.current.get(e.id) ?? -1, e.version))
+    return restored
+  }
+
+  const initial = useMemo(() => restore(sceneFromDoc(doc, [], null)), [doc])
+
+  function push() {
+    if (!canWrite.current) return
+    pushing.current = true
+    try {
+      pushLocal(doc, latest.current, known.current, { editingId: now.current.editingId, drawingFreedraw: now.current.freedraw })
+    } finally {
+      pushing.current = false
+    }
+  }
+
+  /** Shows the map, keeping what this user is editing; where Yjs settled on an older copy of mine, mine goes back. */
+  function showDoc(changed: Iterable<string>) {
+    if (canWrite.current) {
+      for (const id of writeBackLosers(doc, latest.current, changed)) {
+        const mine = latest.current.find((e) => e.id === id)
+        if (mine) known.current.set(id, Math.max(known.current.get(id) ?? -1, mine.version))
+      }
+    }
+    const scene = sceneFromDoc(doc, latest.current, now.current.editingId)
+    api.current?.updateScene({
+      elements: restore(scene),
+      captureUpdate: CaptureUpdateAction.NEVER, // others' changes never enter Excalidraw's history
+    })
+  }
+
+  useEffect(() => {
+    const map = doc.getMap<El>(ELEMENTS)
+    const onMap = (e: Y.YMapEvent<El>) => {
+      if (pushing.current || e.transaction.origin === WRITE_BACK) return // already on screen
+      for (const id of e.keysChanged) {
+        const v = map.get(id)
+        if (v && v.version > (known.current.get(id) ?? -1)) known.current.set(id, v.version)
+      }
+      // Mid-drag (or resize, rotate, stroke) the shapes under the pointer must not jump: wait for the drop. While text is
+      // typed, everything but that text updates live (sceneFromDoc keeps the text being edited).
+      if (now.current.gesture && !now.current.typing) e.keysChanged.forEach((id) => held.current.add(id))
+      else showDoc(e.keysChanged) // remote changes, and this user's undo/redo
+    }
+    map.observe(onMap)
+    return () => map.unobserve(onMap)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- showDoc reads refs only
+  }, [doc])
+
+  useEffect(() => (editable && box.current ? bindUndoKeys(box.current, undo) : undefined), [editable, undo])
+
+  return (
+    <div ref={box} className={s.canvas}>
+      <Excalidraw
+        excalidrawAPI={(a) => {
+          api.current = a
+        }}
+        initialData={{ elements: initial }}
+        isCollaborating
+        viewModeEnabled={!editable}
+        name={name}
+        UIOptions={{
+          tools: { image: false },
+          canvasActions: { loadScene: false, saveToActiveFile: false, saveAsImage: true, export: { saveFileToDisk: true }, toggleTheme: null },
+        }}
+        onPaste={(data) => !(data.files && Object.keys(data.files).length > 0)}
+        onChange={(elements, appState) => {
+          latest.current = elements as unknown as El[]
+          live.current(liveTypes(elements))
+          const was = now.current
+          now.current = {
+            editingId: appState.editingTextElement?.id ?? appState.newElement?.id ?? null,
+            freedraw: appState.newElement?.type === 'freedraw',
+            gesture: inGesture(appState),
+            typing: !!appState.editingTextElement,
+          }
+          if (was.gesture && !now.current.gesture) {
+            push() // the gesture's last state goes out now (a pen stroke goes out only now)
+            undo.stopCapturing()
+            // what was held back applies now (or loses to this user's newer copy)
+            const waiting = [...held.current, ...(was.editingId ? [was.editingId] : [])]
+            held.current.clear()
+            if (waiting.length > 0) showDoc(waiting)
+          } else {
+            throttle(push)
+          }
+        }}
+      >
+        <MainMenu>
+          <MainMenu.DefaultItems.SaveAsImage />
+          <MainMenu.DefaultItems.Export />
+          <MainMenu.DefaultItems.Help />
+          <MainMenu.DefaultItems.ChangeCanvasBackground />
+        </MainMenu>
+      </Excalidraw>
+    </div>
+  )
+}

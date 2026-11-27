@@ -1,0 +1,10 @@
+/* The board fills the panel under the top bar; Excalidraw draws inside .canvas. */
+.board { position: relative; height: 100%; display: flex; flex-direction: column; }
+.canvas { flex: 1; min-height: 0; }
+/* Undo/redo go to the board's own history (top bar buttons and keys), so Excalidraw's own buttons are hidden. */
+.canvas :global(.excalidraw .undo-redo-buttons) { display: none; } /* beats Excalidraw's own rule, loaded later */
+.notice { margin: 0; padding: var(--space-2) var(--space-4); font-size: 13px; color: var(--ink); background: var(--surface-card); border-bottom: 1px solid var(--line); }
+.hint {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; max-width: calc(100% - 32px);
+  font-size: 14px; color: var(--ink-muted); text-align: center; pointer-events: none;
+}
