@@ -1,6 +1,6 @@
 # ADR 0008: Whiteboard engine: shortlist Excalidraw and the GazBoard engine; decide by a spike at the start of Release 2
 
-Date: 2026-11-09 · Status: Accepted (final engine choice deferred to the spike; it gets its own ADR)
+Date: 2026-11-09 · Status: Accepted; Excalidraw chosen 2026-11-23, spike skipped
 
 Update 2026-11-23: the spike was skipped and Excalidraw was chosen (see `Docs/specs/2026-11-23-whiteboard-decisions.md`).
 

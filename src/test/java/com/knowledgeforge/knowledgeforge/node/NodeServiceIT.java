@@ -121,6 +121,35 @@ class NodeServiceIT extends IntegrationTest {
 
 
     @Test
+    void createBoardNode() {
+        NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(null, "Plan", null, NodeType.BOARD));
+        Node n = nodes.findById(b.id()).orElseThrow();
+        assertEquals(NodeType.BOARD, n.getType());
+        assertEquals(NodeType.BOARD, b.type());
+        assertEquals(PublishState.PUBLISHED, b.publishState());
+        var content = mongo.findById(b.id(), com.knowledgeforge.knowledgeforge.nodecontent.NodeContent.class);
+        assertEquals(com.knowledgeforge.knowledgeforge.nodecontent.ContentFormat.YJS_BOARD_V1, content.getFormat());
+        assertEquals(0, content.getState().length);
+        assertEquals(PublishState.PUBLISHED, content.getSearch().getPublishState());
+    }
+
+    @Test
+    void boardsCannotHaveChildren() {
+        NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(null, "Plan", null, NodeType.BOARD));
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> create(b.id(), "Sub"));
+        assertEquals(400, e.getStatusCode().value());
+        assertEquals("Boards can’t have sub-pages", e.getReason());
+    }
+
+    @Test
+    void boardUnderPageAllowed() {
+        NodeDTO page = create(null, "Page");
+        NodeDTO b = nodeService.create(space.getId(), new CreateNodeRequest(page.id(), "Plan", null, NodeType.BOARD));
+        assertEquals(page.id(), b.parentId());
+        assertEquals(List.of(page.id()), nodes.findById(b.id()).orElseThrow().getAncestors());
+    }
+
+    @Test
     void createAlsoCreatesEmptyContent() {
         NodeDTO a = create(null, "A");
         var content = mongo.findById(a.id(), com.knowledgeforge.knowledgeforge.nodecontent.NodeContent.class);
