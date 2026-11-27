@@ -119,7 +119,7 @@ Everything in RT (tickets, readOnly viewers, revalidate/4403, store debounce, ep
 - Permissions come from the existing resolver: the board is a child of the page, so it gets the page's access. If the reader can't open the board (e.g. 1b restriction later), the block shows "You don't have access to this board."
 - Deleting the block does **not** delete the board (it stays in the tree under the page). Trashing/archiving/moving the page takes child boards with it (existing tree rules). A block whose board was purged shows "This board was deleted."
 - Copy/paste of the block into another page points to the same board (no copy).
-- Page text extraction: a board block contributes the board title only.
+- The board title is not part of the page's text; Spring keeps embedded board titles on the page's search copy and updates them on rename.
 - The page is not slowed down: the block loads only the preview image.
 
 ### 7.8 Weak internet, budget devices, offline
