@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 import * as Y from 'yjs'
-import { useLocation, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useParams } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 import { dotColour } from '../ui/pageColour'
 import { ApiError } from '../api/client'
 import { getNode, getTrashed, publishNode, restoreBranch, unpublishNode, updateNode, type NodeDetail, type Trashed } from '../api/nodes'
@@ -226,7 +227,7 @@ export default function PageView() {
   }
   const n = node.data
   // A board's Y.Doc has no page root: the page editor must never open (or autosave into) it.
-  if (n.type === 'BOARD') return <div className={s.state}><p>This is a board. Boards open in the board view.</p></div>
+  if (n.type === 'BOARD') return <Navigate to={nodePath(n.id, n.type)} replace />
   const canEdit = n.access === 'EDIT'
   const editing = canEdit && n.status === 'ACTIVE'
   const space = spaces.data?.find((x) => x.id === n.spaceId)

@@ -14,6 +14,7 @@
 .chev { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
 .chev.open { transform: rotate(90deg); }
 .dot { flex: none; width: 8px; height: 8px; border-radius: 3px; background: var(--page-gray); margin-right: var(--space-2); }
+.kind { flex: none; display: inline-flex; width: 12px; margin: 0 6px 0 -2px; color: var(--page-gray); } /* same 16px as .dot */
 .link { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; line-height: 32px; }
 /* Docked sidebar: +, … and the grip take no width (the title gets the room) until the row is hovered, focused or tapped
    (data-touched, see useRowTouch). Still focusable, so keyboard and screen readers reach them. */

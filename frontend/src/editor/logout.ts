@@ -19,6 +19,15 @@ const PURGED = 'Page not found'
 async function sendPage(nodeId: string, store: PendingStore, skipLive: boolean): Promise<boolean> {
   try {
     const server = await getContent(nodeId)
+    if (server.format === 'YJS_BOARD_V1') {
+      // A page copy for a board (saved before the page editor refused boards): page data would corrupt the board.
+      // shortcut: every local copy is a page copy until boards keep offline copies (plan Task 5.1); tag copies with
+      // their format then.
+      for (const slot of Object.keys(await store.all())) {
+        if (!(await isHeld(`${store.key}.${slot}`))) await store.clear(slot)
+      }
+      return true
+    }
     const stored = new Y.Doc()
     Y.applyUpdate(stored, fromBase64(server.state || EMPTY_PAGE_STATE))
     const doc = new Y.Doc()

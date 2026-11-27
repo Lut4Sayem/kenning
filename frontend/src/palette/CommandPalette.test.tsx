@@ -28,6 +28,10 @@ function Opened() {
   return <p>opened {useParams().nodeId}</p>
 }
 
+function OpenedBoard() {
+  return <p>board {useParams().nodeId}</p>
+}
+
 function Where() {
   const l = useLocation()
   return <p>at {l.pathname}{l.search}</p>
@@ -40,6 +44,7 @@ function setup() {
         <Routes>
           <Route element={<Shell />}>
             <Route path="/p/:nodeId" element={<Opened />} />
+            <Route path="/b/:nodeId" element={<OpenedBoard />} />
             <Route path="/search" element={<Where />} />
             <Route path="*" element={<p>home</p>} />
           </Route>
@@ -95,6 +100,24 @@ describe('command palette', () => {
     await userEvent.keyboard('{Control>}k{/Control}')
     expect(await screen.findByText('Roadmap')).toBeTruthy()
     expect(screen.getByText('Standup notes')).toBeTruthy()
+  })
+
+  it('recentBoardOpensBoardRoute', async () => {
+    api.getRecent.mockResolvedValue([{ ...hit('b1', 'Plan'), nodeType: 'BOARD' }])
+    setup()
+    await userEvent.keyboard('{Control>}k{/Control}')
+    await screen.findByText('Plan')
+    await userEvent.keyboard('{Enter}')
+    expect(await screen.findByText('board b1')).toBeTruthy()
+  })
+
+  it('searchHitBoardOpensBoardRoute', async () => {
+    api.searchAll.mockResolvedValue([{ ...hit('b2', 'Sprint board'), nodeType: 'BOARD' }])
+    setup()
+    await userEvent.keyboard('{Control>}k{/Control}')
+    await userEvent.keyboard('sprint')
+    await userEvent.click(await screen.findByRole('option', { name: /Sprint board/ }))
+    expect(await screen.findByText('board b2')).toBeTruthy()
   })
 
   it('enterOpensPage', async () => {

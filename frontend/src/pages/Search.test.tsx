@@ -104,6 +104,12 @@ describe('search page', () => {
     expect(screen.getByRole('tab', { name: /Pages/, selected: true })).toBeTruthy()
   })
 
+  it('boardHitLinksToBoardRoute', async () => {
+    api.searchAll.mockResolvedValue([page({ nodeId: 'b1', title: 'Sprint board', nodeType: 'BOARD' })])
+    setup('/search?q=sprint')
+    expect((await screen.findByRole('link', { name: /Sprint board/ })).getAttribute('href')).toBe('/b/b1')
+  })
+
   it('metaRowShowsPlaceEditorAndSpacesLink', async () => {
     api.searchAll.mockResolvedValue([
       page({ teamName: 'Thesis', spaceName: 'Docs', path: 'Guides', updatedByName: 'Rafi Ahmed', updatedAt: new Date().toISOString() }),

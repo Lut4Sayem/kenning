@@ -8,7 +8,9 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "types": ["node"]
+    "types": ["node"],
+    // test/board/undoRule.test.ts runs the browser's undo.ts; its yjs import must resolve to collab's copy
+    "paths": { "yjs": ["./node_modules/yjs/dist/src/index.d.ts"] }
   },
   "include": ["src", "test"]
 }

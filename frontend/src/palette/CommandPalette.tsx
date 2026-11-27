@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Command } from 'cmdk'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { useMatch, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { nodePath, useOpenNodeId } from '../app/nodePath'
 import { createNode, type NodeSummary } from '../api/nodes'
 import { getRecent, searchAll, type SearchHit } from '../api/search'
 import { canEditSpace, getMySpaces } from '../api/spaces'
@@ -45,7 +46,7 @@ export default function CommandPalette({ open, onClose }: Props) {
 function Palette({ onClose }: { onClose: () => void }) {
   const nav = useNavigate()
   const qc = useQueryClient()
-  const activeId = useMatch('/p/:nodeId')?.params.nodeId
+  const activeId = useOpenNodeId()
   const [q, setQ] = useState('')
   const [scope, setScope] = useState<Scope>('all')
   const [content, setContent] = useState<SearchHit[]>([])
@@ -101,11 +102,11 @@ function Palette({ onClose }: { onClose: () => void }) {
     ? [
       ...local.map((n) => {
         const sp = all.find((x) => x.id === n.spaceId)
-        return { id: n.id, title: n.title, color: n.color, place: sp ? placeOf(sp.teamName, sp.name) : '' }
+        return { id: n.id, type: n.type, title: n.title, color: n.color, place: sp ? placeOf(sp.teamName, sp.name) : '' }
       }),
-      ...titled.map((h) => ({ id: h.nodeId!, title: h.title, color: h.color, place: placeOf(h.teamName, h.spaceName) })),
+      ...titled.map((h) => ({ id: h.nodeId!, type: h.nodeType, title: h.title, color: h.color, place: placeOf(h.teamName, h.spaceName) })),
     ]
-    : (recent.data ?? []).map((h) => ({ id: h.nodeId!, title: h.title, color: h.color, place: placeOf(h.teamName, h.spaceName) }))
+    : (recent.data ?? []).map((h) => ({ id: h.nodeId!, type: h.nodeType, title: h.title, color: h.color, place: placeOf(h.teamName, h.spaceName) }))
   const inContent = content.filter((h) => h.nodeId && !pageIds.has(h.nodeId))
 
   // "Current project" = the space whose tree holds the open page, else the private space, else the first one.
@@ -132,9 +133,9 @@ function Palette({ onClose }: { onClose: () => void }) {
   const shows = (x: Scope) => scope === 'all' || scope === x
   const cap = <T,>(list: T[], x: Scope) => (scope === x ? list : list.slice(0, GROUP_MAX))
 
-  function open(nodeId: string) {
+  function open(nodeId: string, type?: 'PAGE' | 'BOARD' | null) {
     onClose()
-    nav(`/p/${nodeId}`)
+    nav(nodePath(nodeId, type))
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -179,7 +180,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           {shows('pages') && pages.length > 0 && (
             <Command.Group heading={head('file', s.tMint, term ? 'Pages' : 'Recent', pages.length)} className={s.group}>
               {cap(pages, 'pages').map((p) => (
-                <Command.Item key={p.id} value={`page-${p.id}`} onSelect={() => open(p.id)} className={s.item}>
+                <Command.Item key={p.id} value={`page-${p.id}`} onSelect={() => open(p.id, p.type)} className={s.item}>
                   <span className={s.dot} style={{ background: dotColour(p.color) }} aria-hidden="true" />
                   <span className={s.title} title={p.title || 'Untitled'}>{markMatch(p.title || 'Untitled', term)}</span>
                   {p.place && <span className={s.chip}>{p.place}</span>}
@@ -191,7 +192,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           {shows('content') && inContent.length > 0 && (
             <Command.Group heading={head('text-lines', s.tSky, 'Found inside pages', inContent.length)} className={s.group}>
               {cap(inContent, 'content').map((h) => (
-                <Command.Item key={h.nodeId} value={`content-${h.nodeId}`} onSelect={() => open(h.nodeId!)} className={s.item}>
+                <Command.Item key={h.nodeId} value={`content-${h.nodeId}`} onSelect={() => open(h.nodeId!, h.nodeType)} className={s.item}>
                   <span className={s.dot} style={{ background: dotColour(h.color) }} aria-hidden="true" />
                   <span className={s.two}>
                     <span className={s.snip}>{h.snippetHtml ? <Snippet html={h.snippetHtml} /> : h.title || 'Untitled'}</span>

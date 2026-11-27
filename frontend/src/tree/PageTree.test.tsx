@@ -45,6 +45,27 @@ describe('PageTree', () => {
     expect((await screen.findByRole('treeitem', { name: 'Green page' })).querySelector('a')!.title).toBe('Green page') // the full name, when cut with …
   })
 
+  it('boardRowLinksToBoardRoute', async () => {
+    nodesApi.getTree.mockResolvedValue([
+      { id: 'b1', parentId: null, rank: 'a', title: 'Plan', icon: null, type: 'BOARD', publishState: 'PUBLISHED', locked: false, titleOnly: false },
+    ])
+    renderTree()
+    const row = await screen.findByRole('treeitem', { name: 'Plan, board' })
+    expect(row.querySelector('a')!.getAttribute('href')).toBe('/b/b1')
+    await userEvent.click(row.querySelector('a')!)
+    expect(screen.getByTestId('where').textContent).toBe('/b/b1')
+  })
+
+  it('boardRowHasNoAddChild', async () => {
+    nodesApi.getTree.mockResolvedValue([
+      { id: 'b1', parentId: null, rank: 'a', title: 'Plan', icon: null, type: 'BOARD', publishState: 'PUBLISHED', locked: false, titleOnly: false },
+      { id: 'p1', parentId: null, rank: 'b', title: 'Notes', icon: null, type: 'PAGE', publishState: 'PUBLISHED', locked: false, titleOnly: false },
+    ])
+    renderTree()
+    expect(await screen.findByRole('button', { name: 'New sub-page under Notes' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'New sub-page under Plan' })).toBeNull()
+  })
+
   it('subPageButtonCreatesUnderThatPageAndOpensIt', async () => {
     nodesApi.getTree.mockResolvedValue([
       { id: 'a', parentId: null, rank: 'V', title: 'Alpha', icon: null, type: 'PAGE', publishState: 'PUBLISHED', locked: false, titleOnly: false },
