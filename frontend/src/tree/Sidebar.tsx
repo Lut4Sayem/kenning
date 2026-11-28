@@ -47,7 +47,7 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
       <div className={s.top}>
         <AccountMenu name={name} userId={me.data?.id} />
         <div className={s.actions}>
-          <NewMenu spaceId={priv?.id ?? ''} label="New in Private" title="New page or board" className={s.iconBtn} disabled={!priv}>
+          <NewMenu spaceId={priv?.id ?? ''} label="New private page or board" title="New page or board" className={s.iconBtn} disabled={!priv}>
             <Icon name="edit" />
           </NewMenu>
         </div>

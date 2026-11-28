@@ -284,7 +284,7 @@ describe('Sidebar', () => {
   it.each([
     ['New in Requirements', 'Page', 's1', { parentId: null }, '/p/n9'],
     ['New in Requirements', 'Board', 's1', { parentId: null, type: 'BOARD' }, '/b/n9'],
-    ['New in Private', 'Board', 'p1', { parentId: null, type: 'BOARD' }, '/b/n9'],
+    ['New private page or board', 'Board', 'p1', { parentId: null, type: 'BOARD' }, '/b/n9'],
   ])('%s offers %s', async (button, item, spaceId, body, url) => {
     api.getMySpaces.mockResolvedValue([space('s1', 'Requirements', 't1'), space('p1', 'My drafts', null)])
     nodes.createNode.mockResolvedValue({ id: 'n9' })
