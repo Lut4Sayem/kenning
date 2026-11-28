@@ -78,6 +78,8 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
       for (const [id, v] of self) collaborators.set(id, { ...v, pointer: v.pointer && { ...v.pointer, renderCursor: false } })
     }
     api.current.updateScene({ collaborators })
+    // the canvas has no DOM: the names of the cursors drawn, for tests (like data-live)
+    if (box.current) box.current.dataset.cursors = [...collaborators.values()].filter((c) => c.pointer?.renderCursor).map((c) => c.username).sort().join(',')
   }
 
   function sendViewport(a: AppState) {
