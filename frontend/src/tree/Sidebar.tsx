@@ -1,13 +1,13 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useOpenNodeId } from '../app/nodePath'
-import { createNode } from '../api/nodes'
 import mark from '../assets/brand/kenning-mark-small.svg'
 import { canEditSpace, canRenameSpace, getMe, getMySpaces, getMyTeams, type MySpace, type MyTeam } from '../api/spaces'
 import Icon from '../ui/Icon'
 import { toast } from '../ui/Toast'
 import { initialOf, initialsOf, tintOf } from '../ui/tint'
+import NewMenu from './NewMenu'
 import PageTree from './PageTree'
 import TreeDnd, { useSpaceDrop } from './TreeDnd'
 import s from './Sidebar.module.css'
@@ -35,33 +35,22 @@ export default function Sidebar({ onSearch }: { onSearch: () => void }) {
   const me = useQuery({ queryKey: ['me'], queryFn: getMe })
   const teams = useQuery({ queryKey: ['teams'], queryFn: getMyTeams })
   const spaces = useQuery({ queryKey: ['spaces'], queryFn: getMySpaces })
-  const qc = useQueryClient()
-  const navigate = useNavigate()
   const activeId = useOpenNodeId()
   const [newTeam, setNewTeam] = useState(false)
   const priv = (spaces.data ?? []).find((sp) => sp.ownerType === 'USER')
   const name = me.data?.fullName || me.data?.email.split('@')[0] || '' // QA-52: older accounts have no name
   useRowTouch()
 
-  async function newPrivatePage() {
-    if (!priv) return
-    try {
-      const created = await createNode(priv.id, { parentId: null })
-      await qc.invalidateQueries({ queryKey: ['tree', priv.id] })
-      navigate(`/p/${created.id}`, { state: { isNew: true } }) // QA-16: the page puts the caret in its title
-    } catch {
-      // the space row's own + shows the server message; this shortcut stays quiet
-    }
-  }
-
   return (
     <nav className={s.sidebar} aria-label="Workspace">
       <Link to="/" className={s.brand} aria-label="Kenning home"><img src={mark} alt="" width={20} height={20} />kenning</Link>
       <div className={s.top}>
         <AccountMenu name={name} userId={me.data?.id} />
-        <button type="button" className={s.iconBtn} aria-label="New private page" title="New page" disabled={!priv} onClick={() => void newPrivatePage()}>
-          <Icon name="edit" />
-        </button>
+        <div className={s.actions}>
+          <NewMenu spaceId={priv?.id ?? ''} label="New in Private" title="New page or board" className={s.iconBtn} disabled={!priv}>
+            <Icon name="edit" />
+          </NewMenu>
+        </div>
       </div>
 
       <div className={s.scroll}>
@@ -268,7 +257,7 @@ function SpaceSection({ space, activeId }: { space: MySpace; activeId?: string }
   )
 }
 
-/** "+" (new page in this space) and "..." (New board, Rename, Archived, Trash, Delete space): shown on hover or focus of the space row. */
+/** "+" (new page or board in this space) and "..." (New board, Rename, Archived, Trash, Delete space): shown on hover or focus of the space row. */
 function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => void }) {
   const { create, message } = useCreatePage(space.id)
   const remove = useDeleteSpace(space)
@@ -291,7 +280,7 @@ function SpaceActions({ space, onRename }: { space: MySpace; onRename?: () => vo
         if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); btn.current?.focus() }
         else if (moveMenuFocus(e.key, box.current)) e.preventDefault()
       }}>
-      {canEditSpace(space) && <button type="button" className={s.rowBtn} aria-label={`New page in ${space.name}`} onClick={() => void create(null)}><Icon name="plus" /></button>}
+      {canEditSpace(space) && <NewMenu spaceId={space.id} label={`New in ${space.name}`} className={s.rowBtn}><Icon name="plus" /></NewMenu>}
       <button ref={btn} type="button" className={s.rowBtn} aria-label={`More actions for ${space.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <Icon name="more" />
       </button>

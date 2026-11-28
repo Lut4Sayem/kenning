@@ -34,7 +34,7 @@ export const inDialog = (e: React.SyntheticEvent) => e.target instanceof Element
 /** Right-click on a row opens its "…" menu (QA-18). A finger's long press is a drag, so touch is left alone. */
 export function openRowMenu(e: React.MouseEvent<HTMLElement>) {
   if (lastPointer === 'touch' || inDialog(e)) return
-  const more = e.currentTarget.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')
+  const more = e.currentTarget.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]:not([data-new])')
   if (!more) return // no menu (viewers): keep the browser's own
   e.preventDefault()
   if (more.getAttribute('aria-expanded') !== 'true') more.click()

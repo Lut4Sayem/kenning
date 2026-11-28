@@ -6,7 +6,8 @@ const saveState = (page: Page) => page.locator('header [role="status"]')
 
 async function newPage(page: Page, title: string): Promise<string> {
   const before = page.url()
-  await page.getByRole('button', { name: 'New private page' }).click()
+  await page.getByRole('button', { name: 'New in Private' }).click()
+  await page.getByRole('menuitem', { name: 'Page' }).click()
   await page.waitForURL((u) => /\/app\/p\//.test(u.pathname) && u.toString() !== before)
   await expect(page.locator('.bn-editor[contenteditable="true"]')).toBeVisible()
   await page.getByLabel('Page title').fill(title)

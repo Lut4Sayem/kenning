@@ -280,11 +280,29 @@ describe('Sidebar', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Account menu' }))
   })
 
+  // The sidebar's new controls offer Page and Board.
+  it.each([
+    ['New in Requirements', 'Page', 's1', { parentId: null }, '/p/n9'],
+    ['New in Requirements', 'Board', 's1', { parentId: null, type: 'BOARD' }, '/b/n9'],
+    ['New in Private', 'Board', 'p1', { parentId: null, type: 'BOARD' }, '/b/n9'],
+  ])('%s offers %s', async (button, item, spaceId, body, url) => {
+    api.getMySpaces.mockResolvedValue([space('s1', 'Requirements', 't1'), space('p1', 'My drafts', null)])
+    nodes.createNode.mockResolvedValue({ id: 'n9' })
+    renderSidebar()
+    await screen.findByRole('button', { name: 'More actions for My drafts' })
+    await userEvent.click(await screen.findByRole('button', { name: button }))
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Page', 'Board'])
+    await userEvent.click(screen.getByRole('menuitem', { name: item }))
+    expect(nodes.createNode).toHaveBeenCalledWith(spaceId, body)
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe(url))
+  })
+
   it('plusOnASpaceRowCreatesAPageInThatSpaceAndOpensIt', async () => {
     nodes.createNode.mockResolvedValue({ id: 'new1' })
     renderSidebar()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'New page in Requirements' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'New in Requirements' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Page' }))
 
     expect(nodes.createNode).toHaveBeenCalledWith('s1', { parentId: null })
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/p/new1'))
@@ -295,13 +313,13 @@ describe('Sidebar', () => {
     nodes.getTree.mockImplementation((id: string) => Promise.resolve([{ id: `${id}-a`, parentId: null, title: `Page in ${id}`, rank: 'a', type: 'PAGE', publishState: 'PUBLISHED' }]))
     renderSidebar()
     expect(await screen.findByText('Page in s1')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'New page in Requirements' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'New in Requirements' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New sub-page under Page in s1' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Drag to move Page in s1' })).toBeNull()
     expect(screen.getByRole('button', { name: 'More actions for Requirements' })).toBeTruthy() // Archived and Trash stay readable
     // editors and the owner of the private space keep them
     await screen.findByText('Page in s2')
-    expect(screen.getByRole('button', { name: 'New page in Hardware' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'New in Hardware' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Drag to move Page in p1' })).toBeTruthy()
   })
 
@@ -320,7 +338,7 @@ describe('Sidebar', () => {
   it('privateSectionHasTheSameActions', async () => {
     renderSidebar()
     expect(await screen.findByRole('button', { name: 'More actions for My drafts' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'New page in My drafts' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'New in My drafts' })).toBeTruthy()
   })
 
   it('theTeamsLabelHasANewTeamButtonThatOpensTheDialog', async () => {
