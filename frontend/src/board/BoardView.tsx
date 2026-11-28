@@ -146,11 +146,12 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
         )} />,
         head,
       )}
-      {following && <FollowChip name={following.name} onStop={stop} />}
       {notice && <p role="alert" className={s.notice}>{notice}</p>}
       {undo && (
         <Suspense fallback={<ScreenSkeleton label="Loading board" />}>
-          <BoardCanvas doc={doc} editable={editable} name={node.title || 'Untitled'} undo={undo} onLive={setLive} awareness={awareness} onApi={setApi} />
+          <BoardCanvas doc={doc} editable={editable} name={node.title || 'Untitled'} undo={undo} onLive={setLive} awareness={awareness} onApi={setApi}>
+            {following && <FollowChip name={following.name} onStop={stop} />}
+          </BoardCanvas>
         </Suspense>
       )}
       {live === '' && <p className={s.hint}>{EMPTY_HINT}</p>}

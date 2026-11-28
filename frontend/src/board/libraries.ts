@@ -1,7 +1,9 @@
 // Shape packs served from our own origin (licences in public/board-libraries/NOTICE), never libraries.excalidraw.com.
 import { loadLibraryFromBlob } from '@excalidraw/excalidraw'
 
-export const BUNDLED_LIBRARIES = ['flowchart', 'uml-er']
+import { BUNDLED_LIBRARIES } from './packs'
+
+export { BUNDLED_LIBRARIES }
 
 export async function loadBundledLibraries() {
   const packs = await Promise.all(BUNDLED_LIBRARIES.map(async (name) => {

@@ -3,7 +3,7 @@ import './assetPath' // before Excalidraw: it reads the asset path once
 import { CaptureUpdateAction, convertToExcalidrawElements, Excalidraw, MainMenu, restoreElements, viewportCoordsToSceneCoords } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { ELEMENTS } from './format'
@@ -29,7 +29,12 @@ interface Props {
   awareness?: Awareness | null
   /** Excalidraw's API once it is ready (follow and zoom to fit use it). */
   onApi?: (api: ExcalidrawImperativeAPI) => void
+  /** Laid over the top of the canvas, under Excalidraw's own top row (the follow chip). */
+  children?: ReactNode
 }
+
+/** Below this canvas width our tool row gives way to Excalidraw's own tools. */
+const COMPACT_BELOW = 700
 
 type Scene = Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['elements']
 
@@ -40,7 +45,7 @@ const liveTypes = (els: readonly { type: string; isDeleted: boolean }[]) =>
 const inGesture = (a: AppState) =>
   !!(a.newElement || a.editingTextElement || a.selectedElementsAreBeingDragged || a.resizingElement || a.isRotating || a.multiElement)
 
-export default function BoardCanvas({ doc, editable, name, undo, onLive, awareness, onApi }: Props) {
+export default function BoardCanvas({ doc, editable, name, undo, onLive, awareness, onApi, children }: Props) {
   const api = useRef<ExcalidrawImperativeAPI | null>(null)
   const box = useRef<HTMLDivElement>(null)
   const known = useRef(new Map<string, number>()) // highest version this tab wrote or saw, per element
@@ -127,6 +132,14 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
   const [tool, setTool] = useState('selection')
   const [mode, setMode] = useState(loadMode)
   const [theme, setTheme] = useState(loadTheme)
+  const pane = useRef<HTMLDivElement>(null)
+  const [compact, setCompact] = useState(false)
+  useEffect(() => {
+    if (!pane.current || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([e]) => setCompact(e.contentRect.width < COMPACT_BELOW))
+    ro.observe(pane.current)
+    return () => ro.disconnect()
+  }, [])
 
   function pickMode(next: StyleMode) {
     setMode(next)
@@ -216,6 +229,20 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
   useEffect(() => (editable && box.current ? bindUndoKeys(box.current, undo) : undefined), [editable, undo])
 
   return (
+    <>
+    <div ref={pane} className={s.pane} data-theme={theme} data-compact={compact || undefined}>
+      <Toolbar
+        editable={editable}
+        compact={compact}
+        active={tool}
+        mode={mode}
+        onTool={(type) => api.current?.setActiveTool({ type })}
+        onSticky={addSticky}
+        onMode={pickMode}
+        onMermaid={() => setMermaidOpen(true)}
+        onFit={() => api.current?.scrollToContent(undefined, { fitToContent: true, animate: true })}
+        onMousePick={() => box.current?.querySelector<HTMLElement>('.excalidraw')?.focus()}
+      />
     <div
       ref={box}
       className={s.canvas}
@@ -284,21 +311,13 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
           <MainMenu.DefaultItems.ChangeCanvasBackground />
         </MainMenu>
       </Excalidraw>
-      <Toolbar
-        editable={editable}
-        active={tool}
-        mode={mode}
-        onTool={(type) => api.current?.setActiveTool({ type })}
-        onSticky={addSticky}
-        onMode={pickMode}
-        onMermaid={() => setMermaidOpen(true)}
-        onFit={() => api.current?.scrollToContent(undefined, { fitToContent: true, animate: true })}
-        onMousePick={() => box.current?.querySelector<HTMLElement>('.excalidraw')?.focus()}
-      />
+      {children}
       {!editable && (
         <button type="button" className={s.laser} aria-pressed={laser} onClick={toggleLaser}>Laser pointer</button>
       )}
-      {mermaidOpen && editable && <MermaidDialog onInsert={insertShapes} onClose={() => setMermaidOpen(false)} />}
     </div>
+    </div>
+    {mermaidOpen && editable && <MermaidDialog onInsert={insertShapes} onClose={() => setMermaidOpen(false)} />}
+    </>
   )
 }
