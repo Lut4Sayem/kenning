@@ -1,6 +1,14 @@
 /* The board fills the panel under the top bar; Excalidraw draws inside .canvas. */
 .board { position: relative; height: 100%; display: flex; flex-direction: column; }
-.canvas { flex: 1; min-height: 0; }
+.canvas { flex: 1; min-height: 0; position: relative; }
+/* Who is here is the top bar's avatar stack, not Excalidraw's own list. */
+.canvas :global(.excalidraw .UserList__wrapper), .canvas :global(.excalidraw .UserList) { display: none; }
+.canvas[data-laser] :global(canvas) { cursor: crosshair !important; } /* Excalidraw sets its cursor inline */
+.laser {
+  position: absolute; left: 50%; bottom: var(--space-4); transform: translateX(-50%); z-index: 3; min-height: 36px; padding: 0 var(--space-4);
+  font: inherit; font-size: 13px; color: var(--ink); background: var(--surface-card); border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+}
+.laser[aria-pressed='true'] { color: var(--surface-card); background: var(--ink); }
 /* Undo/redo go to the board's own history (top bar buttons and keys), so Excalidraw's own buttons are hidden. */
 .canvas :global(.excalidraw .undo-redo-buttons) { display: none; } /* beats Excalidraw's own rule, loaded later */
 .notice { margin: 0; padding: var(--space-2) var(--space-4); font-size: 13px; color: var(--ink); background: var(--surface-card); border-bottom: 1px solid var(--line); }

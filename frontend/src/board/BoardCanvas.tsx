@@ -1,14 +1,16 @@
 // Excalidraw on a board's Y.Doc. Only this module (and what it imports) pulls in Excalidraw; it is loaded lazily.
 import './assetPath' // before Excalidraw: it reads the asset path once
-import { CaptureUpdateAction, Excalidraw, MainMenu, restoreElements } from '@excalidraw/excalidraw'
+import { CaptureUpdateAction, Excalidraw, MainMenu, restoreElements, viewportCoordsToSceneCoords } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { ELEMENTS } from './format'
 import { bindUndoKeys } from './binding/keys'
 import { WRITE_BACK, createThrottle, pushLocal, sceneFromDoc, writeBackLosers, type El } from './binding/sync'
 import type { BoardUndo } from './binding/undo'
+import { createSender, toCollaborators, type BoardAwareness } from './presence'
 import s from './Board.module.css'
 
 interface Props {
@@ -18,6 +20,7 @@ interface Props {
   undo: BoardUndo
   /** The sorted types of the live (non-deleted) elements, whenever they change. */
   onLive: (types: string) => void
+  awareness?: Awareness | null
 }
 
 type Scene = Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['elements']
@@ -29,7 +32,7 @@ const liveTypes = (els: readonly { type: string; isDeleted: boolean }[]) =>
 const inGesture = (a: AppState) =>
   !!(a.newElement || a.editingTextElement || a.selectedElementsAreBeingDragged || a.resizingElement || a.isRotating || a.multiElement)
 
-export default function BoardCanvas({ doc, editable, name, undo, onLive }: Props) {
+export default function BoardCanvas({ doc, editable, name, undo, onLive, awareness }: Props) {
   const api = useRef<ExcalidrawImperativeAPI | null>(null)
   const box = useRef<HTMLDivElement>(null)
   const known = useRef(new Map<string, number>()) // highest version this tab wrote or saw, per element
@@ -51,6 +54,64 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive }: Props
     const restored = restoreElements(els as unknown as Scene, null, { repairBindings: true })
     for (const e of restored) known.current.set(e.id, Math.max(known.current.get(e.id) ?? -1, e.version))
     return restored
+  }
+
+  const sender = useMemo(() => (awareness ? createSender(awareness) : null), [awareness])
+  const loaded = useRef(false)
+  // Excalidraw's view mode only pans, so a viewer's laser (WB 7.5) is ours: its pointer events never reach the canvas.
+  const [laserOn, setLaserOn] = useState(false)
+  const laser = laserOn && !editable
+  const myLaser = useRef<{ pointer: NonNullable<BoardAwareness['pointer']>; button: 'up' | 'down' } | null>(null)
+
+  /** Others' cursors, selections and laser trails, plus the trail of this viewer's own laser. */
+  function showPeople() {
+    if (!awareness || !api.current) return
+    const states = awareness.getStates() as Map<number, BoardAwareness & { kf?: { viewer?: boolean } }>
+    const viewers = new Set([...states].filter(([, v]) => v.kf?.viewer).map(([id]) => id))
+    const collaborators = toCollaborators(states, awareness.clientID, viewers)
+    const mine = myLaser.current
+    const me = states.get(awareness.clientID)?.user
+    if (mine && me) {
+      const self = toCollaborators(new Map([[awareness.clientID, { user: me, ...mine }]]), -1, new Set())
+      for (const [id, v] of self) collaborators.set(id, { ...v, pointer: v.pointer && { ...v.pointer, renderCursor: false } })
+    }
+    api.current.updateScene({ collaborators })
+  }
+
+  function sendViewport(a: AppState) {
+    sender?.viewport({ x: -a.scrollX, y: -a.scrollY, width: a.width / a.zoom.value, height: a.height / a.zoom.value, zoom: a.zoom.value })
+  }
+
+  useEffect(() => {
+    if (!awareness) return
+    const onChange = ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
+      if ([...added, ...updated, ...removed].some((id) => id !== awareness.clientID)) showPeople()
+    }
+    awareness.on('change', onChange)
+    showPeople()
+    const a = api.current?.getAppState?.()
+    if (a) sendViewport(a)
+    return () => awareness.off('change', onChange)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- showPeople and sendViewport read refs and these two
+  }, [awareness, sender])
+
+  function pointLaser(e: ReactPointerEvent, button: 'up' | 'down') {
+    if (!laser || !api.current || !(e.target instanceof HTMLCanvasElement)) return
+    e.stopPropagation()
+    if (e.type === 'pointerdown') e.target.setPointerCapture?.(e.pointerId)
+    const { x, y } = viewportCoordsToSceneCoords(e, api.current.getAppState())
+    myLaser.current = { pointer: { x, y, tool: 'laser' }, button }
+    sender?.pointer(myLaser.current.pointer, button)
+    showPeople()
+  }
+
+  function toggleLaser() {
+    if (laser) {
+      myLaser.current = null
+      sender?.pointer(undefined, 'up')
+      showPeople()
+    }
+    setLaserOn(!laser)
   }
 
   const initial = useMemo(() => restore(sceneFromDoc(doc, [], null)), [doc])
@@ -102,7 +163,15 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive }: Props
   useEffect(() => (editable && box.current ? bindUndoKeys(box.current, undo) : undefined), [editable, undo])
 
   return (
-    <div ref={box} className={s.canvas}>
+    <div
+      ref={box}
+      className={s.canvas}
+      data-laser={laser || undefined}
+      onPointerDownCapture={(e) => pointLaser(e, 'down')}
+      onPointerMoveCapture={(e) => pointLaser(e, e.buttons & 1 ? 'down' : 'up')}
+      onPointerUpCapture={(e) => pointLaser(e, 'up')}
+      onPointerCancelCapture={(e) => pointLaser(e, 'up')}
+    >
       <Excalidraw
         excalidrawAPI={(a) => {
           api.current = a
@@ -116,7 +185,19 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive }: Props
           canvasActions: { loadScene: false, saveToActiveFile: false, saveAsImage: true, export: { saveFileToDisk: true }, toggleTheme: null },
         }}
         onPaste={(data) => !(data.files && Object.keys(data.files).length > 0)}
+        onPointerUpdate={({ pointer, button }) => {
+          if (canWrite.current) sender?.pointer({ x: pointer.x, y: pointer.y, tool: pointer.tool }, button) // viewers: laser only
+        }}
         onChange={(elements, appState) => {
+          if (sender) {
+            sender.selection(appState.selectedElementIds as Record<string, true>)
+            sendViewport(appState)
+            // loading the scene empties Excalidraw's collaborators: show who is already here again
+            if (!loaded.current) {
+              loaded.current = true
+              showPeople()
+            }
+          }
           latest.current = elements as unknown as El[]
           live.current(liveTypes(elements))
           const was = now.current
@@ -145,6 +226,9 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive }: Props
           <MainMenu.DefaultItems.ChangeCanvasBackground />
         </MainMenu>
       </Excalidraw>
+      {!editable && (
+        <button type="button" className={s.laser} aria-pressed={laser} onClick={toggleLaser}>Laser pointer</button>
+      )}
     </div>
   )
 }

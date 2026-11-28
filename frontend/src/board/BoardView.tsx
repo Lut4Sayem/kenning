@@ -77,7 +77,7 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
   const [head, setHead] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
-    collab.provider?.awareness?.setLocalStateField('user', { name: user.name, color: userColor(user.id) })
+    collab.provider?.awareness?.setLocalStateField('user', { id: user.id, name: user.name, color: userColor(user.id) })
   }, [collab.provider, user.id, user.name])
   useEffect(() => {
     // restored since it was opened: load it again; gone: the node query says why
@@ -114,7 +114,7 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
       {notice && <p role="alert" className={s.notice}>{notice}</p>}
       {undo && (
         <Suspense fallback={<ScreenSkeleton label="Loading board" />}>
-          <BoardCanvas doc={doc} editable={editable} name={node.title || 'Untitled'} undo={undo} onLive={setLive} />
+          <BoardCanvas doc={doc} editable={editable} name={node.title || 'Untitled'} undo={undo} onLive={setLive} awareness={collab.provider?.awareness} />
         </Suspense>
       )}
       {live === '' && <p className={s.hint}>{EMPTY_HINT}</p>}
