@@ -189,17 +189,17 @@ src/main/java/.../collab/StoreRequest.java (mod) largeDelete
 ### Task 3.1: Cursors, selections, laser · **Tier: routine**
 **Files:** Create `frontend/src/board/presence.ts`, `presence.test.ts`; modify `BoardCanvas.tsx`.
 **Interfaces:** Produces `type BoardAwareness = {user:{id,name,color}, pointer?:{x,y,tool:'pointer'|'laser'}, button?:'up'|'down', selectedElementIds?:Record<string,true>, viewport?:{x,y,width,height,zoom}}`; `toCollaborators(states: Map<number, BoardAwareness>, selfClientId: number, viewers: Set<number>): Map<SocketId, Collaborator>` (viewer pointer: `renderCursor: false` unless `tool === 'laser'`); `createRateLimiter(perSecond: number)`.
-- [ ] **Step 1: Failing tests** `collaboratorsExcludeSelf`, `viewerShowsLaserOnly`, `colourFromUserColor` (same `userColor(id)` as pages), `pointerAtMostTenPerSecond`, `viewportOnlyWhenChangedAtMostFour`.
-- [ ] Steps 2-4 as usual (`npx vitest run src/board/presence.test.ts`).
-- [ ] **Step 5:** `git commit -m "feat: whiteboard cursors and laser"`
+- [x] **Step 1: Failing tests** `collaboratorsExcludeSelf`, `viewerShowsLaserOnly`, `colourFromUserColor` (same `userColor(id)` as pages), `pointerAtMostTenPerSecond`, `viewportOnlyWhenChangedAtMostFour`.
+- [x] Steps 2-4 as usual (`npx vitest run src/board/presence.test.ts`).
+- [x] **Step 5:** `git commit -m "feat: whiteboard cursors and laser"`
 **Done when:** tests pass; manually two browsers see named cursors and a viewer's laser.
 
 ### Task 3.2: Follow, bring everyone to me, zoom to fit · **Tier: core**
 **Files:** Modify `collab/src/server.ts` (`onStateless`: relay allowlisted `{type:'summon', userId}` from EDIT connections only, 1 per 10 s per connection, drop the rest), `collab/test/stateless.test.ts`; create `frontend/src/board/follow.ts`, `follow.test.ts`, `FollowChip.tsx`; modify `Presence` usage (avatar menu: Follow; Bring everyone to me for editors).
 **Interfaces:** Produces `fitViewport(their: Viewport, mine: {width,height}): {scrollX:number, scrollY:number, zoom:number}` (fit their visible area into mine, keep my aspect, clamp zoom 0.1..30); `useFollow(api, awareness)` -> `{following: Person|null, follow(id), stop()}`; stops on user pan/zoom/pointerdown.
-- [ ] **Step 1: Failing tests** collab: `summonRelayedToOthers`, `summonRateLimited`, `viewerCannotSummon`, `unknownStatelessDropped`. Frontend: `fitViewportKeepsAspect`, `fitViewportCentresTheirArea`, `followStopsOnPan`. E2e (`board-presence.spec.ts`): `cursor names visible`, `follow moves my view`, `bring everyone moves the other view`, `Shift+1 zooms to fit`.
-- [ ] Steps 2-4.
-- [ ] **Step 5:** `git commit -m "feat: follow and bring everyone on boards"`
+- [x] **Step 1: Failing tests** collab: `summonRelayedToOthers`, `summonRateLimited`, `viewerCannotSummon`, `unknownStatelessDropped`. Frontend: `fitViewportKeepsAspect`, `fitViewportCentresTheirArea`, `followStopsOnPan`. E2e (`board-presence.spec.ts`): `cursor names visible`, `follow moves my view`, `bring everyone moves the other view`, `Shift+1 zooms to fit`.
+- [x] Steps 2-4.
+- [x] **Step 5:** `git commit -m "feat: follow and bring everyone on boards"`
 **Done when:** unit + e2e pass; chip text "Following <name> · Stop". Open PR 3.
 
 ## Phase 4 — PR `feat/board-tools`: Sketch/Precise, shape packs, Mermaid, export, dark mode
@@ -207,27 +207,27 @@ src/main/java/.../collab/StoreRequest.java (mod) largeDelete
 ### Task 4.1: Sketch / Precise + Nunito default · **Tier: routine**
 **Files:** Create `frontend/src/board/style.ts`, `style.test.ts`, `StyleSwitch.tsx`.
 **Interfaces:** `styleDefaults(mode: 'sketch'|'precise'): Partial<AppState>` -> sketch `{currentItemRoughness:1, currentItemRoundness:'round', currentItemArrowType:'round', gridModeEnabled:false, objectsSnapModeEnabled:false}`; precise `{currentItemRoughness:0, currentItemRoundness:'sharp', currentItemArrowType:'elbow', gridModeEnabled:true, objectsSnapModeEnabled:true}`; both `currentItemFontFamily: FONT_FAMILY.Nunito`. `loadMode()/saveMode()` in `localStorage['kf.board.style']` (try/catch, default `'sketch'`).
-- [ ] Tests: `sketchDefaults`, `preciseDefaults`, `modeRemembered`, `modeDefaultsToSketchWhenStorageThrows`, `switchKeepsExistingElements` (scene untouched). Then implement, PASS, `git commit -m "feat: sketch and precise board styles"`.
+- [x] Tests: `sketchDefaults`, `preciseDefaults`, `modeRemembered`, `modeDefaultsToSketchWhenStorageThrows`, `switchKeepsExistingElements` (scene untouched). Then implement, PASS, `git commit -m "feat: sketch and precise board styles"`.
 **Done when:** tests pass; toolbar order matches WB 7.5.
 
 ### Task 4.2: Shape packs · **Tier: core** (licence judgement)
 **Files:** `frontend/public/board-libraries/*.excalidrawlib` (flowchart, UML class/sequence, ER/database tables), `frontend/public/board-libraries/NOTICE`, `frontend/src/board/libraries.ts` (`loadBundledLibraries(): Promise<LibraryItems>` via `restoreLibraryItems`), CSS hiding "Browse libraries"/publish links.
-- [ ] Pick each library from the Excalidraw libraries repo, keep only MIT (or compatible) ones, record source URL + licence + author in NOTICE. Strip any `image` elements.
-- [ ] Test `bundledLibrariesHaveOnlyAllowedTypes` (every element type in `ALLOWED_TYPES`); e2e `shape pack inserts a UML class` + `no external requests` still passes with the library panel open.
-- [ ] `git commit -m "feat: bundled shape packs for boards"`
+- [x] Pick each library from the Excalidraw libraries repo, keep only MIT (or compatible) ones, record source URL + licence + author in NOTICE. Strip any `image` elements.
+- [x] Test `bundledLibrariesHaveOnlyAllowedTypes` (every element type in `ALLOWED_TYPES`); e2e `shape pack inserts a UML class` + `no external requests` still passes with the library panel open.
+- [x] `git commit -m "feat: bundled shape packs for boards"`
 **Done when:** tests pass; NOTICE lists every bundled file.
 
 ### Task 4.3: Mermaid dialog · **Tier: core**
 **Files:** `frontend/package.json` (`"@excalidraw/mermaid-to-excalidraw": "2.2.2"`), create `frontend/src/board/mermaid.ts`, `mermaid.test.ts`, `MermaidDialog.tsx`; CSS hides the built-in "Mermaid to Excalidraw" menu item.
 **Interfaces:** `toBoardElements(result: {elements: unknown[], files?: Record<string, unknown>}): {ok: true, elements} | {ok: false, message: string}`; `mermaidError(e: unknown): string` (keeps Mermaid's message incl. the line number).
-- [ ] Tests: `filesMeansUnsupported` -> message "This diagram type isn't supported yet. Try a flowchart, sequence or class diagram.", `elementsPassThroughConvert`, `parseErrorKeepsLineNumber`, `emptyInputIsAnError`. E2e: `mermaid flowchart import`, `unsupported mermaid type message`.
-- [ ] `git commit -m "feat: mermaid to board shapes"`
+- [x] Tests: `filesMeansUnsupported` -> message "This diagram type isn't supported yet. Try a flowchart, sequence or class diagram.", `elementsPassThroughConvert`, `parseErrorKeepsLineNumber`, `emptyInputIsAnError`. E2e: `mermaid flowchart import`, `unsupported mermaid type message`.
+- [x] `git commit -m "feat: mermaid to board shapes"`
 **Done when:** tests pass; no blank result path exists (empty -> message).
 
 ### Task 4.4: Export + dark mode · **Tier: routine**
 **Files:** `BoardCanvas.tsx` (`theme` prop, menu toggle), `frontend/src/board/theme.ts` + test.
-- [ ] Tests: `themeRemembered`, `themeDefaultsLight`. E2e `export png uses board title` (download name `<title>.png`), `export svg selection only`.
-- [ ] `git commit -m "feat: board export and dark mode"`
+- [x] Tests: `themeRemembered`, `themeDefaultsLight`. E2e `export png uses board title` (download name `<title>.png`), `export svg selection only`.
+- [x] `git commit -m "feat: board export and dark mode"`
 **Done when:** Excalidraw's export dialog offers PNG/SVG, selection, background toggle and 1x/2x/3x; tests pass. Open PR 4.
 
 ## Phase 5 — PR `feat/board-safety`: offline, size limits, large delete, stroke simplification

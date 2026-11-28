@@ -43,11 +43,11 @@ export async function teamBoard(browser: Browser, role: 'EDITOR' | 'VIEWER') {
   return { ann, bea }
 }
 
-export type Tool = 'Rectangle' | 'Ellipse' | 'Draw'
+export type Tool = 'Rectangle' | 'Ellipse' | 'Pen'
 
-/** Picks a tool from Excalidraw's toolbar and drags across the canvas (clear of the style panel on the left). */
+/** Picks a tool from the board's toolbar and drags across the canvas (clear of the style panel on the left). */
 export async function draw(page: Page, tool: Tool, from: [number, number], to: [number, number]) {
-  await page.getByRole('radio', { name: tool }).click({ force: true }) // the icon over the input is its label
+  await page.getByRole('button', { name: tool, exact: true }).click()
   await drag(page, from, to)
 }
 
