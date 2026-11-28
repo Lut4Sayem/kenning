@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 import { getTeam, getTeamPages, type TeamPageItem, type TeamSpace } from '../api/teams'
 import { useCreatePage } from '../tree/useCreatePage'
 import Avatar from '../ui/Avatar'
@@ -173,7 +174,7 @@ function PageRowT({ p }: { p: TeamPageItem }) {
   return (
     <tr className={s.row}>
       <td className={s.cTitle}>
-        <Link to={`/p/${p.id}`} className={s.titleLink}>
+        <Link to={nodePath(p.id, p.type)} className={s.titleLink}>
           <span className={s.dot} style={{ background: dotColour(p.color) }} aria-hidden="true" />
           <span className={s.title} title={p.title || 'Untitled'}>{p.title || 'Untitled'}</span>
           {p.parentTitle && <span className={s.parent}>in {p.parentTitle}</span>}

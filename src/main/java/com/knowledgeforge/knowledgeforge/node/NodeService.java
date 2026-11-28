@@ -319,7 +319,7 @@ public class NodeService {
                 .filter(n -> access.resolve(user.getId(), n).compareTo(Access.VIEW) >= 0)
                 .sorted(java.util.Comparator.comparing(Node::getContentUpdatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
                 .map(n -> new TaggedNodeDTO(n.getId(), n.getSpaceId(), mine.get(n.getSpaceId()).getName(), n.getTitle(),
-                        n.getIcon(), n.getTags(), n.getPublishState(), n.getColor()))
+                        n.getIcon(), n.getTags(), n.getPublishState(), n.getColor(), n.getType()))
                 .toList();
     }
 

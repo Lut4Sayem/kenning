@@ -261,7 +261,7 @@ public class AiService {
         }
         // QA-57: no usable [n] in the answer: list every page it was given, so the answer still links to what it read
         if (used.isEmpty()) for (int i = 1; i <= sent.size(); i++) used.add(i);
-        return used.stream().map(i -> new SourceDTO(i, sent.get(i - 1).getId(), sent.get(i - 1).getTitle())).toList();
+        return used.stream().map(i -> new SourceDTO(i, sent.get(i - 1).getId(), sent.get(i - 1).getTitle(), sent.get(i - 1).getType())).toList();
     }
 
     // Throws 429 when this user or the whole site has used up today (UTC day).

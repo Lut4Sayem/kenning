@@ -2,7 +2,7 @@ import { api } from './client'
 
 export interface PageComment { id: string; content: string; createdAt: string; createdByUserId: string; createdByFullName: string | null; createdByEmail: string }
 export interface Summary { summary: string; cached: boolean; trimmed: boolean; generatedAt: string }
-export interface Answer { answer: string; sources: { n: number; id: string; title: string }[]; usedDocuments: number; trimmed: boolean; cached: boolean }
+export interface Answer { answer: string; sources: { n: number; id: string; title: string; type?: 'PAGE' | 'BOARD' | null }[]; usedDocuments: number; trimmed: boolean; cached: boolean }
 
 export const getComments = (nodeId: string) => api<PageComment[]>(`/api/nodes/${nodeId}/comments`)
 export const addComment = (nodeId: string, content: string) => api<PageComment>(`/api/nodes/${nodeId}/comments`, { method: 'POST', body: JSON.stringify({ content }) })

@@ -1,7 +1,8 @@
 import { Fragment, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 
-export interface Source { n: number; id: string; title: string }
+export interface Source { n: number; id: string; title: string; type?: 'PAGE' | 'BOARD' | null }
 
 // Bold, italic, inline code and citations ([2], [1, 2], or the full-width 【2】 some models write).
 const INLINE = /(\*\*[^*\n]+\*\*|__[^_\n]+__|\*[^*\s][^*\n]*\*|_[^_\s][^_\n]*_|`[^`\n]+`|\s?[[【]\s*\d{1,2}(?:\s*,\s*\d{1,2})*\s*[\]】])/
@@ -14,7 +15,7 @@ function inline(text: string, sources: Source[]): ReactNode[] {
     if (part.startsWith('*') || part.startsWith('_')) return <em key={i}>{inline(part.slice(1, -1), sources)}</em>
     const cited = (part.match(/\d+/g) ?? []).map((n) => sources.find((s) => s.n === Number(n))).filter((s): s is Source => !!s)
     return cited.length ? (
-      <Fragment key={i}>{' '}{cited.map((s) => <sup key={s.n}><Link to={`/p/${s.id}`} aria-label={`Source ${s.n}: ${s.title}`}>[{s.n}]</Link></sup>)}</Fragment>
+      <Fragment key={i}>{' '}{cited.map((s) => <sup key={s.n}><Link to={nodePath(s.id, s.type)} aria-label={`Source ${s.n}: ${s.title}`}>[{s.n}]</Link></sup>)}</Fragment>
     ) : null // a mark that points at no page we sent is dropped
   })
 }

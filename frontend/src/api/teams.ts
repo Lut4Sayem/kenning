@@ -16,9 +16,10 @@ export interface TeamPageItem {
   id: string; title: string; spaceId: string; spaceName: string; publishState: 'DRAFT' | 'PUBLISHED' | null
   lastEditorName: string | null; lastEditorId: string | null; updatedAt: string; parentTitle: string | null
   color?: string | null
+  type?: 'PAGE' | 'BOARD'
 }
 export interface TeamPages { items: TeamPageItem[]; total: number }
-export interface TeamActivity { actorName: string | null; action: string; targetTitle: string; targetId: string; createdAt: string }
+export interface TeamActivity { actorName: string | null; action: string; targetTitle: string; targetId: string; createdAt: string; type?: 'PAGE' | 'BOARD' | null }
 export interface TeamPagesQuery { status?: string; spaceId?: string; editedBy?: string; sort?: string; page?: number; size?: number }
 
 const json = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) })
