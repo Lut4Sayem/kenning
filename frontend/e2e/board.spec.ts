@@ -64,3 +64,78 @@ test('empty hint disappears on first shape', async ({ browser }) => {
   await expect(ann.page.getByText(hint)).toHaveCount(0)
   await expect(bea.page.getByText(hint)).toHaveCount(0, { timeout: 2000 })
 })
+
+test('shape pack inserts a UML class, no external requests', async ({ browser }) => {
+  const { ann } = await teamBoard(browser, 'EDITOR')
+  const external: string[] = []
+  ann.page.on('request', (r) => {
+    const u = new URL(r.url())
+    if (!['http:', 'https:', 'ws:', 'wss:'].includes(u.protocol)) return
+    if (!['localhost', '127.0.0.1'].includes(u.hostname)) external.push(r.url())
+  })
+  await ann.page.locator('.default-sidebar-trigger').click() // the library panel (our toolbar must not cover it)
+  const units = ann.page.locator('.library-unit')
+  await expect(units).toHaveCount(36) // 15 flowchart + 21 UML/ER
+  await units.nth(15).click() // the first UML pack item: a class box (rectangle + divider line)
+  await expect(live(ann.page)).toHaveAttribute('data-live', 'line,rectangle')
+  expect(external).toEqual([])
+})
+
+test('mermaid flowchart import', async ({ browser }) => {
+  const { ann } = await teamBoard(browser, 'EDITOR')
+  await ann.page.getByRole('button', { name: 'Mermaid', exact: true }).click()
+  await ann.page.getByRole('textbox').fill('flowchart LR\n  A[Idea] --> B[Plan]')
+  await ann.page.getByRole('button', { name: 'Insert' }).click()
+  await expect(live(ann.page)).toHaveAttribute('data-live', /rectangle.*text/)
+  await expect(ann.page.getByRole('heading', { name: 'Mermaid to shapes' })).toHaveCount(0) // the dialog closed
+})
+
+test('unsupported mermaid type message', async ({ browser }) => {
+  const { ann } = await teamBoard(browser, 'EDITOR')
+  await ann.page.getByRole('button', { name: 'Mermaid', exact: true }).click()
+  await ann.page.getByRole('textbox').fill('pie title Pets\n  "Dogs" : 3\n  "Cats" : 2')
+  await ann.page.getByRole('button', { name: 'Insert' }).click()
+  await expect(ann.page.getByRole('alert')).toHaveText("This diagram type isn't supported yet. Try a flowchart, sequence or class diagram.")
+  await expect(live(ann.page)).toHaveAttribute('data-live', '') // nothing was drawn
+})
+
+/**
+ * Opens Excalidraw's export dialog (Ctrl+Shift+E) and picks PNG or SVG. Chromium saves through a native file picker
+ * (no download event), so the picker is replaced by one that keeps the suggested name and the bytes.
+ */
+async function exportAs(page: import('@playwright/test').Page, kind: 'PNG' | 'SVG') {
+  await page.evaluate(() => {
+    const w = window as unknown as { showSaveFilePicker: unknown; saved?: { name: string; text: string } }
+    w.showSaveFilePicker = async (o: { suggestedName: string }) => ({
+      createWritable: async () => {
+        let blob: Blob
+        return {
+          write: async (b: Blob) => { blob = b },
+          close: async () => { w.saved = { name: o.suggestedName, text: await blob.text() } },
+        }
+      },
+    })
+  })
+  await page.keyboard.press('Control+Shift+E')
+  const dialog = page.locator('.ImageExportModal')
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: `Export to ${kind}` }).click()
+  await page.waitForFunction(() => (window as unknown as { saved?: unknown }).saved)
+  return page.evaluate(() => (window as unknown as { saved: { name: string; text: string } }).saved)
+}
+
+test('export png uses board title', async ({ browser }) => {
+  const { ann } = await teamBoard(browser, 'EDITOR')
+  await draw(ann.page, 'Rectangle', [480, 250], [600, 330])
+  expect((await exportAs(ann.page, 'PNG')).name).toBe('Method sketch.png')
+})
+
+test('export svg selection only', async ({ browser }) => {
+  const { ann } = await teamBoard(browser, 'EDITOR')
+  await draw(ann.page, 'Rectangle', [480, 250], [600, 330])
+  await draw(ann.page, 'Ellipse', [900, 250], [1000, 350]) // the ellipse is the selection now
+  const svg = await exportAs(ann.page, 'SVG')
+  const width = Number(/<svg[^>]*\swidth="([\d.]+)"/.exec(svg.text)?.[1])
+  expect(svg.name).toBe('Method sketch.svg')
+  expect(width).toBeLessThan(200) // the ellipse alone (about 100 wide + padding); both shapes would be over 500
+})

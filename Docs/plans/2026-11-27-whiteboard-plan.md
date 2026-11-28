@@ -212,22 +212,22 @@ src/main/java/.../collab/StoreRequest.java (mod) largeDelete
 
 ### Task 4.2: Shape packs · **Tier: core** (licence judgement)
 **Files:** `frontend/public/board-libraries/*.excalidrawlib` (flowchart, UML class/sequence, ER/database tables), `frontend/public/board-libraries/NOTICE`, `frontend/src/board/libraries.ts` (`loadBundledLibraries(): Promise<LibraryItems>` via `restoreLibraryItems`), CSS hiding "Browse libraries"/publish links.
-- [ ] Pick each library from the Excalidraw libraries repo, keep only MIT (or compatible) ones, record source URL + licence + author in NOTICE. Strip any `image` elements.
-- [ ] Test `bundledLibrariesHaveOnlyAllowedTypes` (every element type in `ALLOWED_TYPES`); e2e `shape pack inserts a UML class` + `no external requests` still passes with the library panel open.
-- [ ] `git commit -m "feat: bundled shape packs for boards"`
+- [x] Pick each library from the Excalidraw libraries repo, keep only MIT (or compatible) ones, record source URL + licence + author in NOTICE. Strip any `image` elements.
+- [x] Test `bundledLibrariesHaveOnlyAllowedTypes` (every element type in `ALLOWED_TYPES`); e2e `shape pack inserts a UML class` + `no external requests` still passes with the library panel open.
+- [x] `git commit -m "feat: bundled shape packs for boards"`
 **Done when:** tests pass; NOTICE lists every bundled file.
 
 ### Task 4.3: Mermaid dialog · **Tier: core**
 **Files:** `frontend/package.json` (`"@excalidraw/mermaid-to-excalidraw": "2.2.2"`), create `frontend/src/board/mermaid.ts`, `mermaid.test.ts`, `MermaidDialog.tsx`; CSS hides the built-in "Mermaid to Excalidraw" menu item.
 **Interfaces:** `toBoardElements(result: {elements: unknown[], files?: Record<string, unknown>}): {ok: true, elements} | {ok: false, message: string}`; `mermaidError(e: unknown): string` (keeps Mermaid's message incl. the line number).
-- [ ] Tests: `filesMeansUnsupported` -> message "This diagram type isn't supported yet. Try a flowchart, sequence or class diagram.", `elementsPassThroughConvert`, `parseErrorKeepsLineNumber`, `emptyInputIsAnError`. E2e: `mermaid flowchart import`, `unsupported mermaid type message`.
-- [ ] `git commit -m "feat: mermaid to board shapes"`
+- [x] Tests: `filesMeansUnsupported` -> message "This diagram type isn't supported yet. Try a flowchart, sequence or class diagram.", `elementsPassThroughConvert`, `parseErrorKeepsLineNumber`, `emptyInputIsAnError`. E2e: `mermaid flowchart import`, `unsupported mermaid type message`.
+- [x] `git commit -m "feat: mermaid to board shapes"`
 **Done when:** tests pass; no blank result path exists (empty -> message).
 
 ### Task 4.4: Export + dark mode · **Tier: routine**
 **Files:** `BoardCanvas.tsx` (`theme` prop, menu toggle), `frontend/src/board/theme.ts` + test.
-- [ ] Tests: `themeRemembered`, `themeDefaultsLight`. E2e `export png uses board title` (download name `<title>.png`), `export svg selection only`.
-- [ ] `git commit -m "feat: board export and dark mode"`
+- [x] Tests: `themeRemembered`, `themeDefaultsLight`. E2e `export png uses board title` (download name `<title>.png`), `export svg selection only`.
+- [x] `git commit -m "feat: board export and dark mode"`
 **Done when:** Excalidraw's export dialog offers PNG/SVG, selection, background toggle and 1x/2x/3x; tests pass. Open PR 4.
 
 ## Phase 5 — PR `feat/board-safety`: offline, size limits, large delete, stroke simplification

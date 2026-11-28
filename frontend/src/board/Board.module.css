@@ -15,8 +15,9 @@
 /* Our own tool row (WB 7.5) replaces Excalidraw's desktop one; phones keep Excalidraw's (WB 7.10). */
 .canvas :global(.excalidraw .shapes-section) { display: none; }
 .toolbar {
-  position: absolute; left: 50%; top: var(--space-4); transform: translateX(-50%); z-index: 4; /* Excalidraw's UI layer */
-  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; width: max-content; max-width: calc(100% - 128px);
+  /* second row: the first holds Excalidraw's menu and Library button; left of 232px is its style panel */
+  position: absolute; left: 232px; top: 60px; z-index: 4; /* Excalidraw's UI layer */
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; width: max-content; max-width: calc(100% - 248px);
   padding: 4px; background: var(--surface-card); border: 1px solid var(--line); border-radius: 8px;
 }
 .toolbar button {
@@ -27,15 +28,15 @@
 .toolbar button[aria-pressed='true'] { color: var(--surface-card); background: var(--ink); }
 .toolbar .styles { display: inline-flex; gap: 2px; margin: 0 var(--space-2); }
 .toolbar .styles button { padding: 0 var(--space-2); }
-.canvas:has(:global(.excalidraw--mobile)) .toolbar { top: 72px; }
+.canvas:has(:global(.excalidraw--mobile)) .toolbar { left: 50%; transform: translateX(-50%); top: 72px; max-width: calc(100% - 128px); }
 .canvas:has(:global(.excalidraw--mobile)) .toolbar .tool { display: none; }
 .hint {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; max-width: calc(100% - 32px);
   font-size: 14px; color: var(--ink-muted); text-align: center; pointer-events: none;
 }
 .follow {
-  /* under Excalidraw's toolbar, above its UI layer (z-index 4) so Stop is clickable */
-  position: absolute; left: 50%; top: 72px; transform: translateX(-50%); z-index: 5; margin: 0; padding: 4px 6px 4px var(--space-3);
+  /* under our toolbar, above its UI layer (z-index 4) so Stop is clickable */
+  position: absolute; left: 50%; top: 112px; transform: translateX(-50%); z-index: 5; margin: 0; padding: 4px 6px 4px var(--space-3); width: max-content; max-width: calc(100% - 16px); /* one line: left:50% alone would squeeze it to half the canvas */
   font-size: 13px; color: var(--ink); background: var(--surface-card); border: 1px solid var(--line); border-radius: 999px;
 }
 .follow button { min-height: 28px; padding: 0 var(--space-2); font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; border-radius: 999px; cursor: pointer; }
@@ -49,3 +50,5 @@
 .mermaid { max-width: 560px; }
 .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .toolbar .text { padding: 0 var(--space-2); }
+/* on a phone the board toolbar sits at 72px and wraps to several rows: the chip goes in the free strip above it */
+.board:has(:global(.excalidraw--mobile)) .follow { top: var(--space-2); }

@@ -62,3 +62,18 @@ test('Shift+1 zooms to fit', async ({ browser }) => {
   await ann.page.keyboard.press('Shift+Digit1')
   await expect(zoom(ann.page)).not.toHaveText('130%')
 })
+
+test('follow chip is visible and Stop works at phone width', async ({ browser }) => {
+  const { ann, bea } = await teamBoard(browser, 'EDITOR')
+  await bea.page.setViewportSize({ width: 375, height: 812 }) // Excalidraw moves its toolbar to the bottom
+  await expect(bea.page.locator('.excalidraw--mobile')).toHaveCount(1)
+  await avatarMenu(bea.page, 'Ann Writer', 'Follow')
+  await expect(chip(bea.page)).toBeVisible()
+  const box = (await chip(bea.page).boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(375)
+  const tools = await bea.page.getByRole('toolbar', { name: 'Board tools' }).boundingBox()
+  if (tools) expect(box.y >= tools.y + tools.height || box.y + box.height <= tools.y).toBeTruthy() // no overlap
+  await chip(bea.page).getByRole('button', { name: 'Stop' }).click() // fails if something covers it
+  await expect(chip(bea.page)).toHaveCount(0)
+})
