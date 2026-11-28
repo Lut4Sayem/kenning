@@ -142,7 +142,7 @@ function Tree({ spaceId, activeId, canEdit = true, label = 'Pages', personal }: 
 
   const newPage = (parentId: string) => create(parentId, () => expand([parentId])) // top-level pages come from the space row's +
 
-  if (isLoading) return <div className={s.skelList} aria-busy="true" aria-label="Loading pages">{[70, 55, 62].map((w) => <span key={w} className={s.skel} style={{ width: `${w}%` }} />)}</div>
+  if (isLoading) return <div className={s.skelList} role="status" aria-busy="true" aria-label="Loading pages">{[70, 55, 62].map((w) => <span key={w} className={s.skel} style={{ width: `${w}%` }} />)}</div>
   if (error) return <p className={s.note} role="alert">Could not load the pages. <button type="button" className={s.retry} onClick={() => void refetch()}>Try again</button></p>
 
   return (

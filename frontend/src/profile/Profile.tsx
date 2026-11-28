@@ -56,7 +56,7 @@ export default function Profile() {
         <h1>Profile</h1>
         {me.isError
           ? <p className={s.error} role="alert">Could not load your profile. <button type="button" onClick={() => void me.refetch()}>Try again</button></p>
-          : <div className={s.grid} aria-busy="true" aria-label="Loading"><div className={`${s.card} ${s.skel}`} /><div className={`${s.card} ${s.skel}`} /></div>}
+          : <div className={s.grid} role="status" aria-busy="true" aria-label="Loading"><div className={`${s.card} ${s.skel}`} /><div className={`${s.card} ${s.skel}`} /></div>}
       </div>
     )
   }
@@ -111,7 +111,7 @@ export default function Profile() {
 
         <section className={s.card} aria-labelledby="my-teams">
           <h2 id="my-teams" className={s.cardTitle}>My teams</h2>
-          {teams.isPending ? <div className={s.teamSkel} aria-busy="true" aria-label="Loading teams" />
+          {teams.isPending ? <div className={s.teamSkel} role="status" aria-busy="true" aria-label="Loading teams" />
             : teams.isError ? <p className={s.error} role="alert">Could not load your teams. <button type="button" onClick={() => void teams.refetch()}>Try again</button></p>
               : teams.data.length === 0 ? <p className={s.help}>You are not in a team yet. Use the + next to Your teams in the sidebar to start one.</p>
                 : (

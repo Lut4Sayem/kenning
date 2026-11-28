@@ -209,13 +209,13 @@ export default function PageView() {
   if (!node.data) {
     if (node.isLoading) {
       return (
-        <div className={s.column} aria-busy="true" aria-label="Loading page">
+        <div className={s.column} role="status" aria-busy="true" aria-label="Loading page">
           <span className={`${s.skel} ${s.skelIcon}`} /><span className={`${s.skel} ${s.skelTitle}`} />
           {[100, 92, 96].map((w) => <span key={w} className={`${s.skel} ${s.skelLine}`} style={{ width: `${w}%` }} />)}
         </div>
       )
     }
-    if (gone && trashed.isPending) return <div className={s.column} aria-busy="true" aria-label="Loading page" />
+    if (gone && trashed.isPending) return <div className={s.column} role="status" aria-busy="true" aria-label="Loading page" />
     if (gone && trashed.data) return <TrashedPage nodeId={nodeId} t={trashed.data} space={spaces.data?.find((x) => x.id === trashed.data.spaceId)} />
     const code = node.error instanceof ApiError ? node.error.status : 0
     return (
@@ -349,7 +349,7 @@ export default function PageView() {
                 />
               </div>
             ) : (
-              <div aria-busy="true" aria-label="Loading the page">
+              <div role="status" aria-busy="true" aria-label="Loading the page">
                 {[100, 92, 96].map((w) => <span key={w} className={`${s.skel} ${s.skelLine}`} style={{ width: `${w}%` }} />)}
               </div>
             )}
@@ -524,7 +524,7 @@ function PageContent({ node, userId, userName, slots, onSaveState, onReadOnly, s
           }}
         />
       ) : (
-        <div aria-busy="true" aria-label="Loading content">
+        <div role="status" aria-busy="true" aria-label="Loading content">
           {[100, 90, 95].map((w) => <span key={w} className={`${s.skel} ${s.skelLine}`} style={{ width: `${w}%` }} />)}
         </div>
       )}
