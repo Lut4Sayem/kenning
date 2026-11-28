@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Avatar from '../ui/Avatar'
 import Icon from '../ui/Icon'
+import Popover from '../ui/Popover'
 import s from './Presence.module.css'
 
 export interface Person {
@@ -32,8 +33,13 @@ export function people(states: Map<number, Record<string, unknown>>, selfId: str
 
 const MAX = 4
 
-/** Avatar stack of who else is on the page; viewers carry an eye. */
-export default function Presence({ awareness, selfId }: { awareness: AwarenessLike; selfId: string }) {
+/** Avatar stack of who else is on the page; viewers carry an eye. With `menu`, each avatar opens that menu. */
+export default function Presence({ awareness, selfId, menu, where = 'page' }: {
+  awareness: AwarenessLike
+  selfId: string
+  menu?: (person: Person, close: () => void) => ReactNode
+  where?: 'page' | 'board'
+}) {
   const [list, setList] = useState(() => people(awareness.getStates(), selfId))
   useEffect(() => {
     const update = () => setList(people(awareness.getStates(), selfId))
@@ -45,12 +51,23 @@ export default function Presence({ awareness, selfId }: { awareness: AwarenessLi
   if (!list.length) return null
   const names = list.map((p) => (p.viewer ? `${p.name} (viewing)` : p.name)).join(', ')
   const more = list.length - MAX
+  const face = (p: Person) => (
+    <>
+      <Avatar name={p.name} color={p.color} className={s.ring} />
+      {p.viewer && <span className={s.eye}><Icon name="eye" size={10} /></span>}
+    </>
+  )
   return (
-    <span className={s.stack} role="img" aria-label={`Also on this page: ${names}`} title={names}>
+    <span className={s.stack} role={menu ? 'group' : 'img'} aria-label={`Also on this ${where}: ${names}`} title={menu ? undefined : names}>
       {list.slice(0, MAX).map((p) => (
         <span key={p.userId} className={s.person} data-person="" data-viewer={p.viewer || undefined}>
-          <Avatar name={p.name} color={p.color} className={s.ring} />
-          {p.viewer && <span className={s.eye}><Icon name="eye" size={10} /></span>}
+          {menu ? (
+            <Popover label={p.name} menu trigger={(props) => (
+              <button {...props} type="button" className={s.face} aria-label={p.viewer ? `${p.name} (viewing)` : p.name} title={p.name}>{face(p)}</button>
+            )}>
+              {(close) => menu(p, close)}
+            </Popover>
+          ) : face(p)}
         </span>
       ))}
       {more > 0 && <span className={s.more}>+{more}</span>}

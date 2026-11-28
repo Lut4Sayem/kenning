@@ -56,6 +56,8 @@ export interface Options {
   maxPerUser: number
   /** Messages a connection may send in a burst, refilled at the same rate per second. */
   burst: number
+  /** Least time between two "bring everyone to me" from one connection. */
+  summonMs: number
 }
 
 export const FRAGMENT = 'document-store'
@@ -75,6 +77,7 @@ const DEFAULTS: Options = {
   maxPerPage: 25,
   maxPerUser: 10,
   burst: 50,
+  summonMs: 10_000,
 }
 
 export const MAX_TEXT = 1_000_000 // Spring's cap on the search text
@@ -115,6 +118,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
   const prefetched = new Map<string, Promise<Loaded>>()
   const socketsOf = new Map<string, Set<string>>() // userId -> socket ids
   const buckets = new Map<string, { tokens: number; at: number }>() // socket id -> rate limit
+  const summoned = new Map<string, number>() // socket id -> when it last brought everyone
   // When Spring last said access changed, per page ("n:id") and per user ("u:id"). A ticket issued before that
   // (they live 60 s) must not open a socket: the client fetches a fresh one, which tells the truth.
   const revoked = new Map<string, number>()
@@ -364,6 +368,7 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
       mine?.delete(socketId)
       if (mine?.size === 0) socketsOf.delete(context.userId)
       buckets.delete(socketId)
+      summoned.delete(socketId)
       log('disconnect', { nodeId: documentName, userId: context?.userId })
     },
 
@@ -386,6 +391,23 @@ export function createServer(config: Config, spring: SpringApi, opts: Partial<Op
         throw { code: CLOSE.tooMany, reason: 'too-many' }
       }
       b.tokens -= 1
+    },
+
+    // Clients may send one message: "bring everyone to me" (WB 7.6), from editors, once per 10 s. Anything else is dropped.
+    async onStateless({ connection, document, payload }) {
+      const ctx = connection.context as Ctx | undefined
+      let msg: unknown
+      try {
+        msg = JSON.parse(payload)
+      } catch {
+        return
+      }
+      if ((msg as { type?: unknown })?.type !== 'summon' || ctx?.access !== 'EDIT') return
+      const now = Date.now()
+      if (now - (summoned.get(connection.socketId) ?? -Infinity) < o.summonMs) return
+      summoned.set(connection.socketId, now)
+      const out = JSON.stringify({ type: 'summon', userId: ctx.userId }) // the sender as authenticated, never as claimed
+      for (const conn of document.getConnections()) if (conn !== connection) conn.sendStateless(out)
     },
 
     async onRequest({ request, response }) {

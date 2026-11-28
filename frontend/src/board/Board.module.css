@@ -16,3 +16,9 @@
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; max-width: calc(100% - 32px);
   font-size: 14px; color: var(--ink-muted); text-align: center; pointer-events: none;
 }
+.follow {
+  position: absolute; left: 50%; top: var(--space-3); transform: translateX(-50%); z-index: 3; margin: 0; padding: 4px 6px 4px var(--space-3);
+  font-size: 13px; color: var(--ink); background: var(--surface-card); border: 1px solid var(--line); border-radius: 999px;
+}
+.follow button { min-height: 28px; padding: 0 var(--space-2); font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; border-radius: 999px; cursor: pointer; }
+.follow button:hover, .follow button:focus-visible { background: var(--hover); }

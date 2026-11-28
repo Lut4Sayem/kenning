@@ -21,6 +21,8 @@ interface Props {
   /** The sorted types of the live (non-deleted) elements, whenever they change. */
   onLive: (types: string) => void
   awareness?: Awareness | null
+  /** Excalidraw's API once it is ready (follow and zoom to fit use it). */
+  onApi?: (api: ExcalidrawImperativeAPI) => void
 }
 
 type Scene = Parameters<ExcalidrawImperativeAPI['updateScene']>[0]['elements']
@@ -32,7 +34,7 @@ const liveTypes = (els: readonly { type: string; isDeleted: boolean }[]) =>
 const inGesture = (a: AppState) =>
   !!(a.newElement || a.editingTextElement || a.selectedElementsAreBeingDragged || a.resizingElement || a.isRotating || a.multiElement)
 
-export default function BoardCanvas({ doc, editable, name, undo, onLive, awareness }: Props) {
+export default function BoardCanvas({ doc, editable, name, undo, onLive, awareness, onApi }: Props) {
   const api = useRef<ExcalidrawImperativeAPI | null>(null)
   const box = useRef<HTMLDivElement>(null)
   const known = useRef(new Map<string, number>()) // highest version this tab wrote or saw, per element
@@ -175,6 +177,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
       <Excalidraw
         excalidrawAPI={(a) => {
           api.current = a
+          onApi?.(a)
         }}
         initialData={{ elements: initial }}
         isCollaborating

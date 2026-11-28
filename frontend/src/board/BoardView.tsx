@@ -1,4 +1,5 @@
 // The board screen (`/app/b/:id`). Loaded lazily: only board routes pull in Excalidraw (BoardCanvas, lazier still).
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import type { HocuspocusProvider } from '@hocuspocus/provider'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
@@ -20,9 +21,12 @@ import Breadcrumbs from '../page/Breadcrumbs'
 import PageMenu from '../page/PageMenu'
 import Presence from '../page/Presence'
 import ps from '../page/Page.module.css'
+import pr from '../page/Presence.module.css'
 import Icon from '../ui/Icon'
 import { ScreenSkeleton } from '../ui/States'
 import { createUndo, type BoardUndo } from './binding/undo'
+import FollowChip from './FollowChip'
+import { useFollow } from './follow'
 import { EMPTY_BOARD_STATE } from './format'
 import s from './Board.module.css'
 
@@ -75,6 +79,26 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
   const saveState = useSaveState(collab.provider)
   const [live, setLive] = useState<string | null>(null) // null until the canvas has shown the loaded board
   const [head, setHead] = useState<HTMLElement | null>(null)
+  const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null)
+  const awareness = collab.provider?.awareness
+  const { following, follow, stop } = useFollow(api, awareness)
+  const canSummon = node.access === 'EDIT' && collab.access !== 'VIEW'
+
+  useEffect(() => {
+    // someone brought everyone to them (collab relays it only from editors, with the sender as authenticated)
+    const p = collab.provider
+    if (!p) return
+    const onStateless = ({ payload }: { payload: string }) => {
+      try {
+        const m = JSON.parse(payload) as { type?: string; userId?: unknown }
+        if (m.type === 'summon' && typeof m.userId === 'string' && m.userId !== user.id) follow(m.userId)
+      } catch {
+        // not ours
+      }
+    }
+    p.on('stateless', onStateless)
+    return () => void p.off('stateless', onStateless)
+  }, [collab.provider, follow, user.id])
 
   useEffect(() => {
     collab.provider?.awareness?.setLocalStateField('user', { id: user.id, name: user.name, color: userColor(user.id) })
@@ -99,6 +123,10 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
         />
         <span className={ps.actions}>
           <span ref={setHead} />
+          {api && (
+            <button type="button" className={ps.iconBtn} aria-label="Zoom to fit" title="Zoom to fit (Shift+1)"
+              onClick={() => api.scrollToContent(undefined, { fitToContent: true, animate: true })}><Icon name="fit" /></button>
+          )}
           {node.access === 'VIEW' && <ReadOnlyTag label="View only" />}
           {editable && (
             <>
@@ -110,11 +138,23 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
         </span>
       </TopBar>
       {head && editable && createPortal(<SaveIndicator state={saveState} local={false} />, head)}
-      {head && collab.provider?.awareness && createPortal(<Presence awareness={collab.provider.awareness} selfId={user.id} />, head)}
+      {head && awareness && createPortal(
+        <Presence awareness={awareness} selfId={user.id} where="board" menu={(p, close) => (
+          <>
+            <button type="button" role="menuitem" className={pr.menuItem} onClick={() => { close(); follow(p.userId) }}>Follow</button>
+            {canSummon && (
+              <button type="button" role="menuitem" className={pr.menuItem}
+                onClick={() => { close(); collab.provider?.sendStateless(JSON.stringify({ type: 'summon' })) }}>Bring everyone to me</button>
+            )}
+          </>
+        )} />,
+        head,
+      )}
+      {following && <FollowChip name={following.name} onStop={stop} />}
       {notice && <p role="alert" className={s.notice}>{notice}</p>}
       {undo && (
         <Suspense fallback={<ScreenSkeleton label="Loading board" />}>
-          <BoardCanvas doc={doc} editable={editable} name={node.title || 'Untitled'} undo={undo} onLive={setLive} awareness={collab.provider?.awareness} />
+          <BoardCanvas doc={doc} editable={editable} name={node.title || 'Untitled'} undo={undo} onLive={setLive} awareness={awareness} onApi={setApi} />
         </Suspense>
       )}
       {live === '' && <p className={s.hint}>{EMPTY_HINT}</p>}
