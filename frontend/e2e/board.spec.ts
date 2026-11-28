@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { draw, drag, hint, live, teamBoard } from './boards'
+import { BUNDLED_LIBRARIES } from '../src/board/packs'
 
 // Live boards with two real users (two browser contexts) through the collaboration service.
 // Needs the app on E2E_BASE_URL (default :8080) and the collaboration service it points to.
@@ -65,6 +66,8 @@ test('empty hint disappears on first shape', async ({ browser }) => {
   await expect(bea.page.getByText(hint)).toHaveCount(0, { timeout: 2000 })
 })
 
+type Item = { elements?: { type: string }[] } | { type: string }[]
+
 test('shape pack inserts a UML class, no external requests', async ({ browser }) => {
   const { ann } = await teamBoard(browser, 'EDITOR')
   const external: string[] = []
@@ -73,10 +76,19 @@ test('shape pack inserts a UML class, no external requests', async ({ browser })
     if (!['http:', 'https:', 'ws:', 'wss:'].includes(u.protocol)) return
     if (!['localhost', '127.0.0.1'].includes(u.hostname)) external.push(r.url())
   })
+  // The class box is the pack item made of one rectangle and one divider line. Find it by that content in the packs, in the
+  // order the library lists them, so adding or reordering packs cannot point the click at another item.
+  const items = (await Promise.all(BUNDLED_LIBRARIES.map(async (name) => {
+    const res = await ann.page.request.get(`/app/board-libraries/${name}.excalidrawlib`)
+    const pack = (await res.json()) as { libraryItems?: Item[]; library?: Item[] } // v2 packs say libraryItems, v1 library
+    return pack.libraryItems ?? pack.library ?? []
+  }))).flat().map((item) => (Array.isArray(item) ? item : (item.elements ?? []))) // a pack item is its elements, or an object holding them
+  const classBox = items.findIndex((el) => el.length === 2 && el.some((e) => e.type === 'rectangle') && el.some((e) => e.type === 'line'))
+  expect(classBox).toBeGreaterThanOrEqual(0)
   await ann.page.locator('.default-sidebar-trigger').click() // the library panel (our toolbar must not cover it)
   const units = ann.page.locator('.library-unit')
-  await expect(units).toHaveCount(36) // 15 flowchart + 21 UML/ER
-  await units.nth(15).click() // the first UML pack item: a class box (rectangle + divider line)
+  await expect(units).toHaveCount(items.length)
+  await units.nth(classBox).click()
   await expect(live(ann.page)).toHaveAttribute('data-live', 'line,rectangle')
   expect(external).toEqual([])
 })

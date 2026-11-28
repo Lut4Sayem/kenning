@@ -104,7 +104,7 @@ Roles: Admin = lavender, Editor = sky, Viewer = gray.
 `gray #787774` · `brown #93694f` · `orange #b05a0a` · `yellow #9a7200` · `green #0f7b6c` · `blue #2e7dbb` · `purple #8a5cc4` · `pink #c4337c` · `red #e03e3e`. Default: gray. (D-10, 2026-11-19: gray #9b9a97 → #787774, orange #d9730d → #b05a0a, yellow #dfab01 → #9a7200, so every dot passes 3:1 on white, the sidebar ground and a hovered row.)
 Dot: 8×8px, radius 3px. On cards: 12×12px, radius 4px.
 
-Dark mode: not in this release. Tokens are named by role so a dark theme can be added later by redefining them.
+Dark mode: not in this release, except the board, which has its own light/dark switch (stored per browser): its tool row and chip redefine the surface, ink and line tokens under `data-theme="dark"`. Tokens are named by role so a dark theme can be added later by redefining them.
 
 ## 3. Typography
 
