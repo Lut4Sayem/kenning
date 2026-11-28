@@ -12,6 +12,23 @@
 /* Undo/redo go to the board's own history (top bar buttons and keys), so Excalidraw's own buttons are hidden. */
 .canvas :global(.excalidraw .undo-redo-buttons) { display: none; } /* beats Excalidraw's own rule, loaded later */
 .notice { margin: 0; padding: var(--space-2) var(--space-4); font-size: 13px; color: var(--ink); background: var(--surface-card); border-bottom: 1px solid var(--line); }
+/* Our own tool row (WB 7.5) replaces Excalidraw's desktop one; phones keep Excalidraw's (WB 7.10). */
+.canvas :global(.excalidraw .shapes-section) { display: none; }
+.toolbar {
+  position: absolute; left: 50%; top: var(--space-4); transform: translateX(-50%); z-index: 4; /* Excalidraw's UI layer */
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; width: max-content; max-width: calc(100% - 128px);
+  padding: 4px; background: var(--surface-card); border: 1px solid var(--line); border-radius: 8px;
+}
+.toolbar button {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; padding: 0;
+  font: inherit; font-size: 13px; color: var(--ink); background: none; border: 0; border-radius: 6px; cursor: pointer;
+}
+.toolbar button:hover { background: var(--hover); }
+.toolbar button[aria-pressed='true'] { color: var(--surface-card); background: var(--ink); }
+.toolbar .styles { display: inline-flex; gap: 2px; margin: 0 var(--space-2); }
+.toolbar .styles button { padding: 0 var(--space-2); }
+.canvas:has(:global(.excalidraw--mobile)) .toolbar { top: 72px; }
+.canvas:has(:global(.excalidraw--mobile)) .toolbar .tool { display: none; }
 .hint {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; max-width: calc(100% - 32px);
   font-size: 14px; color: var(--ink-muted); text-align: center; pointer-events: none;

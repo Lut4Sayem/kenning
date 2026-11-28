@@ -38,7 +38,7 @@ test('board has no external requests', async ({ page, context }) => {
   await page.goto(`/app/b/${node.id}`)
   await expect(page.locator('[data-board]')).toHaveAttribute('data-ready', 'true')
   const canvas = page.locator('.excalidraw canvas.interactive')
-  await page.getByRole('radio', { name: 'Text' }).click({ force: true })
+  await page.getByRole('button', { name: 'Text', exact: true }).click()
   await canvas.click({ position: { x: 600, y: 300 } })
   await page.keyboard.type('Hello board')
   await page.keyboard.press('Escape')

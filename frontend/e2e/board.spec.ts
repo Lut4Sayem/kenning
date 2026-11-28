@@ -9,7 +9,7 @@ test('both draw and see each other within 2 s', async ({ browser }) => {
   const { ann, bea } = await teamBoard(browser, 'EDITOR')
   await draw(ann.page, 'Rectangle', [480, 250], [600, 330])
   await expect(live(bea.page)).toHaveAttribute('data-live', 'rectangle', { timeout: 2000 })
-  await draw(bea.page, 'Draw', [680, 250], [780, 350])
+  await draw(bea.page, 'Pen', [680, 250], [780, 350])
   await expect(live(ann.page)).toHaveAttribute('data-live', 'freedraw,rectangle', { timeout: 2000 })
   await expect(live(bea.page)).toHaveAttribute('data-live', 'freedraw,rectangle')
 
@@ -23,7 +23,7 @@ test('viewer sees live drawing and cannot draw', async ({ browser }) => {
   await expect(bea.page.getByText('View only')).toBeVisible()
   await draw(ann.page, 'Rectangle', [480, 250], [600, 330])
   await expect(live(bea.page)).toHaveAttribute('data-live', 'rectangle', { timeout: 2000 })
-  await expect(bea.page.getByRole('radio', { name: 'Rectangle' })).toHaveCount(0) // no drawing tools in view mode
+  await expect(bea.page.getByRole('button', { name: 'Rectangle', exact: true })).toHaveCount(0) // no drawing tools in view mode
   await bea.page.keyboard.press('r') // the shortcut does nothing either
   await drag(bea.page, [680, 250], [780, 350])
   await ann.page.waitForTimeout(1000)

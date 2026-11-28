@@ -123,10 +123,6 @@ function LiveBoard({ node, state, epoch, user }: { node: NodeDetail; state: stri
         />
         <span className={ps.actions}>
           <span ref={setHead} />
-          {api && (
-            <button type="button" className={ps.iconBtn} aria-label="Zoom to fit" title="Zoom to fit (Shift+1)"
-              onClick={() => api.scrollToContent(undefined, { fitToContent: true, animate: true })}><Icon name="fit" /></button>
-          )}
           {node.access === 'VIEW' && <ReadOnlyTag label="View only" />}
           {editable && (
             <>

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { Awareness } from 'y-protocols/awareness'
@@ -9,8 +9,8 @@ import { createUndo } from './binding/undo'
 import { ELEMENTS } from './format'
 
 // Excalidraw itself needs a real canvas: a stand-in keeps its props and a fake API.
-type Props = { onChange: (els: readonly El[], appState: Record<string, unknown>) => void; excalidrawAPI: (api: unknown) => void }
-const ex = vi.hoisted(() => ({ props: null as unknown as Props, updateScene: vi.fn(), restore: vi.fn((els: unknown) => els) }))
+type Props = { initialData: { appState: Record<string, unknown> }; onChange: (els: readonly El[], appState: Record<string, unknown>) => void; excalidrawAPI: (api: unknown) => void }
+const ex = vi.hoisted(() => ({ props: null as unknown as Props, updateScene: vi.fn(), restore: vi.fn((els: unknown) => els), setActiveTool: vi.fn() }))
 vi.mock('./assetPath', () => ({}))
 vi.mock('@excalidraw/excalidraw/index.css', () => ({}))
 vi.mock('@excalidraw/excalidraw', () => {
@@ -19,13 +19,15 @@ vi.mock('@excalidraw/excalidraw', () => {
   return {
     Excalidraw: (p: Props & { children?: ReactNode }) => {
       ex.props = p
-      p.excalidrawAPI({ updateScene: ex.updateScene, getAppState: () => ({ scrollX: 0, scrollY: 0, width: 800, height: 600, zoom: { value: 1 } }) })
+      p.excalidrawAPI({ updateScene: ex.updateScene, setActiveTool: ex.setActiveTool, getSceneElementsIncludingDeleted: () => [], getAppState: () => ({ scrollX: 0, scrollY: 0, width: 800, height: 600, zoom: { value: 1 } }) })
       return <div><canvas /></div>
     },
     MainMenu: Object.assign(Menu, { DefaultItems: { SaveAsImage: none, Export: none, Help: none, ChangeCanvasBackground: none } }),
     CaptureUpdateAction: { NEVER: 'NEVER' },
     restoreElements: (els: unknown) => ex.restore(els),
     viewportCoordsToSceneCoords: () => ({ x: 7, y: 8 }),
+    FONT_FAMILY: { Nunito: 6 },
+    convertToExcalidrawElements: (els: object[]) => els.map((e) => ({ ...e, id: 'note' })),
   }
 })
 
@@ -35,6 +37,8 @@ const idle = { newElement: null, editingTextElement: null, selectedElementsAreBe
 afterEach(() => {
   cleanup()
   ex.updateScene.mockReset()
+  ex.setActiveTool.mockReset()
+  localStorage.clear()
   ex.restore.mockReset()
   ex.restore.mockImplementation((els: unknown) => els)
 })
@@ -87,4 +91,43 @@ it('viewerLaserIsSent', () => { // WB 7.5: viewers may use the laser
   fireEvent.pointerDown(container.querySelector('canvas')!)
   expect(awareness.getLocalState()).toMatchObject({ pointer: { x: 7, y: 8, tool: 'laser' }, button: 'down' })
   awareness.destroy()
+})
+
+const canvas = (editable = true) => {
+  const doc = new Y.Doc()
+  return render(<BoardCanvas doc={doc} editable={editable} name="Plan" undo={createUndo(doc)} onLive={() => {}} />)
+}
+const toolNames = () => within(screen.getByRole('toolbar', { name: 'Board tools' })).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? b.textContent)
+
+it('toolbarFollowsTheSpecOrder', () => { // WB 7.5
+  canvas()
+  expect(toolNames()).toEqual(['Select', 'Hand', 'Pen', 'Eraser', 'Rectangle', 'Ellipse', 'Diamond', 'Arrow', 'Line', 'Text', 'Sticky note', 'Laser pointer', 'Sketch', 'Precise', 'Zoom to fit'])
+  fireEvent.click(screen.getByRole('button', { name: 'Pen' }))
+  expect(ex.setActiveTool).toHaveBeenCalledWith({ type: 'freedraw' })
+})
+
+it('viewerToolbarOnlyZooms', () => {
+  canvas(false)
+  expect(toolNames()).toEqual(['Zoom to fit'])
+})
+
+it('switchKeepsExistingElements', () => { // WB 7.5: only the defaults for new shapes change
+  localStorage.setItem('kf.board.style', 'precise')
+  canvas()
+  expect(ex.props.initialData.appState).toMatchObject({ currentItemRoughness: 0, currentItemFontFamily: 6 })
+  fireEvent.click(screen.getByRole('button', { name: 'Sketch' }))
+  expect(ex.updateScene).toHaveBeenCalledTimes(1)
+  const scene = ex.updateScene.mock.calls[0][0] as { elements?: unknown; appState: Record<string, unknown> }
+  expect(scene.elements).toBeUndefined()
+  expect(scene.appState).toMatchObject({ currentItemRoughness: 1, gridModeEnabled: false })
+  expect(screen.getByRole('button', { name: 'Sketch' }).getAttribute('aria-pressed')).toBe('true')
+  expect(localStorage.getItem('kf.board.style')).toBe('sketch')
+})
+
+it('stickyNoteIsAddedAndSelected', () => {
+  canvas()
+  fireEvent.click(screen.getByRole('button', { name: 'Sticky note' }))
+  const scene = ex.updateScene.mock.calls[0][0] as { elements: { type: string }[]; appState: unknown }
+  expect(scene.elements).toMatchObject([{ type: 'rectangle', backgroundColor: '#ffec99', fillStyle: 'solid' }])
+  expect(scene.appState).toEqual({ selectedElementIds: { note: true } })
 })

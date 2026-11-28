@@ -1,6 +1,6 @@
 // Excalidraw on a board's Y.Doc. Only this module (and what it imports) pulls in Excalidraw; it is loaded lazily.
 import './assetPath' // before Excalidraw: it reads the asset path once
-import { CaptureUpdateAction, Excalidraw, MainMenu, restoreElements, viewportCoordsToSceneCoords } from '@excalidraw/excalidraw'
+import { CaptureUpdateAction, convertToExcalidrawElements, Excalidraw, MainMenu, restoreElements, viewportCoordsToSceneCoords } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
@@ -11,6 +11,8 @@ import { bindUndoKeys } from './binding/keys'
 import { WRITE_BACK, createThrottle, pushLocal, sceneFromDoc, writeBackLosers, type El } from './binding/sync'
 import type { BoardUndo } from './binding/undo'
 import { createSender, toCollaborators, type BoardAwareness } from './presence'
+import { loadMode, saveMode, styleDefaults, type StyleMode } from './style'
+import Toolbar from './Toolbar'
 import s from './Board.module.css'
 
 interface Props {
@@ -118,6 +120,30 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
     setLaserOn(!laser)
   }
 
+  const [tool, setTool] = useState('selection')
+  const [mode, setMode] = useState(loadMode)
+
+  function pickMode(next: StyleMode) {
+    setMode(next)
+    saveMode(next)
+    api.current?.updateScene({ appState: styleDefaults(next), captureUpdate: CaptureUpdateAction.NEVER })
+  }
+
+  /** A yellow square in the middle of the view, selected, so Enter types into it. */
+  function addSticky() {
+    const a = api.current
+    if (!a) return
+    const view = a.getAppState()
+    const { x, y } = viewportCoordsToSceneCoords({ clientX: view.offsetLeft + view.width / 2, clientY: view.offsetTop + view.height / 2 }, view)
+    const [note] = convertToExcalidrawElements([{
+      type: 'rectangle', x: x - 80, y: y - 80, width: 160, height: 160,
+      backgroundColor: '#ffec99', fillStyle: 'solid', strokeColor: 'transparent',
+    }])
+    undo.stopCapturing() // its own undo step
+    a.setActiveTool({ type: 'selection' })
+    a.updateScene({ elements: [...a.getSceneElementsIncludingDeleted(), note], appState: { selectedElementIds: { [note.id]: true } } })
+  }
+
   const initial = useMemo(() => restore(sceneFromDoc(doc, [], null)), [doc])
   useEffect(() => live.current(liveTypes(initial)), [initial]) // the loaded board, before any onChange
 
@@ -181,7 +207,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
           api.current = a
           onApi?.(a)
         }}
-        initialData={{ elements: initial }}
+        initialData={{ elements: initial, appState: styleDefaults(mode) }}
         isCollaborating
         viewModeEnabled={!editable}
         name={name}
@@ -194,6 +220,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
           if (canWrite.current) sender?.pointer({ x: pointer.x, y: pointer.y, tool: pointer.tool }, button) // viewers: laser only
         }}
         onChange={(elements, appState) => {
+          setTool(appState.activeTool?.type ?? 'selection')
           if (sender) {
             sender.selection(appState.selectedElementIds as Record<string, true>)
             sendViewport(appState)
@@ -231,6 +258,16 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
           <MainMenu.DefaultItems.ChangeCanvasBackground />
         </MainMenu>
       </Excalidraw>
+      <Toolbar
+        editable={editable}
+        active={tool}
+        mode={mode}
+        onTool={(type) => api.current?.setActiveTool({ type })}
+        onSticky={addSticky}
+        onMode={pickMode}
+        onFit={() => api.current?.scrollToContent(undefined, { fitToContent: true, animate: true })}
+        onMousePick={() => box.current?.querySelector<HTMLElement>('.excalidraw')?.focus()}
+      />
       {!editable && (
         <button type="button" className={s.laser} aria-pressed={laser} onClick={toggleLaser}>Laser pointer</button>
       )}
