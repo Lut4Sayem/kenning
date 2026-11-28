@@ -15,6 +15,7 @@ import { WRITE_BACK, createThrottle, pushLocal, sceneFromDoc, writeBackLosers, t
 import type { BoardUndo } from './binding/undo'
 import { createSender, toCollaborators, type BoardAwareness } from './presence'
 import { loadMode, saveMode, styleDefaults, type StyleMode } from './style'
+import { loadTheme, saveTheme } from './theme'
 import Toolbar from './Toolbar'
 import s from './Board.module.css'
 
@@ -125,6 +126,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
 
   const [tool, setTool] = useState('selection')
   const [mode, setMode] = useState(loadMode)
+  const [theme, setTheme] = useState(loadTheme)
 
   function pickMode(next: StyleMode) {
     setMode(next)
@@ -233,9 +235,10 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
         aiEnabled={false} // also drops the command palette's entry for Excalidraw's own Mermaid dialog
         viewModeEnabled={!editable}
         name={name}
+        theme={theme}
         UIOptions={{
           tools: { image: false },
-          canvasActions: { loadScene: false, saveToActiveFile: false, saveAsImage: true, export: { saveFileToDisk: true }, toggleTheme: null },
+          canvasActions: { loadScene: false, saveToActiveFile: false, saveAsImage: true, export: { saveFileToDisk: true }, toggleTheme: true },
         }}
         onPaste={(data) => !(data.files && Object.keys(data.files).length > 0)}
         onPointerUpdate={({ pointer, button }) => {
@@ -277,6 +280,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
           <MainMenu.DefaultItems.SaveAsImage />
           <MainMenu.DefaultItems.Export />
           <MainMenu.DefaultItems.Help />
+          <MainMenu.DefaultItems.ToggleTheme onSelect={(t) => { setTheme(t); saveTheme(t) }} />
           <MainMenu.DefaultItems.ChangeCanvasBackground />
         </MainMenu>
       </Excalidraw>
