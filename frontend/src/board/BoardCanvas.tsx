@@ -8,6 +8,8 @@ import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { ELEMENTS } from './format'
 import { loadBundledLibraries } from './libraries'
+import { centerOn, type BoardElements } from './mermaid'
+import MermaidDialog from './MermaidDialog'
 import { bindUndoKeys } from './binding/keys'
 import { WRITE_BACK, createThrottle, pushLocal, sceneFromDoc, writeBackLosers, type El } from './binding/sync'
 import type { BoardUndo } from './binding/undo'
@@ -145,6 +147,23 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
     a.updateScene({ elements: [...a.getSceneElementsIncludingDeleted(), note], appState: { selectedElementIds: { [note.id]: true } } })
   }
 
+  const [mermaidOpen, setMermaidOpen] = useState(false)
+
+  /** A Mermaid diagram's shapes in the middle of the view, selected, as one undo step. */
+  function insertShapes(els: BoardElements) {
+    const a = api.current
+    if (!a) return
+    const view = a.getAppState()
+    const { x, y } = viewportCoordsToSceneCoords({ clientX: view.offsetLeft + view.width / 2, clientY: view.offsetTop + view.height / 2 }, view)
+    const placed = centerOn(els, x, y)
+    undo.stopCapturing()
+    a.setActiveTool({ type: 'selection' })
+    a.updateScene({
+      elements: [...a.getSceneElementsIncludingDeleted(), ...placed],
+      appState: { selectedElementIds: Object.fromEntries(placed.map((e) => [e.id, true as const])) },
+    })
+  }
+
   const initial = useMemo(() => restore(sceneFromDoc(doc, [], null)), [doc])
   const libraryItems = useMemo(loadBundledLibraries, []) // Excalidraw reads initialData once, on mount
   useEffect(() => live.current(liveTypes(initial)), [initial]) // the loaded board, before any onChange
@@ -211,6 +230,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
         }}
         initialData={{ elements: initial, appState: styleDefaults(mode), libraryItems }}
         isCollaborating
+        aiEnabled={false} // also drops the command palette's entry for Excalidraw's own Mermaid dialog
         viewModeEnabled={!editable}
         name={name}
         UIOptions={{
@@ -267,12 +287,14 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
         onTool={(type) => api.current?.setActiveTool({ type })}
         onSticky={addSticky}
         onMode={pickMode}
+        onMermaid={() => setMermaidOpen(true)}
         onFit={() => api.current?.scrollToContent(undefined, { fitToContent: true, animate: true })}
         onMousePick={() => box.current?.querySelector<HTMLElement>('.excalidraw')?.focus()}
       />
       {!editable && (
         <button type="button" className={s.laser} aria-pressed={laser} onClick={toggleLaser}>Laser pointer</button>
       )}
+      {mermaidOpen && editable && <MermaidDialog onInsert={insertShapes} onClose={() => setMermaidOpen(false)} />}
     </div>
   )
 }

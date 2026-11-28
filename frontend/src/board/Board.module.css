@@ -43,3 +43,9 @@
 /* Shape packs come bundled (libraries.ts): no browsing libraries.excalidraw.com, no publishing to it (WB anti-goal 7).
    Excalidraw 0.18.1 tags its Publish menu item with the "remove" test id. */
 .canvas :global(.excalidraw .library-menu-browse-button), .canvas :global(.excalidraw [data-testid='lib-dropdown--remove']) { display: none; }
+/* Mermaid goes through our dialog (MermaidDialog), never Excalidraw's, which inserts an image for some types. In 0.18.1 its
+   menu item shares the "toolbar-embeddable" test id with the embed tool, which boards forbid too. */
+.canvas :global(.excalidraw [data-testid='toolbar-embeddable']) { display: none; }
+.mermaid { max-width: 560px; }
+.code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.toolbar .text { padding: 0 var(--space-2); }

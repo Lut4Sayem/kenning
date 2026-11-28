@@ -101,7 +101,7 @@ const toolNames = () => within(screen.getByRole('toolbar', { name: 'Board tools'
 
 it('toolbarFollowsTheSpecOrder', () => { // WB 7.5
   canvas()
-  expect(toolNames()).toEqual(['Select', 'Hand', 'Pen', 'Eraser', 'Rectangle', 'Ellipse', 'Diamond', 'Arrow', 'Line', 'Text', 'Sticky note', 'Laser pointer', 'Sketch', 'Precise', 'Zoom to fit'])
+  expect(toolNames()).toEqual(['Select', 'Hand', 'Pen', 'Eraser', 'Rectangle', 'Ellipse', 'Diamond', 'Arrow', 'Line', 'Text', 'Sticky note', 'Laser pointer', 'Sketch', 'Precise', 'Mermaid', 'Zoom to fit'])
   fireEvent.click(screen.getByRole('button', { name: 'Pen' }))
   expect(ex.setActiveTool).toHaveBeenCalledWith({ type: 'freedraw' })
 })

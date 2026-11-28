@@ -28,11 +28,12 @@ interface Props {
   onSticky: () => void
   onMode: (mode: StyleMode) => void
   onFit: () => void
+  onMermaid: () => void
   /** A mouse pick hands the keyboard back to the canvas; a keyboard user's focus stays put. */
   onMousePick: () => void
 }
 
-export default function Toolbar({ editable, active, mode, onTool, onSticky, onMode, onFit, onMousePick }: Props) {
+export default function Toolbar({ editable, active, mode, onTool, onSticky, onMode, onFit, onMermaid, onMousePick }: Props) {
   const button = (label: string, icon: IconName, title: string, run: () => void, pressed?: boolean, className?: string) => (
     <button key={label} type="button" className={className} aria-label={label} title={title} aria-pressed={pressed}
       onClick={(e) => {
@@ -50,6 +51,7 @@ export default function Toolbar({ editable, active, mode, onTool, onSticky, onMo
           {button('Sticky note', 'sticky', 'Sticky note (then Enter to type)', onSticky, undefined, s.tool)}
           {button('Laser pointer', 'zap', 'Laser pointer (K)', () => onTool('laser'), active === 'laser', s.tool)}
           <StyleSwitch mode={mode} onChange={onMode} />
+          <button type="button" className={s.text} title="Turn Mermaid code into shapes" aria-haspopup="dialog" onClick={onMermaid}>Mermaid</button>
         </>
       )}
       {button('Zoom to fit', 'fit', 'Zoom to fit (Shift+1)', onFit)}
