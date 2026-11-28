@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 import { getTeam, getTeamActivity, type TeamActivity } from '../api/teams'
 import Avatar from '../ui/Avatar'
 import Icon from '../ui/Icon'
@@ -60,7 +61,7 @@ export default function TeamDetails({ teamId, onClose }: { teamId: string; onClo
                     <p className={s.text}>
                       <span className={s.actor}>{a.actorName ?? 'Someone'}</span> {verbOf(a)}{' '}
                       {a.action === 'TRASH_NODE' || a.action === 'RENAME_TEAM' ? <span className={s.target}>{a.targetTitle || 'Untitled'}</span>
-                        : <Link to={`/p/${a.targetId}`} className={s.target}>{a.targetTitle || 'Untitled'}</Link>}
+                        : <Link to={nodePath(a.targetId, a.type)} className={s.target}>{a.targetTitle || 'Untitled'}</Link>}
                     </p>
                     <p className={s.time}><Time iso={a.createdAt} /></p>
                   </div>

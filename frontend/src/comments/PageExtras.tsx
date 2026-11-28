@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { nodePath } from '../app/nodePath'
 import { addComment, ask, deleteComment, getComments, summarize } from '../api/pageExtras'
 import { getMe, getMySpaces } from '../api/spaces'
 import Avatar from '../ui/Avatar'
@@ -121,7 +122,7 @@ export function AskPanel({ spaceId }: { spaceId: string }) {
         <>
           <Markdown className={s.answer} text={run.data.answer} sources={run.data.sources} />
           {run.data.sources.length > 0 && (
-            <ol className={s.sources} aria-label="Pages used">{run.data.sources.map((src) => <li key={src.id} value={src.n}><Link to={`/p/${src.id}`} className={s.link}>{src.title}</Link></li>)}</ol>
+            <ol className={s.sources} aria-label="Pages used">{run.data.sources.map((src) => <li key={src.id} value={src.n}><Link to={nodePath(src.id, src.type)} className={s.link}>{src.title}</Link></li>)}</ol>
           )}
         </>
       )}

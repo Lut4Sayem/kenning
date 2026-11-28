@@ -11,3 +11,7 @@
   border: 2px solid var(--canvas); border-radius: 999px; background: var(--surface-muted); color: var(--ink-label);
   font-size: 11px; font-weight: 700; box-sizing: content-box;
 }
+.face { position: relative; display: inline-flex; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.face:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.menuItem { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border: 0; border-radius: var(--r-row); background: none; color: var(--ink); font: inherit; cursor: pointer; text-align: left; }
+.menuItem:hover, .menuItem:focus-visible { background: var(--hover); }

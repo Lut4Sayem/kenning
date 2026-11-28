@@ -196,7 +196,7 @@ export default function TrashPage() {
       <div id="trash-panel" role="tabpanel" aria-labelledby={`trash-tab-${tab}`} className={s.panel}>
         <p role="status" className={s.notice}>{notice}</p>
         {error && <p role="alert" className={s.error}>{error}</p>}
-        {active.isPending && <div className={s.group} aria-busy="true" aria-label="Loading">{[0, 1, 2].map((i) => <div key={i} className={s.skel} />)}</div>}
+        {active.isPending && <div className={s.group} role="status" aria-busy="true" aria-label="Loading">{[0, 1, 2].map((i) => <div key={i} className={s.skel} />)}</div>}
         {active.isError && (
           <p role="alert" className={s.error}>Could not load the {tab === 'trash' ? 'trash' : 'archived pages'}. {active.error.message} <button type="button" onClick={() => void active.refetch()}>Try again</button></p>
         )}

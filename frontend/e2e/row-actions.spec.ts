@@ -52,7 +52,7 @@ test('phone drawer: every row shows … and +, no grip', async ({ page }) => {
   await page.goto('/app')
   await page.getByRole('button', { name: 'Open navigation' }).click()
   const space = page.locator(`[data-space="${lit.id}"]`)
-  for (const label of ['More actions for Literature Review', 'New page in Literature Review', 'More actions for Methodology', 'New sub-page under Methodology']) {
+  for (const label of ['More actions for Literature Review', 'New in Literature Review', 'More actions for Methodology', 'New sub-page under Methodology']) {
     await expect(space.getByRole('button', { name: label })).toBeVisible()
     expect(await width(space.getByRole('button', { name: label }))).toBeCloseTo(40, 1)
   }

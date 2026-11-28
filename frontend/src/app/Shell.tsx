@@ -127,7 +127,7 @@ export default function Shell() {
         <div
           ref={drawerRef} className={s.sidebarCol} id="kf-sidebar"
           {...(phone && drawer ? { role: 'dialog', 'aria-modal': true, 'aria-label': 'Navigation' } : {})}
-          onKeyDown={phone && drawer ? (e) => { if (e.key === 'Escape') closeDrawer() } : undefined}
+          onKeyDown={phone && drawer ? (e) => { if (e.key === 'Escape' && !(e.target as Element).closest('[role="menu"]')) closeDrawer() } : undefined}
         >
           {phone && drawer && (
             <button type="button" className={s.drawerClose} aria-label="Close navigation" onClick={closeDrawer}><Icon name="close" /></button>

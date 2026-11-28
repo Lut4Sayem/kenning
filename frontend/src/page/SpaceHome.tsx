@@ -65,7 +65,7 @@ function SpaceView({ spaceId, pages }: { spaceId: string; pages: (NodeSummary & 
           {editable && <button type="button" className={s.mainBtn} onClick={() => void create(null)}><Icon name="plus" />New page</button>}
           <ul className={`${h.list} ${s.pages}`} aria-label={`Pages in ${space?.name ?? 'this space'}`}>
             {pages.map((p) => (
-              <PageRow key={p.id} id={p.id} title={p.title} color={p.color} location={p.parentTitle && `in ${p.parentTitle}`}
+              <PageRow key={p.id} id={p.id} type={p.type} title={p.title} color={p.color} location={p.parentTitle && `in ${p.parentTitle}`}
                 status={p.titleOnly ? null : p.publishState} when={null} />
             ))}
           </ul>

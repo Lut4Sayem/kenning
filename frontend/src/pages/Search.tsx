@@ -201,7 +201,7 @@ function Row({ hit, q }: { hit: SearchHit; q: string }) {
 
 function Skeleton() {
   return (
-    <div className={s.group} aria-busy="true" aria-label="Searching">
+    <div className={s.group} role="status" aria-busy="true" aria-label="Searching">
       {[0, 1, 2].map((i) => <div key={i} className={s.skel} />)}
     </div>
   )

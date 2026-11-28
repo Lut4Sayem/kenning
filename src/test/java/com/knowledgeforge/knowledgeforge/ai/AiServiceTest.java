@@ -2,6 +2,7 @@ package com.knowledgeforge.knowledgeforge.ai;
 
 import com.knowledgeforge.knowledgeforge.access.Access;
 import com.knowledgeforge.knowledgeforge.access.NodeAccessService;
+import com.knowledgeforge.knowledgeforge.node.NodeType;
 import com.knowledgeforge.knowledgeforge.node.Node;
 import com.knowledgeforge.knowledgeforge.node.NodeRepository;
 import com.knowledgeforge.knowledgeforge.node.NodeStatus;
@@ -390,7 +391,7 @@ class AiServiceTest {
         AiAnswer saved = new AiAnswer();
         saved.setFingerprint(AiService.fingerprint(space, List.of(p)));
         saved.setAnswer("20 days [1]");
-        saved.setSources(List.of(new SourceDTO(1, "a", "Vacation policy")));
+        saved.setSources(List.of(new SourceDTO(1, "a", "Vacation policy", NodeType.PAGE)));
         saved.setUsedDocuments(1);
         // wording, case and punctuation differ, but the normalized key is the same
         when(answers.findBySpaceIdAndQuestionKey(SPACE_ID, "how many vacation days")).thenReturn(Optional.of(saved));
@@ -489,7 +490,7 @@ class AiServiceTest {
         AskResponse r = service.ask(SPACE_ID, "vacation policy");
 
         // [2] is cited first, so its page comes first; [9] is dropped; repeats are removed
-        assertEquals(List.of(new SourceDTO(2, "a", "Vacation"), new SourceDTO(1, "b", "Vacation policy")), r.sources());
+        assertEquals(List.of(new SourceDTO(2, "a", "Vacation", NodeType.PAGE), new SourceDTO(1, "b", "Vacation policy", NodeType.PAGE)), r.sources());
     }
 
     @Test
@@ -501,7 +502,7 @@ class AiServiceTest {
 
         AskResponse r = service.ask(SPACE_ID, "vacation policy");
 
-        assertEquals(List.of(new SourceDTO(1, "b", "Vacation policy"), new SourceDTO(2, "a", "Vacation")), r.sources());
+        assertEquals(List.of(new SourceDTO(1, "b", "Vacation policy", NodeType.PAGE), new SourceDTO(2, "a", "Vacation", NodeType.PAGE)), r.sources());
     }
 
     @Test
@@ -514,6 +515,6 @@ class AiServiceTest {
         AskResponse r = service.ask(SPACE_ID, "vacation policy");
 
         assertEquals("BLEU **28.4**[2], see also [1].", r.answer());
-        assertEquals(List.of(new SourceDTO(2, "a", "Vacation"), new SourceDTO(1, "b", "Vacation policy")), r.sources());
+        assertEquals(List.of(new SourceDTO(2, "a", "Vacation", NodeType.PAGE), new SourceDTO(1, "b", "Vacation policy", NodeType.PAGE)), r.sources());
     }
 }

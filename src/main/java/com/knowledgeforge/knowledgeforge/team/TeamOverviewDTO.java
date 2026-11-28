@@ -1,5 +1,6 @@
 package com.knowledgeforge.knowledgeforge.team;
 
+import com.knowledgeforge.knowledgeforge.node.NodeType;
 import com.knowledgeforge.knowledgeforge.node.PublishState;
 
 import java.util.Date;
@@ -19,13 +20,13 @@ public final class TeamOverviewDTO {
     }
 
     public record PageItem(String id, String title, String spaceId, String spaceName, PublishState publishState,
-                           String lastEditorName, String lastEditorId, Date updatedAt, String parentTitle, String color) {
+                           String lastEditorName, String lastEditorId, Date updatedAt, String parentTitle, String color, NodeType type) {
     }
 
     public record Pages(List<PageItem> items, int total) {
     }
 
-    public record ActivityItem(String actorName, String action, String targetTitle, String targetId, Date createdAt) {
+    public record ActivityItem(String actorName, String action, String targetTitle, String targetId, Date createdAt, NodeType type) {
     }
 
     public record SpaceItem(String id, String name, String description, String icon, int pageCount, int draftCount) {

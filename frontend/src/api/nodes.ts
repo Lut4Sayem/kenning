@@ -78,6 +78,7 @@ export interface TaggedNode {
   tags: string[]
   publishState: 'DRAFT' | 'PUBLISHED'
   color?: string | null
+  type?: 'PAGE' | 'BOARD'
 }
 export const getTagged = (tag: string) => api<TaggedNode[]>(`/api/tags/${encodeURIComponent(tag)}/nodes`)
 

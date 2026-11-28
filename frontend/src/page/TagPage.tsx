@@ -34,7 +34,7 @@ export default function TagPage() {
           <div>
             <ul className={s.list}>
               {list.slice(0, shown).map((p) => (
-                <PageRow key={p.id} id={p.id} title={p.title} color={p.color} location={p.spaceName} status={p.publishState} when={null} />
+                <PageRow key={p.id} id={p.id} type={p.type} title={p.title} color={p.color} location={p.spaceName} status={p.publishState} when={null} />
               ))}
             </ul>
             {list.length > shown && (

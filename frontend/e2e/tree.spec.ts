@@ -11,7 +11,8 @@ test('create page, create sub-page, drag it to top level, breadcrumbs update', a
   const priv = page.locator('[data-space]').first()
   const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' })
   // Row buttons take no width until the row is hovered or focused, so tests reach them by keyboard.
-  await priv.getByRole('button', { name: /new page/i }).press('Enter')
+  await priv.getByRole('button', { name: 'New in Private' }).press('Enter')
+  await page.getByRole('menuitem', { name: 'Page' }).press('Enter')
   await page.waitForURL(/\/app\/p\//)
   await page.getByLabel('Page title').fill('Parent')
   await page.getByLabel('Page title').blur()

@@ -1,6 +1,7 @@
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
+import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import BoardCanvas from './BoardCanvas'
 import type { El } from './binding/sync'
@@ -18,12 +19,13 @@ vi.mock('@excalidraw/excalidraw', () => {
   return {
     Excalidraw: (p: Props & { children?: ReactNode }) => {
       ex.props = p
-      p.excalidrawAPI({ updateScene: ex.updateScene })
-      return <div />
+      p.excalidrawAPI({ updateScene: ex.updateScene, getAppState: () => ({ scrollX: 0, scrollY: 0, width: 800, height: 600, zoom: { value: 1 } }) })
+      return <div><canvas /></div>
     },
     MainMenu: Object.assign(Menu, { DefaultItems: { SaveAsImage: none, Export: none, Help: none, ChangeCanvasBackground: none } }),
     CaptureUpdateAction: { NEVER: 'NEVER' },
     restoreElements: (els: unknown) => ex.restore(els),
+    viewportCoordsToSceneCoords: () => ({ x: 7, y: 8 }),
   }
 })
 
@@ -73,4 +75,16 @@ it('localIndexRepairIsNeverSent', () => {
   ex.props.onChange(shown, idle) // a gesture ends: everything new goes out now
   expect(doc.getMap<El>(ELEMENTS).get('y')!.version).toBe(1)
   expect(undo.canUndo()).toBe(false)
+})
+
+it('viewerLaserIsSent', () => { // WB 7.5: viewers may use the laser
+  const doc = new Y.Doc()
+  const awareness = new Awareness(doc)
+  awareness.setLocalState({ user: { id: 'v', name: 'V', color: '' } })
+  const { container } = render(<BoardCanvas doc={doc} editable={false} name="Plan" undo={createUndo(doc)} onLive={() => {}} awareness={awareness} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Laser pointer' }))
+  fireEvent.pointerDown(container.querySelector('canvas')!)
+  expect(awareness.getLocalState()).toMatchObject({ pointer: { x: 7, y: 8, tool: 'laser' }, button: 'down' })
+  awareness.destroy()
 })

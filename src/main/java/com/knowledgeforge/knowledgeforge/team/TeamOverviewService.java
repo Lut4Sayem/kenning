@@ -134,7 +134,7 @@ public class TeamOverviewService {
         List<PageItem> items = matches.subList(from, Math.min(from + pageSize, matches.size())).stream().map(n -> new PageItem(
                 n.getId(), n.getTitle(), n.getSpaceId(), spaceById.get(n.getSpaceId()).getName(), n.getPublishState(),
                 n.getUpdatedBy() == null ? null : n.getUpdatedBy().getName(), n.getUpdatedBy() == null ? null : n.getUpdatedBy().getUserId(),
-                n.getUpdatedAt(), n.getParentId() == null ? null : titleById.get(n.getParentId()), n.getColor())).toList();
+                n.getUpdatedAt(), n.getParentId() == null ? null : titleById.get(n.getParentId()), n.getColor(), n.getType())).toList();
         return new TeamOverviewDTO.Pages(items, matches.size());
     }
 
@@ -166,6 +166,6 @@ public class TeamOverviewService {
         // Team events (a rename) are for every member and keep the title they were logged with; page events show today's title.
         return shown.stream().map(l -> new ActivityItem(names.get(l.getUserId()), l.getAction(),
                 TEAM.equals(l.getTargetType()) ? l.getTargetTitle() : targets.get(l.getTargetId()).getTitle(),
-                l.getTargetId(), l.getCreatedAt())).toList();
+                l.getTargetId(), l.getCreatedAt(), TEAM.equals(l.getTargetType()) ? null : targets.get(l.getTargetId()).getType())).toList();
     }
 }
