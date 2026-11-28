@@ -40,3 +40,6 @@
 }
 .follow button { min-height: 28px; padding: 0 var(--space-2); font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; border-radius: 999px; cursor: pointer; }
 .follow button:hover, .follow button:focus-visible { background: var(--hover); }
+/* Shape packs come bundled (libraries.ts): no browsing libraries.excalidraw.com, no publishing to it (WB anti-goal 7).
+   Excalidraw 0.18.1 tags its Publish menu item with the "remove" test id. */
+.canvas :global(.excalidraw .library-menu-browse-button), .canvas :global(.excalidraw [data-testid='lib-dropdown--remove']) { display: none; }

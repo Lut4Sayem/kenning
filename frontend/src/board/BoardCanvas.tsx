@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import type { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { ELEMENTS } from './format'
+import { loadBundledLibraries } from './libraries'
 import { bindUndoKeys } from './binding/keys'
 import { WRITE_BACK, createThrottle, pushLocal, sceneFromDoc, writeBackLosers, type El } from './binding/sync'
 import type { BoardUndo } from './binding/undo'
@@ -145,6 +146,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
   }
 
   const initial = useMemo(() => restore(sceneFromDoc(doc, [], null)), [doc])
+  const libraryItems = useMemo(loadBundledLibraries, []) // Excalidraw reads initialData once, on mount
   useEffect(() => live.current(liveTypes(initial)), [initial]) // the loaded board, before any onChange
 
   function push() {
@@ -207,7 +209,7 @@ export default function BoardCanvas({ doc, editable, name, undo, onLive, awarene
           api.current = a
           onApi?.(a)
         }}
-        initialData={{ elements: initial, appState: styleDefaults(mode) }}
+        initialData={{ elements: initial, appState: styleDefaults(mode), libraryItems }}
         isCollaborating
         viewModeEnabled={!editable}
         name={name}
